@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    id("com.android.application") version "8.9.2"
+    id("org.jetbrains.kotlin.android") version "2.0.21"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     kotlin("kapt")
     id("com.google.dagger.hilt.android")
 }
@@ -88,4 +88,7 @@ dependencies {
     implementation("org.apache.xmlbeans:xmlbeans:5.1.1")
     implementation("org.apache.poi:poi-ooxml-lite:5.2.5")
     implementation("org.apache.commons:commons-collections4:4.4")
+
+    // DataStore Preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }

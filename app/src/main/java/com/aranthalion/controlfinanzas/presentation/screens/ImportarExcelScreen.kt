@@ -25,6 +25,9 @@ import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.material3.AlertDialog
+import kotlinx.coroutines.withContext
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +61,7 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
     var resultado by remember { mutableStateOf<List<MovimientoEntity>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var exito by remember { mutableStateOf(false) }
+    var resumenImportacion by remember { mutableStateOf<ResumenImportacion?>(null) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -124,7 +128,6 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
                             "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientos(inputStream!!, mesSeleccionado)
                             else -> emptyList()
                         }
-                        // Filtrar y transformar a MovimientoEntity
                         val movimientos = transacciones.filter {
                             it.descripcion.trim().uppercase() != "MONTO CANCELADO"
                         }.mapNotNull { t ->
@@ -136,19 +139,36 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
                                 fecha = t.fecha,
                                 periodoFacturacion = mesSeleccionado,
                                 categoriaId = null,
-                                tipoTarjeta = t.tipoTarjeta
+                                tipoTarjeta = t.tipoTarjeta,
+                                idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
                             )
                         }
                         resultado = movimientos
-                        // Insertar en la base de datos
                         CoroutineScope(Dispatchers.IO).launch {
-                            movimientos.forEach { mov ->
-                                viewModel.agregarMovimiento(mov)
+                            val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(mesSeleccionado)
+                            val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(mesSeleccionado)
+                            if (tipoArchivo == "Estado de cierre") {
+                                viewModel.eliminarMovimientosPorPeriodo(mesSeleccionado)
                             }
+                            val nuevos = movimientos.filter { it.idUnico !in existentes }
+                            val duplicados = movimientos.size - nuevos.size
+                            nuevos.forEach { mov ->
+                                val categoriaAnterior = categoriasPrevias[mov.idUnico]
+                                val movConCategoria = if (categoriaAnterior != null) mov.copy(categoriaId = categoriaAnterior) else mov
+                                viewModel.agregarMovimiento(movConCategoria)
+                            }
+                            val montoTotal = nuevos.sumOf { it.monto }
+                            resumenImportacion = ResumenImportacion(
+                                totalProcesadas = movimientos.size,
+                                nuevas = nuevos.size,
+                                duplicadas = duplicados,
+                                montoTotal = montoTotal,
+                                periodo = mesSeleccionado ?: "-"
+                            )
                             exito = true
                         }
                     } catch (e: Exception) {
-                        error = "Error al procesar el archivo: ${e.message}"
+                        error = e.message
                     }
                 }
             },
@@ -168,5 +188,33 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
         if (error != null) {
             Text(error!!, color = MaterialTheme.colorScheme.error)
         }
+        if (resumenImportacion != null) {
+            AlertDialog(
+                onDismissRequest = { resumenImportacion = null },
+                title = { Text("Resumen de Importación") },
+                text = {
+                    Column {
+                        Text("Total procesadas: ${resumenImportacion!!.totalProcesadas}")
+                        Text("Nuevas importadas: ${resumenImportacion!!.nuevas}")
+                        Text("Duplicadas (omitidas): ${resumenImportacion!!.duplicadas}")
+                        Text("Monto total importado: ${FormatUtils.formatMoneyCLP(resumenImportacion!!.montoTotal)}")
+                        Text("Periodo: ${resumenImportacion!!.periodo}")
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { resumenImportacion = null }) {
+                        Text("Aceptar")
+                    }
+                }
+            )
+        }
     }
-} 
+}
+
+data class ResumenImportacion(
+    val totalProcesadas: Int,
+    val nuevas: Int,
+    val duplicadas: Int,
+    val montoTotal: Double,
+    val periodo: String
+) 

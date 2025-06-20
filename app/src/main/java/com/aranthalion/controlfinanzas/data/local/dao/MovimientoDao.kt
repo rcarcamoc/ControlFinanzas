@@ -23,4 +23,21 @@ interface MovimientoDao {
 
     @Query("DELETE FROM movimientos")
     suspend fun deleteAllMovimientos()
+
+    @Query("SELECT idUnico FROM movimientos")
+    suspend fun obtenerIdUnicos(): List<String>
+
+    @Query("SELECT idUnico FROM movimientos WHERE periodoFacturacion = :periodo")
+    suspend fun obtenerIdUnicosPorPeriodo(periodo: String?): List<String>
+
+    @Query("SELECT idUnico, categoriaId FROM movimientos WHERE periodoFacturacion = :periodo")
+    suspend fun obtenerCategoriasPorIdUnico(periodo: String?): List<IdUnicoCategoria>
+
+    @Query("DELETE FROM movimientos WHERE periodoFacturacion = :periodo")
+    suspend fun eliminarMovimientosPorPeriodo(periodo: String?)
+
+    data class IdUnicoCategoria(
+        val idUnico: String,
+        val categoriaId: Long?
+    )
 } 

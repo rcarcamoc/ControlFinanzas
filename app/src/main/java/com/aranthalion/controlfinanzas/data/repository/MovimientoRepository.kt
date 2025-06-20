@@ -29,4 +29,20 @@ class MovimientoRepository @Inject constructor(
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity) {
         movimientoDao.eliminarMovimiento(movimiento)
     }
+
+    suspend fun obtenerIdUnicos(): Set<String> {
+        return movimientoDao.obtenerIdUnicos().toSet()
+    }
+
+    suspend fun obtenerIdUnicosPorPeriodo(periodo: String?): Set<String> {
+        return movimientoDao.obtenerIdUnicosPorPeriodo(periodo).toSet()
+    }
+
+    suspend fun obtenerCategoriasPorIdUnico(periodo: String?): Map<String, Long?> {
+        return movimientoDao.obtenerCategoriasPorIdUnico(periodo).associate { it.idUnico to it.categoriaId }
+    }
+
+    suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
+        movimientoDao.eliminarMovimientosPorPeriodo(periodo)
+    }
 } 

@@ -2,6 +2,7 @@ package com.aranthalion.controlfinanzas.di
 
 import android.content.Context
 import com.aranthalion.controlfinanzas.data.local.AppDatabase
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoManualDao
@@ -88,6 +89,12 @@ abstract class AppModule {
             mapper: MovimientoManualMapper
         ): MovimientoManualRepositoryImpl {
             return MovimientoManualRepositoryImpl(movimientoManualDao, mapper)
+        }
+
+        @Provides
+        @Singleton
+        fun provideConfiguracionPreferences(@ApplicationContext context: Context): ConfiguracionPreferences {
+            return ConfiguracionPreferences(context)
         }
     }
 } 

@@ -11,6 +11,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.util.Log
 import java.io.FileInputStream
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
+import java.security.MessageDigest
 
 // Modelo simple para transacción importada
 data class ExcelTransaction(
@@ -243,10 +245,10 @@ object ExcelProcessor {
                 // Si el valor es muy pequeño (menos de 1), puede ser un porcentaje o error
                 if (value > 0 && value < 1) {
                     Log.d("ExcelParse", "Valor pequeño detectado, multiplicando por 1000: ${value * 1000}")
-                    value * 1000 // Convertir a valor completo
+                    FormatUtils.roundToTwoDecimals(value * 1000) // Convertir a valor completo y redondear
                 } else {
                     Log.d("ExcelParse", "Valor numérico final: $value")
-                    value
+                    FormatUtils.roundToTwoDecimals(value)
                 }
             }
             CellType.STRING -> {
@@ -258,7 +260,7 @@ object ExcelProcessor {
                 // Primero intentar parsear directamente
                 val directParse = sinEspacios.toDoubleOrNull()
                 Log.d("ExcelParse", "Parseo directo: $directParse")
-                if (directParse != null) return directParse
+                if (directParse != null) return FormatUtils.roundToTwoDecimals(directParse)
                 
                 // Si falla, intentar con separadores
                 val normalized = sinEspacios
@@ -268,7 +270,7 @@ object ExcelProcessor {
                 
                 val finalValue = normalized.toDoubleOrNull() ?: 0.0
                 Log.d("ExcelParse", "Valor final string: $finalValue")
-                finalValue
+                FormatUtils.roundToTwoDecimals(finalValue)
             }
             else -> {
                 Log.d("ExcelParse", "Tipo de celda no soportado: ${cell?.cellType}")
@@ -298,5 +300,12 @@ object ExcelProcessor {
         } catch (e: Exception) {
             Log.e("ExcelTest", "Error al procesar archivos Excel: ${e.message}")
         }
+    }
+
+    fun generarIdUnico(fecha: Date?, monto: Double, descripcion: String): String {
+        val input = "${fecha?.time ?: 0}-$monto-$descripcion"
+        val md = MessageDigest.getInstance("SHA-256")
+        val hash = md.digest(input.toByteArray())
+        return hash.joinToString("") { "%02x".format(it) }
     }
 } 

@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import java.text.SimpleDateFormat
 import java.util.*
 import java.text.NumberFormat
@@ -261,11 +262,6 @@ private fun MovimientoItemHistorial(
     val formattedDate = remember(movimiento.fecha) {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(movimiento.fecha)
     }
-    // Formato personalizado para montos
-    val formatearMonto = remember { { monto: Double ->
-        // Mostrar directamente como string sin formato
-        monto.toLong().toString()
-    }}
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -307,7 +303,7 @@ private fun MovimientoItemHistorial(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "$${formatearMonto(movimiento.monto)}",
+                        text = FormatUtils.formatMoneyCLP(movimiento.monto),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (movimiento.tipo == "INGRESO") 
                             MaterialTheme.colorScheme.primary 

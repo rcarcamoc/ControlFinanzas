@@ -19,7 +19,7 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
         Categoria::class,
         MovimientoManualEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)

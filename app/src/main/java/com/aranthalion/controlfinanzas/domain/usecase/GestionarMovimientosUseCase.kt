@@ -27,4 +27,20 @@ class GestionarMovimientosUseCase @Inject constructor(
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity) {
         movimientoRepository.eliminarMovimiento(movimiento)
     }
+
+    suspend fun obtenerIdUnicos(): Set<String> {
+        return movimientoRepository.obtenerIdUnicos()
+    }
+
+    suspend fun obtenerIdUnicosPorPeriodo(periodo: String?): Set<String> {
+        return movimientoRepository.obtenerIdUnicosPorPeriodo(periodo)
+    }
+
+    suspend fun obtenerCategoriasPorIdUnico(periodo: String?): Map<String, Long?> {
+        return movimientoRepository.obtenerCategoriasPorIdUnico(periodo)
+    }
+
+    suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
+        movimientoRepository.eliminarMovimientosPorPeriodo(periodo)
+    }
 } 

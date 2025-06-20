@@ -10,6 +10,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class MovimientosViewModel @Inject constructor(
@@ -90,6 +92,30 @@ class MovimientosViewModel @Inject constructor(
             gastos = gastos,
             balance = ingresos - gastos
         )
+    }
+
+    suspend fun obtenerIdUnicosExistentes(): Set<String> {
+        return withContext(Dispatchers.IO) {
+            gestionarMovimientosUseCase.obtenerIdUnicos()
+        }
+    }
+
+    suspend fun obtenerIdUnicosExistentesPorPeriodo(periodo: String?): Set<String> {
+        return withContext(Dispatchers.IO) {
+            gestionarMovimientosUseCase.obtenerIdUnicosPorPeriodo(periodo)
+        }
+    }
+
+    suspend fun obtenerCategoriasPorIdUnico(periodo: String?): Map<String, Long?> {
+        return withContext(Dispatchers.IO) {
+            gestionarMovimientosUseCase.obtenerCategoriasPorIdUnico(periodo)
+        }
+    }
+
+    suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
+        withContext(Dispatchers.IO) {
+            gestionarMovimientosUseCase.eliminarMovimientosPorPeriodo(periodo)
+        }
     }
 }
 

@@ -15,8 +15,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.aranthalion.controlfinanzas.presentation.components.StatCard
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
+import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
+import com.aranthalion.controlfinanzas.presentation.screens.MovimientosUiState
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,9 +35,23 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val totales by viewModel.totales.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
     
     val currentTime = remember { 
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+    }
+
+    // Refrescar al volver a primer plano
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.cargarMovimientos()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     Scaffold(
@@ -77,9 +100,15 @@ fun HomeScreen(
                     val movimientos = (uiState as MovimientosUiState.Success).movimientos
                     val gastos = movimientos.filter { it.tipo == "GASTO" }
                     val ingresos = movimientos.filter { it.tipo == "INGRESO" }
-                    val totalGastos = gastos.sumOf { it.monto }
-                    val totalIngresos = ingresos.sumOf { it.monto }
-                    val balance = totalIngresos - totalGastos
+                    
+                    // Normalizar y redondear montos
+                    val totalGastos = FormatUtils.roundToTwoDecimals(
+                        gastos.sumOf { FormatUtils.normalizeAmount(it.monto) }
+                    )
+                    val totalIngresos = FormatUtils.roundToTwoDecimals(
+                        ingresos.sumOf { FormatUtils.normalizeAmount(it.monto) }
+                    )
+                    val balance = FormatUtils.roundToTwoDecimals(totalIngresos - totalGastos)
                     
                     // Tarjetas de estadísticas
                     LazyVerticalGrid(
@@ -91,25 +120,28 @@ fun HomeScreen(
                         item {
                             StatCard(
                                 title = "Gasto Total",
-                                value = "$${totalGastos.toLong()}",
+                                value = totalGastos.toString(),
                                 icon = Icons.Default.Add,
-                                description = "Este mes"
+                                description = "Este mes",
+                                isMonetary = true
                             )
                         }
                         item {
                             StatCard(
                                 title = "Ingresos",
-                                value = "$${totalIngresos.toLong()}",
+                                value = totalIngresos.toString(),
                                 icon = Icons.Default.Add,
-                                description = "Este mes"
+                                description = "Este mes",
+                                isMonetary = true
                             )
                         }
                         item {
                             StatCard(
                                 title = "Balance",
-                                value = "$${balance.toLong()}",
+                                value = balance.toString(),
                                 icon = Icons.Default.Add,
-                                description = if (balance >= 0) "Positivo" else "Negativo"
+                                description = if (balance >= 0) "Positivo" else "Negativo",
+                                isMonetary = true
                             )
                         }
                         item {
@@ -117,7 +149,8 @@ fun HomeScreen(
                                 title = "Transacciones",
                                 value = "${movimientos.size}",
                                 icon = Icons.Default.List,
-                                description = "Total registradas"
+                                description = "Total registradas",
+                                isMonetary = false
                             )
                         }
                     }

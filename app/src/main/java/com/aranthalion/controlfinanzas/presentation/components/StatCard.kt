@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
 
 @Composable
 fun StatCard(
@@ -17,7 +18,8 @@ fun StatCard(
     value: String,
     icon: ImageVector,
     description: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isMonetary: Boolean = true
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -52,7 +54,11 @@ fun StatCard(
             
             // Valor principal
             Text(
-                text = value,
+                text = if (isMonetary && value.toDoubleOrNull() != null) {
+                    FormatUtils.formatMoneyCLP(value.toDouble())
+                } else {
+                    value
+                },
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

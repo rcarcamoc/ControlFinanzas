@@ -14,5 +14,6 @@ data class MovimientoEntity(
     val fecha: Date,
     val periodoFacturacion: String, // Formato: "YYYY-MM"
     val categoriaId: Long? = null,
-    val tipoTarjeta: String? = null // Nuevo campo para mostrar tipo de tarjeta
+    val tipoTarjeta: String? = null, // Nuevo campo para mostrar tipo de tarjeta
+    val idUnico: String,
 ) 

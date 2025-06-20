@@ -23,9 +23,11 @@ import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasViewModel
 import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasUiState
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import java.text.SimpleDateFormat
 import java.util.*
 import java.text.NumberFormat
+import com.aranthalion.controlfinanzas.data.util.ExcelProcessor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,13 +151,15 @@ fun MovimientosScreen(
             showDialog = showAddDialog,
             onDismiss = { showAddDialog = false },
             onConfirm = { tipo, monto, descripcion, periodo, categoriaId ->
+                val fecha = Date()
                 val nuevoMovimiento = MovimientoEntity(
                     tipo = tipo,
                     monto = monto,
                     descripcion = descripcion,
-                    fecha = Date(),
+                    fecha = fecha,
                     periodoFacturacion = periodo,
-                    categoriaId = categoriaId
+                    categoriaId = categoriaId,
+                    idUnico = ExcelProcessor.generarIdUnico(fecha, monto, descripcion)
                 )
                 viewModel.agregarMovimiento(nuevoMovimiento)
                 showAddDialog = false
@@ -168,11 +172,6 @@ fun MovimientosScreen(
 @Composable
 private fun MovimientoItemMovimientos(movimiento: MovimientoEntity, viewModel: MovimientosViewModel) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    // Formato personalizado para montos
-    val formatearMonto = remember { { monto: Double ->
-        // Mostrar directamente como string sin formato
-        monto.toLong().toString()
-    }}
     var showEditCategoria by remember { mutableStateOf(false) }
     val categoriasViewModel: CategoriasViewModel = hiltViewModel()
     val categoriasUiState by categoriasViewModel.uiState.collectAsState()
@@ -221,7 +220,7 @@ private fun MovimientoItemMovimientos(movimiento: MovimientoEntity, viewModel: M
                 }
             }
             Text(
-                text = "$${formatearMonto(movimiento.monto)}",
+                text = FormatUtils.formatMoneyCLP(movimiento.monto),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (movimiento.tipo == "INGRESO") 
                     MaterialTheme.colorScheme.primary 
