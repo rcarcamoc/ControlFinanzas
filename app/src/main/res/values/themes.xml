@@ -1,25 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ControlFinanzas" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Colores principales basados en el prototipo naranja -->
-        <item name="colorPrimary">@color/orange_500</item>
-        <item name="colorPrimaryVariant">@color/orange_700</item>
-        <item name="colorOnPrimary">@color/white</item>
-        
-        <item name="colorSecondary">@color/orange_200</item>
-        <item name="colorSecondaryVariant">@color/orange_300</item>
-        <item name="colorOnSecondary">@color/orange_900</item>
-        
-        <item name="colorSurface">@color/white</item>
-        <item name="colorOnSurface">@color/orange_900</item>
-        
-        <item name="colorBackground">@color/orange_50</item>
-        <item name="colorOnBackground">@color/orange_900</item>
-        
-        <item name="colorError">@color/red_500</item>
-        <item name="colorOnError">@color/white</item>
-        
+    <style name="Theme.ControlFinanzas" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Configuración de la barra de estado -->
         <item name="android:statusBarColor">@color/orange_500</item>
         <item name="android:windowLightStatusBar">false</item>

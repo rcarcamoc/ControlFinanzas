@@ -138,7 +138,7 @@ fun ConfiguracionScreen(
             
             item {
                 ConfiguracionItem(
-                    icon = Icons.Default.Security,
+                    icon = Icons.Default.Lock,
                     title = "Privacidad y Seguridad",
                     subtitle = "Configurar opciones de seguridad",
                     onClick = { /* TODO */ }
@@ -147,7 +147,7 @@ fun ConfiguracionScreen(
             
             item {
                 ConfiguracionItem(
-                    icon = Icons.Default.Help,
+                    icon = Icons.Default.Info,
                     title = "Ayuda y Soporte",
                     subtitle = "Obtener ayuda y contactar soporte",
                     onClick = { /* TODO */ }
@@ -253,7 +253,7 @@ private fun ConfiguracionItem(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.ArrowForward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)

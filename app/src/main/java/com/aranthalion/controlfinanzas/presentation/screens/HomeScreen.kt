@@ -15,8 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.aranthalion.controlfinanzas.presentation.components.StatCard
-import com.aranthalion.controlfinanzas.presentation.movimientos.MovimientosViewModel
-import com.aranthalion.controlfinanzas.presentation.movimientos.MovimientosUiState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,9 +48,18 @@ fun HomeScreen(
                         )
                     }
                 },
+                navigationIcon = {
+                    // Espacio para mantener el título centrado
+                },
+                actions = {
+                    IconButton(onClick = { navController.navigate("configuracion") }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -85,7 +92,7 @@ fun HomeScreen(
                             StatCard(
                                 title = "Gasto Total",
                                 value = "$${totalGastos.toLong()}",
-                                icon = Icons.Default.Remove,
+                                icon = Icons.Default.Add,
                                 description = "Este mes"
                             )
                         }
@@ -101,7 +108,7 @@ fun HomeScreen(
                             StatCard(
                                 title = "Balance",
                                 value = "$${balance.toLong()}",
-                                icon = Icons.Default.AccountBalance,
+                                icon = Icons.Default.Add,
                                 description = if (balance >= 0) "Positivo" else "Negativo"
                             )
                         }
@@ -184,7 +191,7 @@ fun HomeScreen(
                 item {
                     MenuCard(
                         title = "Importar Excel",
-                        icon = Icons.Default.Upload,
+                        icon = Icons.Default.Add,
                         description = "Carga extractos bancarios",
                         onClick = { navController.navigate("importar_excel") }
                     )
