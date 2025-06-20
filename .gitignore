@@ -1,0 +1,62 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+agrega esto al .gitignore
+
+# === Android Studio / Gradle ===
+.gradle/
+build/
+*/build/
+local.properties
+*.iml
+.idea/
+.externalNativeBuild/
+.cxx/
+captures/
+output.json
+
+# === Archivos generados automáticamente ===
+*.hprof
+java_pid*.hprof
+*.log
+*.bak
+*.tmp
+
+# === VS Code / Cursor ===
+.vscode/*
+!.vscode/extensions.json  # permite compartir solo las extensiones recomendadas
+.history/                 # extensión "Local History"
+.code-workspace
+cursor.lock
+cursor.json
+
+# === Archivos del sistema ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# === Linux (específicos de Ubuntu) ===
+*~
+
+# === Archivos de test/instrumentación (si no deseas trackear resultados) ===
+test-results/
+
+# Google Services
+/app/google-services.json
+
+# Keystore files
+*.jks
+*.keystore

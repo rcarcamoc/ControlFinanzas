@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 25 100% 97%; /* Very Light Orange (Pale Peach) */
+    --foreground: 25 30% 25%; /* Dark Brownish Orange for text */
+
+    --muted: 30 70% 90%; /* Light peachy orange for muted backgrounds */
+    --muted-foreground: 30 25% 45%; /* Darker peachy brown for muted text */
+
+    --popover: 25 100% 97%;
+    --popover-foreground: 25 30% 25%;
+
+    --card: 0 0% 100%; /* White cards for contrast */
+    --card-foreground: 25 30% 25%;
+
+    --border: 30 50% 85%; /* Soft orange border */
+    --input: 30 50% 88%; /* Slightly darker soft orange for input */
+
+    --primary: 30 90% 55%; /* Vibrant Orange */
+    --primary-foreground: 25 50% 98%; /* Very light orange for text on primary */
+
+    --secondary: 35 80% 92%; /* Lighter Soft Orange for secondary elements */
+    --secondary-foreground: 30 70% 30%; /* Darker Orange for text on secondary */
+
+    --accent: 35 85% 70%; /* Soft Orange (Peach/Light Terracotta) */
+    --accent-foreground: 30 70% 25%; /* Darker Orange for text on accent */
+
+    --destructive: 0 70% 50%; /* Standard destructive red */
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 30 90% 55%; /* Vibrant Orange for focus rings */
+
+    --radius: 0.5rem;
+
+    /* Sidebar specific colors based on theme */
+    --sidebar-background: 30 60% 92%; /* Lighter shade of orange (Pale Apricot) */
+    --sidebar-foreground: 30 80% 25%; /* Dark orange for text */
+    --sidebar-primary: 30 90% 55%; /* Vibrant orange */
+    --sidebar-primary-foreground: 25 50% 98%; 
+    --sidebar-accent: 35 85% 70%; /* Soft orange/peach */
+    --sidebar-accent-foreground: 30 70% 25%;
+    --sidebar-border: 30 50% 80%;
+    --sidebar-ring: 30 90% 55%;
+
+    --chart-1: 30 90% 55%; /* Vibrant Orange */
+    --chart-2: 35 80% 70%; /* Lighter/Softer Orange - Peach */
+    --chart-3: 20 60% 60%; /* Complementary Brownish Orange */
+    --chart-4: 30 70% 75%; /* Lighter Vibrant Orange */
+    --chart-5: 35 60% 65%; /* Mid Orange/Terracotta */
+  }
+
+  .dark {
+    --background: 25 30% 10%; /* Very Dark Brownish Orange */
+    --foreground: 30 80% 95%; /* Light Peachy Orange for text */
+
+    --muted: 25 25% 20%; /* Darker Brownish Orange for muted backgrounds */
+    --muted-foreground: 30 60% 70%; /* Lighter Peachy Orange for muted text */
+
+    --popover: 25 30% 10%;
+    --popover-foreground: 30 80% 95%;
+
+    --card: 25 30% 12%; /* Slightly lighter dark brownish orange for cards */
+    --card-foreground: 30 80% 95%;
+
+    --border: 25 20% 30%; /* Muted orange-brown border */
+    --input: 25 20% 30%; /* Muted orange-brown for input */
+
+    --primary: 30 90% 55%; /* Vibrant Orange */
+    --primary-foreground: 20 30% 95%; /* Very light orange for text on primary */
+
+    --secondary: 35 70% 35%; /* Darker, muted orange for secondary elements */
+    --secondary-foreground: 30 80% 95%; /* Light Peachy Orange for text on secondary */
+
+    --accent: 35 75% 45%; /* Muted orange for accent */
+    --accent-foreground: 30 80% 95%; /* Light Peachy Orange for text on accent */
+
+    --destructive: 0 70% 50%; /* Standard destructive red */
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 30 90% 55%; /* Vibrant Orange for focus rings */
+
+    --sidebar-background: 25 35% 15%; /* Dark orange-brown for sidebar */
+    --sidebar-foreground: 30 70% 90%; /* Light peachy orange text */
+    --sidebar-primary: 30 90% 55%; /* Vibrant orange */
+    --sidebar-primary-foreground: 20 30% 95%; 
+    --sidebar-accent: 35 75% 45%; /* Muted orange */
+    --sidebar-accent-foreground: 30 80% 95%;
+    --sidebar-border: 25 25% 25%;
+    --sidebar-ring: 30 90% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Font family is set in tailwind.config.ts and layout.tsx */
+  }
+}

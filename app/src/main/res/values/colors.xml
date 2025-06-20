@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Paleta de colores naranja del prototipo -->
+    <color name="orange_50">#FFFEF7F0</color>
+    <color name="orange_100">#FFFEE7CC</color>
+    <color name="orange_200">#FFFED7A3</color>
+    <color name="orange_300">#FFFECB80</color>
+    <color name="orange_400">#FFFEBF5D</color>
+    <color name="orange_500">#FFE65100</color>
+    <color name="orange_600">#FFD84315</color>
+    <color name="orange_700">#FFBF360C</color>
+    <color name="orange_800">#FF8D4E12</color>
+    <color name="orange_900">#FF6D2C00</color>
+    
+    <!-- Paleta de colores azul -->
+    <color name="blue_50">#FFE3F2FD</color>
+    <color name="blue_100">#FFBBDEFB</color>
+    <color name="blue_200">#FF90CAF9</color>
+    <color name="blue_300">#FF64B5F6</color>
+    <color name="blue_400">#FF42A5F5</color>
+    <color name="blue_500">#FF2196F3</color>
+    <color name="blue_600">#FF1E88E5</color>
+    <color name="blue_700">#FF1976D2</color>
+    <color name="blue_800">#FF1565C0</color>
+    <color name="blue_900">#FF0D47A1</color>
+    
+    <!-- Paleta de colores verde -->
+    <color name="green_50">#FFE8F5E8</color>
+    <color name="green_100">#FFC8E6C9</color>
+    <color name="green_200">#FFA5D6A7</color>
+    <color name="green_300">#FF81C784</color>
+    <color name="green_400">#FF66BB6A</color>
+    <color name="green_500">#FF4CAF50</color>
+    <color name="green_600">#FF43A047</color>
+    <color name="green_700">#FF388E3C</color>
+    <color name="green_800">#FF2E7D32</color>
+    <color name="green_900">#FF1B5E20</color>
+    
+    <!-- Colores de error -->
+    <color name="red_500">#FFE53B3B</color>
+    <color name="red_700">#FFD32F2F</color>
+</resources>

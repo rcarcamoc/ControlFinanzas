@@ -1,0 +1,109 @@
+package com.aranthalion.controlfinanzas.presentation.screens
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.data.local.entity.Categoria
+import com.aranthalion.controlfinanzas.domain.usecase.GestionarMovimientosUseCase
+import com.aranthalion.controlfinanzas.domain.categoria.GestionarCategoriasUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class MovimientosViewModel @Inject constructor(
+    private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
+    private val gestionarCategoriasUseCase: GestionarCategoriasUseCase
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<MovimientosUiState>(MovimientosUiState.Loading)
+    val uiState: StateFlow<MovimientosUiState> = _uiState.asStateFlow()
+
+    private val _totales = MutableStateFlow(Totales(0.0, 0.0, 0.0))
+    val totales: StateFlow<Totales> = _totales.asStateFlow()
+
+    init {
+        cargarMovimientos()
+    }
+
+    fun cargarMovimientos() {
+        viewModelScope.launch {
+            try {
+                val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
+                val categorias = gestionarMovimientosUseCase.obtenerCategorias()
+                _uiState.value = MovimientosUiState.Success(movimientos, categorias)
+                calcularTotales(movimientos)
+            } catch (e: Exception) {
+                _uiState.value = MovimientosUiState.Error(e.message ?: "Error al cargar movimientos")
+            }
+        }
+    }
+
+    fun agregarMovimiento(movimiento: MovimientoEntity) {
+        viewModelScope.launch {
+            try {
+                gestionarMovimientosUseCase.agregarMovimiento(movimiento)
+                cargarMovimientos()
+            } catch (e: Exception) {
+                _uiState.value = MovimientosUiState.Error(e.message ?: "Error al agregar movimiento")
+            }
+        }
+    }
+
+    fun actualizarMovimiento(movimiento: MovimientoEntity) {
+        viewModelScope.launch {
+            try {
+                gestionarMovimientosUseCase.actualizarMovimiento(movimiento)
+                cargarMovimientos()
+            } catch (e: Exception) {
+                _uiState.value = MovimientosUiState.Error(e.message ?: "Error al actualizar movimiento")
+            }
+        }
+    }
+
+    fun eliminarMovimiento(movimiento: MovimientoEntity) {
+        viewModelScope.launch {
+            try {
+                gestionarMovimientosUseCase.eliminarMovimiento(movimiento)
+                cargarMovimientos()
+            } catch (e: Exception) {
+                _uiState.value = MovimientosUiState.Error(e.message ?: "Error al eliminar movimiento")
+            }
+        }
+    }
+
+    private fun calcularTotales(movimientos: List<MovimientoEntity>) {
+        var ingresos = 0.0
+        var gastos = 0.0
+
+        movimientos.forEach { movimiento ->
+            if (movimiento.tipo == "INGRESO") {
+                ingresos += movimiento.monto
+            } else {
+                gastos += movimiento.monto
+            }
+        }
+
+        _totales.value = Totales(
+            ingresos = ingresos,
+            gastos = gastos,
+            balance = ingresos - gastos
+        )
+    }
+}
+
+data class Totales(
+    val ingresos: Double,
+    val gastos: Double,
+    val balance: Double
+)
+
+sealed class MovimientosUiState {
+    object Loading : MovimientosUiState()
+    data class Success(
+        val movimientos: List<MovimientoEntity>,
+        val categorias: List<Categoria>
+    ) : MovimientosUiState()
+    data class Error(val mensaje: String) : MovimientosUiState()
+} 

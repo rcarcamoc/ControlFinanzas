@@ -1,0 +1,86 @@
+Asunto: Entrega del Prototipo FinaVision y Siguientes Pasos de Desarrollo
+
+¡Hola equipo!
+
+Adjunto (conceptualmente) el prototipo actual de FinaVision, una aplicación de finanzas personales diseñada para ejecutarse localmente en el dispositivo del usuario (inicialmente pensando en un entorno Android). Este prototipo se ha construido utilizando Next.js (App Router), React, ShadCN UI, Tailwind CSS y Lucide Icons.
+
+Estado Actual del Prototipo:
+
+Hemos desarrollado una interfaz de usuario interactiva para las características principales, con lógica de frontend simulada usando useState y datos de ejemplo. Las páginas principales (Dashboard, Carga de Extractos, Presupuestos, Categorías, Clasificar Transacciones) están creadas y son navegables.
+
+Características Clave Prototipadas (y Requisitos):
+
+Dashboard de Resumen de Gastos:
+
+Muestra tarjetas de estadísticas clave (gasto total, presupuesto restante, proyección).
+Gráfico de tendencia de gasto mensual (actualmente con datos simulados).
+Gráfico de torta de gasto por categoría (actualmente con datos simulados).
+Lista interactiva de estado de presupuestos.
+Interactividad:
+Al hacer clic en un presupuesto, se actualizan (simuladamente) el gráfico de tendencia y las proyecciones.
+Al hacer clic en una porción del gráfico de torta, se muestra un desglose de "comercios" (simulado a partir de descripciones de transacciones).
+Carga de Extractos Bancarios:
+
+Permite al usuario seleccionar el tipo de archivo:
+Estado de Cierre (mensual, reemplaza datos del período).
+Últimos Movimientos (del mes actual, añade transacciones evitando duplicados).
+Permite seleccionar Mes y Año para el extracto.
+Acepta archivos con formato XLS (Excel).
+Lógica de procesamiento (actualmente simulada):
+Diferencia entre "Estado de Cierre" y "Últimos Movimientos".
+Simula la extracción de transacciones y su almacenamiento en un estado local (allTransactions).
+Muestra historial de archivos cargados.
+Requisito Crítico: El procesamiento real de archivos XLS requerirá una biblioteca como SheetJS (xlsx) en el frontend, o un manejo en el backend si se opta por ello.
+Gestión de Presupuestos:
+
+Vista para definir y ajustar límites presupuestarios por categoría.
+Funcionalidad CRUD (Crear, Leer, Actualizar, Borrar) simulada en el frontend.
+Muestra progreso y estado de cada presupuesto.
+Gestión de Categorías:
+
+Vista para añadir, editar y eliminar categorías de gastos.
+Permite seleccionar un icono (lucide-react) para cada categoría.
+Funcionalidad CRUD simulada en el frontend.
+Las categorías son las definidas por el usuario (ej: Arriendo, Supermercado, Bencina, etc.).
+Clasificador de Transacciones:
+
+Muestra transacciones no categorizadas y categorizadas.
+Permite al usuario asignar un tipo de tarjeta ('familia' o 'titular') y una categoría a las transacciones.
+Simula sugerencias de categorías basadas en descripciones.
+Guía de Estilo (Según PRD y Prototipo):
+
+Colores (PRD Original): Primario: Azul Apagado (#6495ED), Fondo: Gris Claro (#F0F8FF), Acento: Lavanda Suave (#E6E6FA).
+Colores (Prototipo Actual): La tema actual en globals.css se ha ajustado a una paleta de tonos anaranjados según solicitud. Por favor, revisar y decidir la paleta final.
+Tipografía: 'PT Sans' para cuerpo y titulares (ya configurado).
+Layout: Basado en tarjetas, con amplio espacio en blanco.
+Iconografía: lucide-react (ya integrado).
+Próximos Pasos Clave para el Desarrollo:
+
+Implementación de Lógica de Datos Real:
+
+Parseo de Archivos XLS: Integrar una biblioteca (ej. SheetJS) para leer y parsear el contenido de los archivos Excel (.xls) cargados por el usuario.
+Almacenamiento Local Persistente: Dado que es una aplicación local, implementar el almacenamiento de todas las transacciones, categorías personalizadas, presupuestos y archivos procesados usando localStorage o, preferiblemente, IndexedDB para mayor capacidad y rendimiento.
+Lógica de Transacciones: Implementar robustamente la lógica de añadir/reemplazar transacciones según el tipo de archivo ("Estado de Cierre" vs. "Últimos Movimientos") y el período, asegurando la integridad de los datos y evitando duplicados.
+Mapear correctamente las categorías de los extractos a las categorías definidas por el usuario en la app.
+Conexión del Frontend a la Lógica de Datos:
+
+Reemplazar todos los SAMPLE_ datos y la manipulación de estado con useState por la lectura/escritura desde el almacenamiento local persistente.
+Todas las operaciones CRUD (presupuestos, categorías) deben operar sobre los datos persistentes.
+El Dashboard y la página de Clasificar deben reflejar los datos reales almacenados.
+Alertas de Nuevas Transacciones (Característica del PRD):
+
+Diseñar e implementar notificaciones que indiquen la cantidad de transacciones nuevas y no categorizadas después del procesamiento de un archivo.
+Mejoras y Refinamientos:
+
+Implementar manejo de errores robusto para la carga de archivos y otras operaciones.
+Añadir estados de carga visuales más detallados durante el procesamiento de archivos.
+Permitir la edición/reclasificación de transacciones ya categorizadas en la página "Classify".
+Revisar y finalizar la paleta de colores y asegurar la consistencia visual.
+Pruebas:
+
+Pruebas exhaustivas de todas las funcionalidades, especialmente el flujo de carga y procesamiento de archivos con diferentes escenarios.
+Este prototipo sienta las bases visuales y de interacción. El siguiente gran paso es darle vida con la lógica de datos real y la persistencia local.
+
+Por favor, revisen el código y los comentarios donde se indica "SIMULACIÓN" o "TODO", ya que marcan áreas donde la lógica real necesita ser implementada.
+
+¡Gracias y adelante con el desarrollo!
