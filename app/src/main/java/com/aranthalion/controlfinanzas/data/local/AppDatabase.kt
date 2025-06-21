@@ -7,9 +7,11 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.aranthalion.controlfinanzas.data.local.converter.DateConverter
 import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
+import com.aranthalion.controlfinanzas.data.local.dao.ClasificacionAutomaticaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoManualDao
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
+import com.aranthalion.controlfinanzas.data.local.entity.ClasificacionAutomaticaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
 
@@ -17,9 +19,10 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
     entities = [
         MovimientoEntity::class,
         Categoria::class,
-        MovimientoManualEntity::class
+        MovimientoManualEntity::class,
+        ClasificacionAutomaticaEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -27,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun movimientoDao(): MovimientoDao
     abstract fun categoriaDao(): CategoriaDao
     abstract fun movimientoManualDao(): MovimientoManualDao
+    abstract fun clasificacionAutomaticaDao(): ClasificacionAutomaticaDao
 
     companion object {
         @Volatile

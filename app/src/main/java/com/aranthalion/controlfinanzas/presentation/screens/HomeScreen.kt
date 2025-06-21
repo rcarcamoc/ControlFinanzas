@@ -201,11 +201,11 @@ fun HomeScreen(
             ) {
                 item {
                     MenuCard(
-                title = "Transacciones",
-                icon = Icons.Default.Add,
+                        title = "Transacciones",
+                        icon = Icons.Default.Add,
                         description = "Gestiona ingresos y gastos",
-                onClick = { navController.navigate("transacciones") }
-            )
+                        onClick = { navController.navigate("transacciones") }
+                    )
                 }
                 item {
                     MenuCard(
@@ -221,6 +221,14 @@ fun HomeScreen(
                         icon = Icons.Default.Add,
                         description = "Carga extractos bancarios",
                         onClick = { navController.navigate("importar_excel") }
+                    )
+                }
+                item {
+                    MenuCard(
+                        title = "Clasificación",
+                        icon = Icons.Default.Edit,
+                        description = "Revisar transacciones pendientes",
+                        onClick = { navController.navigate("clasificacion_pendiente") }
                     )
                 }
             }
@@ -294,18 +302,18 @@ private fun MenuCard(
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = title,
+            Text(
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = description,
+            )
+            Text(
+                text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
-                )
+            )
         }
     }
 } 

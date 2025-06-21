@@ -13,6 +13,8 @@ import android.util.Log
 import java.io.FileInputStream
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import java.security.MessageDigest
+import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
+import com.aranthalion.controlfinanzas.domain.clasificacion.SugerenciaClasificacion
 
 // Modelo simple para transacción importada
 data class ExcelTransaction(
@@ -23,10 +25,41 @@ data class ExcelTransaction(
     val tipoTarjeta: String?,
     val monto: Double,
     val periodoFacturacion: String?,
-    val categoria: String? // Siempre null al importar
+    val categoria: String?, // Siempre null al importar
+    val categoriaId: Long? = null, // ID de la categoría sugerida automáticamente
+    val nivelConfianza: Double? = null // Nivel de confianza de la sugerencia
 )
 
 object ExcelProcessor {
+    
+    private var clasificacionUseCase: GestionarClasificacionAutomaticaUseCase? = null
+    
+    fun setClasificacionUseCase(useCase: GestionarClasificacionAutomaticaUseCase) {
+        clasificacionUseCase = useCase
+    }
+    
+    /**
+     * Procesa un archivo Excel y extrae una lista de transacciones con clasificación automática.
+     * Soporta .xls y .xlsx. Lanza excepción si el archivo es inválido.
+     */
+    suspend fun procesarArchivoConClasificacion(inputStream: InputStream): List<ExcelTransaction> {
+        val transacciones = procesarArchivo(inputStream)
+        return aplicarClasificacionAutomatica(transacciones)
+    }
+    
+    /**
+     * Aplica clasificación automática a una lista de transacciones
+     */
+    private suspend fun aplicarClasificacionAutomatica(transacciones: List<ExcelTransaction>): List<ExcelTransaction> {
+        return transacciones.map { transaccion ->
+            val sugerencia = clasificacionUseCase?.sugerirCategoria(transaccion.descripcion)
+            transaccion.copy(
+                categoriaId = sugerencia?.categoriaId,
+                nivelConfianza = sugerencia?.nivelConfianza
+            )
+        }
+    }
+
     /**
      * Procesa un archivo Excel y extrae una lista de transacciones.
      * Soporta .xls y .xlsx. Lanza excepción si el archivo es inválido.
@@ -81,6 +114,15 @@ object ExcelProcessor {
     }
 
     /**
+     * Importa transacciones desde un archivo de 'estado de cierre' con clasificación automática.
+     * @param periodoFacturacion El periodo seleccionado en la UI
+     */
+    suspend fun importarEstadoDeCierreConClasificacion(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
+        val transacciones = importarEstadoDeCierre(inputStream, periodoFacturacion)
+        return aplicarClasificacionAutomatica(transacciones)
+    }
+
+    /**
      * Importa transacciones desde un archivo de 'estado de cierre'.
      * @param periodoFacturacion El periodo seleccionado en la UI
      */
@@ -113,6 +155,15 @@ object ExcelProcessor {
         }
         workbook.close()
         return transacciones
+    }
+
+    /**
+     * Importa transacciones desde un archivo de 'últimos movimientos' con clasificación automática.
+     * @param periodoFacturacion El periodo seleccionado en la UI
+     */
+    suspend fun importarUltimosMovimientosConClasificacion(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
+        val transacciones = importarUltimosMovimientos(inputStream, periodoFacturacion)
+        return aplicarClasificacionAutomatica(transacciones)
     }
 
     /**

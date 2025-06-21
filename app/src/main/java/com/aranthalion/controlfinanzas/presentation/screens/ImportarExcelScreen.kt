@@ -29,10 +29,14 @@ import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.withContext
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import androidx.compose.ui.window.DialogProperties
+import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
+fun ImportarExcelScreen(
+    viewModel: MovimientosViewModel = hiltViewModel(),
+    clasificacionUseCase: GestionarClasificacionAutomaticaUseCase = hiltViewModel()
+) {
     val context = LocalContext.current
     var archivoUri by remember { mutableStateOf<Uri?>(null) }
     var archivoNombre by remember { mutableStateOf("") }
@@ -63,6 +67,13 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
     var error by remember { mutableStateOf<String?>(null) }
     var exito by remember { mutableStateOf(false) }
     var resumenImportacion by remember { mutableStateOf<ResumenImportacion?>(null) }
+    var transaccionesConClasificacion by remember { mutableStateOf<List<ExcelTransaction>?>(null) }
+    
+    // Configurar el ExcelProcessor con el caso de uso de clasificación
+    LaunchedEffect(clasificacionUseCase) {
+        ExcelProcessor.setClasificacionUseCase(clasificacionUseCase)
+    }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -121,31 +132,37 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
                 resultado = null
                 error = null
                 exito = false
+                transaccionesConClasificacion = null
                 if (archivoUri != null) {
-                    try {
-                        val inputStream = context.contentResolver.openInputStream(archivoUri!!)
-                        val transacciones = when (tipoArchivo) {
-                            "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierre(inputStream!!, mesSeleccionado)
-                            "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientos(inputStream!!, mesSeleccionado)
-                            else -> emptyList()
-                        }
-                        val movimientos = transacciones.filter {
-                            it.descripcion.trim().uppercase() != "MONTO CANCELADO"
-                        }.mapNotNull { t ->
-                            if (t.fecha == null) return@mapNotNull null
-                            MovimientoEntity(
-                                tipo = "GASTO",
-                                monto = t.monto,
-                                descripcion = t.descripcion,
-                                fecha = t.fecha,
-                                periodoFacturacion = mesSeleccionado,
-                                categoriaId = null,
-                                tipoTarjeta = t.tipoTarjeta,
-                                idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
-                            )
-                        }
-                        resultado = movimientos
-                        CoroutineScope(Dispatchers.IO).launch {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val inputStream = context.contentResolver.openInputStream(archivoUri!!)
+                            val transacciones = when (tipoArchivo) {
+                                "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConClasificacion(inputStream!!, mesSeleccionado)
+                                "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConClasificacion(inputStream!!, mesSeleccionado)
+                                else -> emptyList()
+                            }
+                            
+                            transaccionesConClasificacion = transacciones
+                            
+                            val movimientos = transacciones.filter {
+                                it.descripcion.trim().uppercase() != "MONTO CANCELADO"
+                            }.mapNotNull { t ->
+                                if (t.fecha == null) return@mapNotNull null
+                                MovimientoEntity(
+                                    tipo = "GASTO",
+                                    monto = t.monto,
+                                    descripcion = t.descripcion,
+                                    fecha = t.fecha,
+                                    periodoFacturacion = mesSeleccionado,
+                                    categoriaId = t.categoriaId, // Usar la categoría sugerida automáticamente
+                                    tipoTarjeta = t.tipoTarjeta,
+                                    idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
+                                )
+                            }
+                            
+                            resultado = movimientos
+                            
                             val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(mesSeleccionado)
                             val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(mesSeleccionado)
                             if (tipoArchivo == "Estado de cierre") {
@@ -153,23 +170,34 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
                             }
                             val nuevos = movimientos.filter { it.idUnico !in existentes }
                             val duplicados = movimientos.size - nuevos.size
+                            
                             nuevos.forEach { mov ->
                                 val categoriaAnterior = categoriasPrevias[mov.idUnico]
-                                val movConCategoria = if (categoriaAnterior != null) mov.copy(categoriaId = categoriaAnterior) else mov
+                                val movConCategoria = if (categoriaAnterior != null) {
+                                    mov.copy(categoriaId = categoriaAnterior)
+                                } else {
+                                    mov // Ya tiene la categoría sugerida automáticamente
+                                }
                                 viewModel.agregarMovimiento(movConCategoria)
                             }
+                            
                             val montoTotal = nuevos.sumOf { it.monto }
+                            val clasificadasAutomaticamente = nuevos.count { it.categoriaId != null }
+                            val pendientesClasificacion = nuevos.size - clasificadasAutomaticamente
+                            
                             resumenImportacion = ResumenImportacion(
                                 totalProcesadas = movimientos.size,
                                 nuevas = nuevos.size,
                                 duplicadas = duplicados,
                                 montoTotal = montoTotal,
-                                periodo = mesSeleccionado ?: "-"
+                                periodo = mesSeleccionado ?: "-",
+                                clasificadasAutomaticamente = clasificadasAutomaticamente,
+                                pendientesClasificacion = pendientesClasificacion
                             )
                             exito = true
+                        } catch (e: Exception) {
+                            error = e.message
                         }
-                    } catch (e: Exception) {
-                        error = e.message
                     }
                 }
             },
@@ -177,18 +205,23 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
         ) {
             Text("Procesar archivo e importar")
         }
+        
         if (resultado != null) {
             Text("Movimientos a importar: ${resultado!!.size}", fontWeight = FontWeight.Bold)
             resultado!!.take(5).forEachIndexed { i, t ->
-                Text("#${i+1}: ${t.fecha} | ${t.descripcion} | ${t.monto}")
+                val clasificacionInfo = if (t.categoriaId != null) "✓ Clasificado" else "⚠ Pendiente"
+                Text("#${i+1}: ${t.fecha} | ${t.descripcion} | ${t.monto} | $clasificacionInfo")
             }
         }
+        
         if (exito) {
             Text("¡Importación completada!", color = MaterialTheme.colorScheme.primary)
         }
+        
         if (error != null) {
             Text(error!!, color = MaterialTheme.colorScheme.error)
         }
+        
         if (resumenImportacion != null) {
             AlertDialog(
                 onDismissRequest = { resumenImportacion = null },
@@ -198,6 +231,8 @@ fun ImportarExcelScreen(viewModel: MovimientosViewModel = hiltViewModel()) {
                         Text("Total procesadas: ${resumenImportacion!!.totalProcesadas}")
                         Text("Nuevas importadas: ${resumenImportacion!!.nuevas}")
                         Text("Duplicadas (omitidas): ${resumenImportacion!!.duplicadas}")
+                        Text("Clasificadas automáticamente: ${resumenImportacion!!.clasificadasAutomaticamente}")
+                        Text("Pendientes de clasificación: ${resumenImportacion!!.pendientesClasificacion}")
                         Text("Monto total importado: ${FormatUtils.formatMoneyCLP(resumenImportacion!!.montoTotal)}")
                         Text("Periodo: ${resumenImportacion!!.periodo}")
                     }
@@ -217,5 +252,7 @@ data class ResumenImportacion(
     val nuevas: Int,
     val duplicadas: Int,
     val montoTotal: Double,
-    val periodo: String
+    val periodo: String,
+    val clasificadasAutomaticamente: Int = 0,
+    val pendientesClasificacion: Int = 0
 ) 

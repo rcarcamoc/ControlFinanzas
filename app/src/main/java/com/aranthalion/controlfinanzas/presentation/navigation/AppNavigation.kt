@@ -9,6 +9,7 @@ import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesScreen
 import com.aranthalion.controlfinanzas.presentation.screens.HomeScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
+import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendienteScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -28,6 +29,9 @@ fun AppNavigation(navController: NavHostController) {
         composable("importar_excel") { ImportarExcelScreen() }
         composable("configuracion") {
             ConfiguracionScreen(navController = navController)
+        }
+        composable("clasificacion_pendiente") {
+            ClasificacionPendienteScreen(navController = navController)
         }
     }
 } 

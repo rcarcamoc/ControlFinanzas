@@ -15,6 +15,9 @@ interface CategoriaDao {
     @Query("SELECT * FROM categorias WHERE tipo = :tipo ORDER BY nombre ASC")
     fun getCategoriasByTipo(tipo: String): Flow<List<Categoria>>
 
+    @Query("SELECT * FROM categorias WHERE nombre = :nombre LIMIT 1")
+    suspend fun obtenerCategoriaPorNombre(nombre: String): Categoria?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun agregarCategoria(categoria: Categoria)
 
