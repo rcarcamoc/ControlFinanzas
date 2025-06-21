@@ -30,14 +30,30 @@ import kotlinx.coroutines.withContext
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import androidx.compose.ui.window.DialogProperties
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
+import javax.inject.Inject
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface ClasificacionUseCaseEntryPoint {
+    fun clasificacionUseCase(): GestionarClasificacionAutomaticaUseCase
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportarExcelScreen(
-    viewModel: MovimientosViewModel = hiltViewModel(),
-    clasificacionUseCase: GestionarClasificacionAutomaticaUseCase = hiltViewModel()
+    viewModel: MovimientosViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val entryPoint = EntryPointAccessors.fromApplication(
+        context.applicationContext,
+        ClasificacionUseCaseEntryPoint::class.java
+    )
+    val clasificacionUseCase = entryPoint.clasificacionUseCase()
+    
     var archivoUri by remember { mutableStateOf<Uri?>(null) }
     var archivoNombre by remember { mutableStateOf("") }
     var tipoArchivo by remember { mutableStateOf("") }

@@ -1,5 +1,6 @@
 package com.aranthalion.controlfinanzas.domain.clasificacion
 
+import android.util.Log
 import javax.inject.Inject
 
 class GestionarClasificacionAutomaticaUseCase @Inject constructor(
@@ -10,24 +11,36 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
      * Registra un nuevo patrón o actualiza uno existente basado en la clasificación manual del usuario
      */
     suspend fun aprenderPatron(descripcion: String, categoriaId: Long) {
+        Log.d("ClasificacionUseCase", "🔄 Aprendiendo patrón: '$descripcion' -> Categoría ID: $categoriaId")
         val patrones = extraerPatrones(descripcion)
+        Log.d("ClasificacionUseCase", "📝 Patrones extraídos: $patrones")
         patrones.forEach { patron ->
             repository.guardarPatron(patron, categoriaId)
         }
+        Log.d("ClasificacionUseCase", "✅ Patrón aprendido exitosamente")
     }
     
     /**
      * Busca el patrón más relevante y devuelve una sugerencia de categoría con su nivel de confianza
      */
     suspend fun sugerirCategoria(descripcion: String): SugerenciaClasificacion? {
-        return repository.obtenerSugerencia(descripcion)
+        Log.d("ClasificacionUseCase", "🔍 Buscando sugerencia para: '$descripcion'")
+        val sugerencia = repository.obtenerSugerencia(descripcion)
+        if (sugerencia != null) {
+            Log.d("ClasificacionUseCase", "✅ Sugerencia encontrada: Categoría ID ${sugerencia.categoriaId}, Confianza: ${sugerencia.nivelConfianza}, Patrón: '${sugerencia.patron}'")
+        } else {
+            Log.d("ClasificacionUseCase", "❌ No se encontró sugerencia para: '$descripcion'")
+        }
+        return sugerencia
     }
     
     /**
      * Carga los datos históricos para entrenar el sistema
      */
     suspend fun cargarDatosHistoricos() {
+        Log.d("ClasificacionUseCase", "📚 Iniciando carga de datos históricos...")
         repository.cargarDatosHistoricos()
+        Log.d("ClasificacionUseCase", "✅ Datos históricos cargados")
     }
     
     /**
@@ -63,6 +76,9 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
      * Obtiene todos los patrones almacenados
      */
     suspend fun obtenerTodosLosPatrones(): List<ClasificacionAutomatica> {
-        return repository.obtenerTodosLosPatrones()
+        Log.d("ClasificacionUseCase", "📋 Obteniendo todos los patrones almacenados...")
+        val patrones = repository.obtenerTodosLosPatrones()
+        Log.d("ClasificacionUseCase", "📊 Total de patrones: ${patrones.size}")
+        return patrones
     }
 } 

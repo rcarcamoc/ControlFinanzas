@@ -231,6 +231,14 @@ fun HomeScreen(
                         onClick = { navController.navigate("clasificacion_pendiente") }
                     )
                 }
+                item {
+                    MenuCard(
+                        title = "Análisis",
+                        icon = Icons.Default.List,
+                        description = "Dashboard y reportes",
+                        onClick = { navController.navigate("dashboard_analisis") }
+                    )
+                }
             }
 
             // Información adicional

@@ -15,7 +15,9 @@ import com.aranthalion.controlfinanzas.data.repository.MovimientoManualRepositor
 import com.aranthalion.controlfinanzas.data.util.MovimientoManualMapper
 import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository as CategoriaRepositoryDomain
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
+import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 import com.aranthalion.controlfinanzas.domain.movimiento.MovimientoManualRepository
+import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -114,6 +116,23 @@ abstract class AppModule {
             @ApplicationContext context: Context
         ): ClasificacionAutomaticaRepositoryImpl {
             return ClasificacionAutomaticaRepositoryImpl(clasificacionDao, categoriaDao, context)
+        }
+
+        @Provides
+        @Singleton
+        fun provideGestionarClasificacionAutomaticaUseCase(
+            repository: ClasificacionAutomaticaRepository
+        ): GestionarClasificacionAutomaticaUseCase {
+            return GestionarClasificacionAutomaticaUseCase(repository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideAnalisisFinancieroUseCase(
+            movimientoRepository: MovimientoRepository,
+            movimientoManualRepository: MovimientoManualRepository
+        ): AnalisisFinancieroUseCase {
+            return AnalisisFinancieroUseCase(movimientoRepository, movimientoManualRepository)
         }
 
         @Provides

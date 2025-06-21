@@ -3,6 +3,7 @@ package com.aranthalion.controlfinanzas.data.local.dao
 import androidx.room.*
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import kotlinx.coroutines.flow.Flow
+import java.util.*
 
 @Dao
 interface MovimientoDao {
@@ -20,6 +21,9 @@ interface MovimientoDao {
 
     @Query("SELECT * FROM movimientos WHERE tipo = :tipo ORDER BY fecha DESC")
     fun getMovimientosByTipo(tipo: String): Flow<List<MovimientoEntity>>
+
+    @Query("SELECT * FROM movimientos WHERE fecha BETWEEN :fechaInicio AND :fechaFin ORDER BY fecha DESC")
+    suspend fun obtenerMovimientosPorPeriodo(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity>
 
     @Query("DELETE FROM movimientos")
     suspend fun deleteAllMovimientos()

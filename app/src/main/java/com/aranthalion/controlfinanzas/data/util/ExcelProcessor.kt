@@ -51,13 +51,28 @@ object ExcelProcessor {
      * Aplica clasificación automática a una lista de transacciones
      */
     private suspend fun aplicarClasificacionAutomatica(transacciones: List<ExcelTransaction>): List<ExcelTransaction> {
-        return transacciones.map { transaccion ->
+        Log.d("ExcelProcessor", "🤖 Aplicando clasificación automática a ${transacciones.size} transacciones")
+        var clasificadas = 0
+        var noClasificadas = 0
+        
+        val resultado = transacciones.map { transaccion ->
             val sugerencia = clasificacionUseCase?.sugerirCategoria(transaccion.descripcion)
+            if (sugerencia != null) {
+                clasificadas++
+                Log.d("ExcelProcessor", "✅ Transacción clasificada: '${transaccion.descripcion}' -> Categoría ID: ${sugerencia.categoriaId}, Confianza: ${sugerencia.nivelConfianza}")
+            } else {
+                noClasificadas++
+                Log.d("ExcelProcessor", "❌ Transacción sin clasificación: '${transaccion.descripcion}'")
+            }
+            
             transaccion.copy(
                 categoriaId = sugerencia?.categoriaId,
                 nivelConfianza = sugerencia?.nivelConfianza
             )
         }
+        
+        Log.d("ExcelProcessor", "📊 Resumen clasificación: $clasificadas clasificadas, $noClasificadas sin clasificar")
+        return resultado
     }
 
     /**

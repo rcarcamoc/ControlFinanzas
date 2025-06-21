@@ -4,6 +4,7 @@ import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import java.util.*
 import javax.inject.Inject
 
 class MovimientoRepository @Inject constructor(
@@ -12,6 +13,10 @@ class MovimientoRepository @Inject constructor(
 ) {
     suspend fun obtenerMovimientos(): List<MovimientoEntity> {
         return movimientoDao.obtenerMovimientos()
+    }
+
+    suspend fun obtenerMovimientosPorPeriodo(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity> {
+        return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
     }
 
     suspend fun obtenerCategorias(): List<Categoria> {
