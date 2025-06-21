@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.withContext
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
+import androidx.compose.ui.window.DialogProperties
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

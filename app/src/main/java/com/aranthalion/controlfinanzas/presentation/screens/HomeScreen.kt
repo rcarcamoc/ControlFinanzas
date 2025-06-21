@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,11 +146,12 @@ fun HomeScreen(
                             )
                         }
                         item {
+                            val movimientosSinCategoria = movimientos.count { it.categoriaId == null }
                             StatCard(
-                                title = "Transacciones",
-                                value = "${movimientos.size}",
-                                icon = Icons.Default.List,
-                                description = "Total registradas",
+                                title = "Sin Clasificar",
+                                value = movimientosSinCategoria.toString(),
+                                icon = Icons.AutoMirrored.Filled.List,
+                                description = "Pendientes de categoría",
                                 isMonetary = false
                             )
                         }
@@ -199,24 +201,16 @@ fun HomeScreen(
             ) {
                 item {
                     MenuCard(
-                        title = "Movimientos",
-                        icon = Icons.Default.Add,
-                        description = "Registra ingresos y gastos",
-                        onClick = { navController.navigate("movimientos_manuales") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Historial",
-                        icon = Icons.Default.List,
-                        description = "Consulta transacciones",
-                        onClick = { navController.navigate("historial") }
-                    )
+                title = "Transacciones",
+                icon = Icons.Default.Add,
+                        description = "Gestiona ingresos y gastos",
+                onClick = { navController.navigate("transacciones") }
+            )
                 }
                 item {
                     MenuCard(
                         title = "Categorías",
-                        icon = Icons.Default.List,
+                        icon = Icons.AutoMirrored.Filled.List,
                         description = "Administra categorías",
                         onClick = { navController.navigate("categorias") }
                     )
@@ -300,18 +294,18 @@ private fun MenuCard(
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = title,
+                Text(
+                    text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
+                )
+                Text(
+                    text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
-            )
+                )
         }
     }
 } 

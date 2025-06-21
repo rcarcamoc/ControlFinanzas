@@ -5,9 +5,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.aranthalion.controlfinanzas.presentation.screens.CategoriasScreen
-import com.aranthalion.controlfinanzas.presentation.screens.HistorialScreen
+import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesScreen
 import com.aranthalion.controlfinanzas.presentation.screens.HomeScreen
-import com.aranthalion.controlfinanzas.presentation.screens.MovimientosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 
@@ -23,11 +22,8 @@ fun AppNavigation(navController: NavHostController) {
         composable("categorias") {
             CategoriasScreen(navController = navController)
         }
-        composable("movimientos_manuales") {
-            MovimientosScreen(navController = navController)
-        }
-        composable("historial") {
-            HistorialScreen(navController = navController)
+        composable("transacciones") {
+            TransaccionesScreen(navController = navController)
         }
         composable("importar_excel") { ImportarExcelScreen() }
         composable("configuracion") {

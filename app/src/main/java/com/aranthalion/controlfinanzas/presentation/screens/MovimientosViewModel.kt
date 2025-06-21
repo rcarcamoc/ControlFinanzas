@@ -34,8 +34,15 @@ class MovimientosViewModel @Inject constructor(
             try {
                 val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
                 val categorias = gestionarMovimientosUseCase.obtenerCategorias()
-                _uiState.value = MovimientosUiState.Success(movimientos, categorias)
-                calcularTotales(movimientos)
+                
+                // Ordenar movimientos: primero los sin categoría, luego por fecha descendente
+                val movimientosOrdenados = movimientos.sortedWith(
+                    compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
+                    .thenByDescending { it.fecha }
+                )
+                
+                _uiState.value = MovimientosUiState.Success(movimientosOrdenados, categorias)
+                calcularTotales(movimientosOrdenados)
             } catch (e: Exception) {
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al cargar movimientos")
             }

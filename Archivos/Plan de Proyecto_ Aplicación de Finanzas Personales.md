@@ -120,6 +120,13 @@ Implementar la funcionalidad para que el usuario pueda registrar manualmente sus
 ### Objetivo
 
 Desarrollar la capacidad de la aplicación para importar transacciones financieras automáticamente desde archivos Excel de estados de cuenta bancarios, incluyendo la detección de duplicados y la asignación inicial de categorías. lor archivos de ejemplo reales se encuentran en /home/rick/AndroidStudioProjects/ControlFinanzas/Archivos/excel
+son 22 tipos de archivos que se procesaran
+estado de cuenta de cierre de mes :
+/home/rick/AndroidStudioProjects/ControlFinanzas/Archivos/excel/estado de cierre.xls
+y ultimos movimientos:
+/home/rick/AndroidStudioProjects/ControlFinanzas/Archivos/excel/ultimosMovimientos.xls
+
+
 
 ### Entregables Funcionales
 
@@ -140,8 +147,10 @@ Desarrollar la capacidad de la aplicación para importar transacciones financier
 
 4.  **Interfaz de Usuario para Importación:**
     *   **Pantalla `ImportarExcelScreen`:** Permite al usuario seleccionar un archivo Excel del almacenamiento del dispositivo.
+    * el usuario debe seleccionar el periodo  de factuacion al que corresponde en una lista desplegable
     *   Indicador de progreso durante el procesamiento del archivo.
     *   Mensajes de éxito/error después de la importación.
+
 
 ### Criterios de Aceptación
 
@@ -152,6 +161,8 @@ Desarrollar la capacidad de la aplicación para importar transacciones financier
 -   Las transacciones importadas se pueden visualizar en una lista (inicialmente, una lista simple, sin categorización automática aún).
 -   Se manejan errores comunes de archivos (ej. archivo no válido, formato incorrecto) con mensajes claros al usuario.
 -   Se han definido pruebas unitarias para el módulo de procesamiento de Excel y el caso de uso de importación.
+-   Se debe modificar el historial el cual mostrara en un principio los movimientos sin categoria y luego los demas
+-   la pantalla princiipal debe mostrar un contador de los movimientos no clasificados. 
 
 
 
