@@ -116,7 +116,7 @@ fun HomeScreen(
                         columns = GridCells.Fixed(2),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.height(200.dp)
+                        modifier = Modifier.height(240.dp)
                     ) {
                         item {
                             StatCard(
@@ -124,7 +124,10 @@ fun HomeScreen(
                                 value = totalGastos.toString(),
                                 icon = Icons.Default.Add,
                                 description = "Este mes",
-                                isMonetary = true
+                                isMonetary = true,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .height(110.dp)
                             )
                         }
                         item {
@@ -133,7 +136,10 @@ fun HomeScreen(
                                 value = totalIngresos.toString(),
                                 icon = Icons.Default.Add,
                                 description = "Este mes",
-                                isMonetary = true
+                                isMonetary = true,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .height(110.dp)
                             )
                         }
                         item {
@@ -142,7 +148,10 @@ fun HomeScreen(
                                 value = balance.toString(),
                                 icon = Icons.Default.Add,
                                 description = if (balance >= 0) "Positivo" else "Negativo",
-                                isMonetary = true
+                                isMonetary = true,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .height(110.dp)
                             )
                         }
                         item {
@@ -152,7 +161,10 @@ fun HomeScreen(
                                 value = movimientosSinCategoria.toString(),
                                 icon = Icons.AutoMirrored.Filled.List,
                                 description = "Pendientes de categoría",
-                                isMonetary = false
+                                isMonetary = false,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .height(110.dp)
                             )
                         }
                     }
@@ -236,9 +248,75 @@ fun HomeScreen(
                         title = "Análisis",
                         icon = Icons.Default.List,
                         description = "Dashboard y reportes",
-                        onClick = { navController.navigate("dashboard_analisis") }
+                        onClick = { navController.navigate("dashboardAnalisis") }
                     )
                 }
+            }
+
+            // KPIs adicionales
+            val porcentajePresupuestoGastado = 78 // Simulado
+            val top3Sobreconsumo = listOf(
+                Triple("Alimentación", 120, 60000),
+                Triple("Transporte", 110, 22000),
+                Triple("Ocio", 105, 21000)
+            )
+            // Fila de KPIs
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                StatCard(
+                    title = "% Presupuesto Gastado",
+                    value = "$porcentajePresupuestoGastado%",
+                    icon = Icons.Default.Warning,
+                    description = "Este mes",
+                    isMonetary = false
+                )
+            }
+            // Transacciones pendientes de clasificación
+            val movimientosSinCategoria = (uiState as? MovimientosUiState.Success)?.movimientos?.count { it.categoriaId == null } ?: 0
+            if (movimientosSinCategoria > 0) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("$movimientosSinCategoria transacciones sin clasificar", color = MaterialTheme.colorScheme.onErrorContainer)
+                        Button(onClick = { navController.navigate("clasificacionPendiente") }) {
+                            Text("Clasificar")
+                        }
+                    }
+                }
+            }
+            // Top 3 categorías con sobreconsumo
+            Text("Top 3 categorías con sobreconsumo proyectado", style = MaterialTheme.typography.titleMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                top3Sobreconsumo.forEach { (nombre, porcentaje, monto) ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(nombre, modifier = Modifier.weight(1f))
+                            Text("$porcentaje%", color = MaterialTheme.colorScheme.error)
+                            Text("$monto CLP", modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            }
+            // Acceso a análisis detallado
+            Button(
+                onClick = { navController.navigate("dashboardAnalisis") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ver análisis detallado")
             }
 
             // Información adicional
