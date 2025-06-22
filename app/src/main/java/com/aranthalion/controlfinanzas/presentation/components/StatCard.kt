@@ -26,10 +26,11 @@ fun StatCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header con título e icono
             Row(
@@ -40,17 +41,16 @@ fun StatCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
             
             // Valor principal
             Text(
@@ -66,7 +66,6 @@ fun StatCard(
             
             // Descripción opcional
             description?.let {
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,

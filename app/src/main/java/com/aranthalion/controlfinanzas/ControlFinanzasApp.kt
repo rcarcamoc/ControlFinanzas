@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 import com.aranthalion.controlfinanzas.domain.categoria.GestionarCategoriasUseCase
+import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 
 @HiltAndroidApp
 class ControlFinanzasApp : Application() {
@@ -18,6 +19,9 @@ class ControlFinanzasApp : Application() {
     
     @Inject
     lateinit var categoriasUseCase: GestionarCategoriasUseCase
+    
+    @Inject
+    lateinit var movimientoRepository: MovimientoRepository
     
     override fun onCreate() {
         super.onCreate()
@@ -35,9 +39,15 @@ class ControlFinanzasApp : Application() {
                 // Luego cargar datos históricos de clasificación
                 clasificacionUseCase.cargarDatosHistoricos()
                 Log.d("ControlFinanzasApp", "✅ Sistema de clasificación automática inicializado correctamente")
+                
+                // Cargar datos históricos del CSV
+                Log.d("ControlFinanzasApp", "📊 Cargando datos históricos del CSV...")
+                movimientoRepository.cargarDatosHistoricos()
+                Log.d("ControlFinanzasApp", "✅ Datos históricos cargados correctamente")
+                
             } catch (e: Exception) {
                 // Log del error pero no fallar la aplicación
-                Log.e("ControlFinanzasApp", "❌ Error al inicializar sistema de clasificación: ${e.message}")
+                Log.e("ControlFinanzasApp", "❌ Error al inicializar sistema: ${e.message}")
                 e.printStackTrace()
             }
         }

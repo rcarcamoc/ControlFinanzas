@@ -13,65 +13,109 @@ import androidx.compose.ui.platform.LocalContext
 import com.aranthalion.controlfinanzas.presentation.configuracion.TemaApp
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+// Tema Naranja (basado en el prototipo)
+private val NaranjaLightColorScheme = lightColorScheme(
+    primary = OrangePrimary,
+    secondary = OrangeSecondary,
+    tertiary = OrangeAccent,
+    background = BackgroundLight,
+    surface = SurfaceLight,
     onPrimary = Color.White,
     onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = TextPrimaryLight,
+    onSurface = TextPrimaryLight,
+    surfaceVariant = Color(0xFFF8F4F0),
+    onSurfaceVariant = TextSecondaryLight,
+    outline = BorderLight,
+    outlineVariant = BorderLight
+)
+
+private val NaranjaDarkColorScheme = darkColorScheme(
+    primary = OrangePrimary,
+    secondary = OrangeSecondary,
+    tertiary = OrangeAccent,
+    background = BackgroundDark,
+    surface = SurfaceDark,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = TextPrimaryDark,
+    onSurface = TextPrimaryDark,
+    surfaceVariant = Color(0xFF4A3A2A),
+    onSurfaceVariant = TextSecondaryDark,
+    outline = BorderDark,
+    outlineVariant = BorderDark
+)
+
+// Tema Azul (nuevo)
+private val AzulLightColorScheme = lightColorScheme(
+    primary = Color(0xFF2196F3), // Blue 500
+    secondary = Color(0xFF90CAF9), // Blue 200
+    tertiary = Color(0xFF1976D2), // Blue 700
+    background = Color(0xFFF3F8FD), // Very Light Blue
+    surface = Color(0xFFFFFFFF),
+    onPrimary = Color.White,
+    onSecondary = Color(0xFF1C1B1F),
     onTertiary = Color.White,
     onBackground = Color(0xFF1C1B1F),
     onSurface = Color(0xFF1C1B1F),
-    */
+    surfaceVariant = Color(0xFFE3F2FD), // Light Blue 50
+    onSurfaceVariant = Color(0xFF546E7A), // Blue Grey 600
+    outline = Color(0xFFBBDEFB), // Blue 100
+    outlineVariant = Color(0xFFE1F5FE) // Light Blue 50
 )
 
-private val NaranjaColorScheme = lightColorScheme(
-    primary = Color(0xFFE65100),
-    secondary = Color(0xFFFF9800),
-    tertiary = Color(0xFFFFCC80),
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F)
+private val AzulDarkColorScheme = darkColorScheme(
+    primary = Color(0xFF90CAF9), // Blue 200
+    secondary = Color(0xFF42A5F5), // Blue 400
+    tertiary = Color(0xFF64B5F6), // Blue 300
+    background = Color(0xFF0D47A1), // Blue 900
+    surface = Color(0xFF1565C0), // Blue 800
+    onPrimary = Color(0xFF1C1B1F),
+    onSecondary = Color(0xFF1C1B1F),
+    onTertiary = Color(0xFF1C1B1F),
+    onBackground = Color(0xFFE3F2FD), // Light Blue 50
+    onSurface = Color(0xFFE3F2FD),
+    surfaceVariant = Color(0xFF1976D2), // Blue 700
+    onSurfaceVariant = Color(0xFFBBDEFB), // Blue 100
+    outline = Color(0xFF42A5F5), // Blue 400
+    outlineVariant = Color(0xFF1976D2) // Blue 700
 )
 
-private val AzulColorScheme = lightColorScheme(
-    primary = Color(0xFF2196F3),
-    secondary = Color(0xFF90CAF9),
-    tertiary = Color(0xFF1976D2),
-    background = Color(0xFFF3F8FD),
-    surface = Color(0xFFF3F8FD),
+// Tema Verde (nuevo)
+private val VerdeLightColorScheme = lightColorScheme(
+    primary = Color(0xFF4CAF50), // Green 500
+    secondary = Color(0xFFA5D6A7), // Green 200
+    tertiary = Color(0xFF388E3C), // Green 700
+    background = Color(0xFFF3FDF6), // Very Light Green
+    surface = Color(0xFFFFFFFF),
     onPrimary = Color.White,
-    onSecondary = Color.White,
+    onSecondary = Color(0xFF1C1B1F),
     onTertiary = Color.White,
     onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F)
+    onSurface = Color(0xFF1C1B1F),
+    surfaceVariant = Color(0xFFE8F5E8), // Light Green 50
+    onSurfaceVariant = Color(0xFF558B2F), // Light Green 800
+    outline = Color(0xFFC8E6C9), // Green 100
+    outlineVariant = Color(0xFFE8F5E8) // Light Green 50
 )
 
-private val VerdeColorScheme = lightColorScheme(
-    primary = Color(0xFF4CAF50),
-    secondary = Color(0xFFA5D6A7),
-    tertiary = Color(0xFF388E3C),
-    background = Color(0xFFF3FDF6),
-    surface = Color(0xFFF3FDF6),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F)
+private val VerdeDarkColorScheme = darkColorScheme(
+    primary = Color(0xFFA5D6A7), // Green 200
+    secondary = Color(0xFF66BB6A), // Green 400
+    tertiary = Color(0xFF81C784), // Green 300
+    background = Color(0xFF1B5E20), // Green 900
+    surface = Color(0xFF2E7D32), // Green 800
+    onPrimary = Color(0xFF1C1B1F),
+    onSecondary = Color(0xFF1C1B1F),
+    onTertiary = Color(0xFF1C1B1F),
+    onBackground = Color(0xFFE8F5E8), // Light Green 50
+    onSurface = Color(0xFFE8F5E8),
+    surfaceVariant = Color(0xFF388E3C), // Green 700
+    onSurfaceVariant = Color(0xFFC8E6C9), // Green 100
+    outline = Color(0xFF66BB6A), // Green 400
+    outlineVariant = Color(0xFF388E3C) // Green 700
 )
 
 @Composable
@@ -82,9 +126,9 @@ fun ControlFinanzasTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (temaApp) {
-        TemaApp.NARANJA -> NaranjaColorScheme
-        TemaApp.AZUL -> AzulColorScheme
-        TemaApp.VERDE -> VerdeColorScheme
+        TemaApp.NARANJA -> if (darkTheme) NaranjaDarkColorScheme else NaranjaLightColorScheme
+        TemaApp.AZUL -> if (darkTheme) AzulDarkColorScheme else AzulLightColorScheme
+        TemaApp.VERDE -> if (darkTheme) VerdeDarkColorScheme else VerdeLightColorScheme
     }
     MaterialTheme(
         colorScheme = colorScheme,

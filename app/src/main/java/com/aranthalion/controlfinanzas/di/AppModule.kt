@@ -7,17 +7,21 @@ import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.ClasificacionAutomaticaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoManualDao
+import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepository
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.ClasificacionAutomaticaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 import com.aranthalion.controlfinanzas.data.repository.MovimientoManualRepositoryImpl
+import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepository
+import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.util.MovimientoManualMapper
 import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository as CategoriaRepositoryDomain
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 import com.aranthalion.controlfinanzas.domain.movimiento.MovimientoManualRepository
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
+import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -95,8 +99,12 @@ abstract class AppModule {
 
         @Provides
         @Singleton
-        fun provideMovimientoRepository(movimientoDao: MovimientoDao, categoriaDao: CategoriaDao): MovimientoRepository {
-            return MovimientoRepository(movimientoDao, categoriaDao)
+        fun provideMovimientoRepository(
+            movimientoDao: MovimientoDao, 
+            categoriaDao: CategoriaDao,
+            @ApplicationContext context: Context
+        ): MovimientoRepository {
+            return MovimientoRepository(movimientoDao, categoriaDao, context)
         }
 
         @Provides
@@ -137,8 +145,22 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideGestionarPresupuestosUseCase(
+            presupuestoRepository: PresupuestoCategoriaRepository
+        ): GestionarPresupuestosUseCase {
+            return GestionarPresupuestosUseCase(presupuestoRepository)
+        }
+
+        @Provides
+        @Singleton
         fun provideConfiguracionPreferences(@ApplicationContext context: Context): ConfiguracionPreferences {
             return ConfiguracionPreferences(context)
         }
+
+        @Provides
+        fun providePresupuestoCategoriaRepository(
+            dao: PresupuestoCategoriaDao
+        ): PresupuestoCategoriaRepository =
+            PresupuestoCategoriaRepositoryImpl(dao)
     }
 } 

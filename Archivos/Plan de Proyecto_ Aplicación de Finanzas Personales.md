@@ -173,6 +173,14 @@ y ultimos movimientos:
 
 Implementar un sistema de machine learning local que aprenda de las clasificaciones manuales del usuario para sugerir automáticamente categorías para nuevas transacciones importadas, reduciendo la necesidad de intervención manual.
 
+###datos complementarios
+dispones del archivo /home/rick/AndroidStudioProjects/ControlFinanzas/Archivos/Gastos_historicos/historial_gastos.csv
+donde tiene 3 columnas Item,periodo de facturacion,monto de varios meses hacia atras, incluyeelos como data historica 
+
+dispones del archivo /home/rick/AndroidStudioProjects/ControlFinanzas/Archivos/Movimientos_historicos/Historia.csv
+donde tienes las clasificaaciones realizadas los meses anteriores.
+para que veas como se comporto la asignacion de categorias en meses pasados y puedas determinar cual es el mejor  plan para ejecutar esta tarea
+
 ### Entregables Funcionales
 
 1.  **Entidad `ClasificacionAutomatica`:**
