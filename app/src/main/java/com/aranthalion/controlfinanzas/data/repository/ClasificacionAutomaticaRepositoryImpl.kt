@@ -317,4 +317,22 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
         Log.d("ClasificacionRepo", "🧮 Cálculo de confianza: Frecuencia=$frecuencia, Longitud=$longitudPatron, ConfianzaFrecuencia=$confianzaFrecuencia, ConfianzaLongitud=$confianzaLongitud, Final=$confianzaFinal")
         return confianzaFinal
     }
+
+    // Métodos stub para cumplir con la interfaz
+    override suspend fun agregarRegla(regla: com.aranthalion.controlfinanzas.domain.clasificacion.ReglaClasificacion) {
+        // TODO: Implementar lógica real
+    }
+    override suspend fun obtenerReglas(): List<com.aranthalion.controlfinanzas.domain.clasificacion.ReglaClasificacion> = emptyList()
+    override suspend fun actualizarRegla(regla: com.aranthalion.controlfinanzas.domain.clasificacion.ReglaClasificacion) {}
+    override suspend fun eliminarRegla(reglaId: Long) {}
+    override suspend fun obtenerPatronesAprendidos(): List<com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido> = emptyList()
+    override suspend fun obtenerPatronPorDescripcion(descripcion: String): com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido? = null
+    override suspend fun agregarPatron(patron: com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido) {}
+    override suspend fun actualizarPatron(patron: com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido) {}
+    override suspend fun obtenerTotalClasificaciones(): Int = 0
+    override suspend fun obtenerClasificacionesAutomaticas(): Int = 0
+    override suspend fun obtenerPrecisionPromedio(): Double = 0.0
+    override suspend fun obtenerCategoriasMasUsadas(): List<com.aranthalion.controlfinanzas.domain.clasificacion.CategoriaUso> = emptyList()
+    override suspend fun obtenerPatronesMasEfectivos(): List<com.aranthalion.controlfinanzas.domain.clasificacion.PatronEfectivo> = emptyList()
+    override suspend fun registrarClasificacion(descripcion: String, categoriaId: Long, esCorrecta: Boolean) {}
 } 

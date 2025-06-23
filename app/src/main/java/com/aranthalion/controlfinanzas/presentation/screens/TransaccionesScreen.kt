@@ -48,7 +48,7 @@ fun TransaccionesScreen(
 
     val tipos = listOf("Todos", "Ingresos", "Gastos")
     val calendar = Calendar.getInstance()
-    calendar.add(Calendar.MONTH, 1)
+    calendar.add(Calendar.MONTH, 2)
     val periodos = (0..12).map { offset ->
         val cal = calendar.clone() as Calendar
         cal.add(Calendar.MONTH, -offset)
@@ -545,7 +545,7 @@ private fun TransaccionDialog(
     var periodoSeleccionado by remember { mutableStateOf("") }
     
     val calendar = Calendar.getInstance()
-    calendar.add(Calendar.MONTH, 1)
+    calendar.add(Calendar.MONTH, 2)
     val periodos = (0..12).map { offset ->
         val cal = calendar.clone() as Calendar
         cal.add(Calendar.MONTH, -offset)
@@ -722,7 +722,7 @@ private fun TransaccionEditDialog(
     var periodoSeleccionado by remember { mutableStateOf(movimiento.periodoFacturacion) }
     
     val calendar = Calendar.getInstance()
-    calendar.add(Calendar.MONTH, 1)
+    calendar.add(Calendar.MONTH, 2)
     val periodos = (0..12).map { offset ->
         val cal = calendar.clone() as Calendar
         cal.add(Calendar.MONTH, -offset)

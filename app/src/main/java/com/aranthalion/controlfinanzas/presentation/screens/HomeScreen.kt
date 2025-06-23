@@ -251,6 +251,14 @@ fun HomeScreen(
                         onClick = { navController.navigate("dashboardAnalisis") }
                     )
                 }
+                item {
+                    MenuCard(
+                        title = "Aporte Proporcional",
+                        icon = Icons.Default.Person,
+                        description = "Cálculo de aportes en pareja",
+                        onClick = { navController.navigate("aporte_proporcional") }
+                    )
+                }
             }
 
             // KPIs adicionales

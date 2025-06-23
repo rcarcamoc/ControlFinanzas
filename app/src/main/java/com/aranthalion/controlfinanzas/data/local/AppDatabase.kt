@@ -11,10 +11,12 @@ import com.aranthalion.controlfinanzas.data.local.dao.ClasificacionAutomaticaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoManualDao
 import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
+import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.ClasificacionAutomaticaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
+import com.aranthalion.controlfinanzas.data.local.entity.SueldoEntity
 import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
 
 @Database(
@@ -23,9 +25,10 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
         Categoria::class,
         MovimientoManualEntity::class,
         ClasificacionAutomaticaEntity::class,
-        PresupuestoCategoriaEntity::class
+        PresupuestoCategoriaEntity::class,
+        SueldoEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -35,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun movimientoManualDao(): MovimientoManualDao
     abstract fun clasificacionAutomaticaDao(): ClasificacionAutomaticaDao
     abstract fun presupuestoCategoriaDao(): PresupuestoCategoriaDao
+    abstract fun sueldoDao(): SueldoDao
 
     companion object {
         @Volatile

@@ -21,8 +21,6 @@ import androidx.compose.runtime.collectAsState
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Prueba de procesamiento de archivos Excel
-        ExcelProcessor.pruebaProcesamientoArchivosExcel(this)
         setContent {
             val configuracionViewModel: ConfiguracionViewModel = hiltViewModel()
             val tema by configuracionViewModel.temaSeleccionado.collectAsState()

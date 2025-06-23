@@ -11,6 +11,7 @@ import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendienteScreen
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
+import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -34,10 +35,11 @@ fun AppNavigation(navController: NavHostController) {
         composable("clasificacion_pendiente") {
             ClasificacionPendienteScreen(navController = navController)
         }
-        composable("dashboard_analisis") {
-            DashboardAnalisisScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable("dashboardAnalisis") {
+            DashboardAnalisisScreen()
+        }
+        composable("aporte_proporcional") {
+            AporteProporcionalScreen(navController = navController)
         }
     }
 } 
