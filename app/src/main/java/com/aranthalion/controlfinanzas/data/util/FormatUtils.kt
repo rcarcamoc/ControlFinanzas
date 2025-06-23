@@ -20,10 +20,11 @@ object FormatUtils {
      * @return String formateado (ej: "$1.500")
      */
     fun formatMoneyCLP(amount: Double): String {
-        val formatter = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
-        formatter.maximumFractionDigits = 0
-        formatter.minimumFractionDigits = 0
-        return formatter.format(amount)
+        val nf = NumberFormat.getInstance(Locale("es", "CL"))
+        nf.maximumFractionDigits = 0
+        nf.minimumFractionDigits = 0
+        nf.isGroupingUsed = true
+        return "$${nf.format(amount.toLong())}"
     }
     
     /**
@@ -76,7 +77,7 @@ object FormatUtils {
      * @return Double redondeado
      */
     fun roundToTwoDecimals(amount: Double): Double {
-        return kotlin.math.round(amount * 100) / 100
+        return amount.toLong().toDouble()
     }
     
     /**

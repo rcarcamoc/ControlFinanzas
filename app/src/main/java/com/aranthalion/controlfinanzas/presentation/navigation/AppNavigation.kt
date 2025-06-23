@@ -12,6 +12,7 @@ import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendienteScreen
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
+import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -40,6 +41,9 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable("aporte_proporcional") {
             AporteProporcionalScreen(navController = navController)
+        }
+        composable("presupuestos") {
+            PresupuestosScreen(navController = navController)
         }
     }
 } 

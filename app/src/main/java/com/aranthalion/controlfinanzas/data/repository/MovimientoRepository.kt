@@ -22,6 +22,25 @@ class MovimientoRepository @Inject constructor(
         return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
     }
 
+    suspend fun obtenerMovimientosPorPeriodo(periodo: String): List<MovimientoEntity> {
+        // Convertir período YYYY-MM a fechas de inicio y fin del mes
+        val calendar = Calendar.getInstance()
+        val year = periodo.substring(0, 4).toInt()
+        val month = periodo.substring(5, 7).toInt() - 1 // Calendar.MONTH es 0-based
+        
+        // Fecha de inicio del mes
+        calendar.set(year, month, 1, 0, 0, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val fechaInicio = calendar.time
+        
+        // Fecha de fin del mes
+        calendar.set(year, month, calendar.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
+        val fechaFin = calendar.time
+        
+        return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
+    }
+
     suspend fun obtenerCategorias(): List<Categoria> {
         return categoriaDao.obtenerCategorias()
     }

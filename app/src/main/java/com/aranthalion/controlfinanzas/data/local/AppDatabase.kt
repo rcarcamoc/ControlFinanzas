@@ -28,7 +28,7 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
         PresupuestoCategoriaEntity::class,
         SueldoEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)

@@ -20,7 +20,10 @@ class CategoriasViewModel @Inject constructor(
     val uiState: StateFlow<CategoriasUiState> = _uiState
 
     init {
-        cargarCategorias()
+        viewModelScope.launch {
+            gestionarCategoriasUseCase.limpiarYEliminarDuplicados()
+            cargarCategorias()
+        }
     }
 
     private fun cargarCategorias() {
@@ -43,8 +46,19 @@ class CategoriasViewModel @Inject constructor(
     fun agregarCategoria(nombre: String, descripcion: String) {
         viewModelScope.launch {
             try {
+                val nombreNormalizado = nombre.trim().lowercase()
+                    .replace("á", "a")
+                    .replace("é", "e")
+                    .replace("í", "i")
+                    .replace("ó", "o")
+                    .replace("ú", "u")
+                    .replace("ñ", "n")
+                if (gestionarCategoriasUseCase.existeCategoria(nombreNormalizado)) {
+                    _uiState.value = CategoriasUiState.Error("Ya existe una categoría con ese nombre.")
+                    return@launch
+                }
                 val categoria = Categoria(
-                    nombre = nombre,
+                    nombre = nombreNormalizado,
                     descripcion = descripcion
                 )
                 gestionarCategoriasUseCase.insertCategoria(categoria)

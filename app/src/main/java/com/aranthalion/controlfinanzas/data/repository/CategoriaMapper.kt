@@ -1,16 +1,22 @@
 package com.aranthalion.controlfinanzas.data.repository
 
-import com.aranthalion.controlfinanzas.data.local.entity.CategoriaEntity
+import com.aranthalion.controlfinanzas.data.local.entity.Categoria as CategoriaEntity
 import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 
-fun CategoriaEntity.toDomain(): Categoria = Categoria(
-    id = this.id.toInt(),
-    nombre = this.nombre,
-    descripcion = this.tipo
-)
+object CategoriaMapper {
+    fun fromEntity(entity: CategoriaEntity): Categoria = Categoria(
+        id = entity.id,
+        nombre = entity.nombre,
+        descripcion = entity.descripcion,
+        tipo = entity.tipo,
+        presupuestoMensual = entity.presupuestoMensual
+    )
 
-fun Categoria.toEntity(): CategoriaEntity = CategoriaEntity(
-    id = this.id.toLong(),
-    nombre = this.nombre,
-    tipo = this.descripcion
-) 
+    fun toEntity(domain: Categoria): CategoriaEntity = CategoriaEntity(
+        id = domain.id,
+        nombre = domain.nombre,
+        descripcion = domain.descripcion,
+        tipo = domain.tipo,
+        presupuestoMensual = domain.presupuestoMensual
+    )
+} 

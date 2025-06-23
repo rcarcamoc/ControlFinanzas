@@ -12,48 +12,48 @@ class CategoriaRepositoryImpl @Inject constructor(
     private val categoriaDao: CategoriaDao
 ) : CategoriaRepository {
 
-    override fun getAllCategorias(): Flow<List<Categoria>> {
+    private fun toEntity(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria): CategoriaEntity {
+        return CategoriaEntity(
+            id = categoria.id,
+            nombre = categoria.nombre,
+            descripcion = categoria.descripcion,
+            tipo = categoria.tipo,
+            presupuestoMensual = categoria.presupuestoMensual
+        )
+    }
+
+    private fun toDomain(entity: CategoriaEntity): com.aranthalion.controlfinanzas.domain.categoria.Categoria {
+        return com.aranthalion.controlfinanzas.domain.categoria.Categoria(
+            id = entity.id,
+            nombre = entity.nombre,
+            descripcion = entity.descripcion,
+            tipo = entity.tipo,
+            presupuestoMensual = entity.presupuestoMensual
+        )
+    }
+
+    override fun getAllCategorias(): Flow<List<com.aranthalion.controlfinanzas.domain.categoria.Categoria>> {
         return categoriaDao.getAllCategorias().map { entities ->
-            entities.map { entity ->
-                Categoria(
-                    id = entity.id.toInt(),
-                    nombre = entity.nombre,
-                    descripcion = entity.descripcion
-                )
-            }
+            entities.map { toDomain(it) }
         }
     }
 
-    override fun getCategoriasByTipo(tipo: String): Flow<List<Categoria>> {
+    override fun getCategoriasByTipo(tipo: String): Flow<List<com.aranthalion.controlfinanzas.domain.categoria.Categoria>> {
         return categoriaDao.getCategoriasByTipo(tipo).map { entities ->
-            entities.map { entity ->
-                Categoria(
-                    id = entity.id.toInt(),
-                    nombre = entity.nombre,
-                    descripcion = entity.descripcion
-                )
-            }
+            entities.map { toDomain(it) }
         }
     }
 
-    override suspend fun insertCategoria(categoria: Categoria) {
-        val entity = CategoriaEntity(
-            id = categoria.id.toLong(),
-            nombre = categoria.nombre,
-            descripcion = categoria.descripcion,
-            tipo = "Gasto" // Por defecto
-        )
-        categoriaDao.agregarCategoria(entity)
+    override suspend fun insertCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
+        categoriaDao.agregarCategoria(toEntity(categoria))
     }
 
-    override suspend fun deleteCategoria(categoria: Categoria) {
-        val entity = CategoriaEntity(
-            id = categoria.id.toLong(),
-            nombre = categoria.nombre,
-            descripcion = categoria.descripcion,
-            tipo = "Gasto" // Por defecto
-        )
-        categoriaDao.eliminarCategoria(entity)
+    override suspend fun updateCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
+        categoriaDao.actualizarCategoria(toEntity(categoria))
+    }
+
+    override suspend fun deleteCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
+        categoriaDao.eliminarCategoria(toEntity(categoria))
     }
 
     override suspend fun insertDefaultCategorias() {
@@ -93,4 +93,31 @@ class CategoriaRepositoryImpl @Inject constructor(
         )
         categoriasDefault.forEach { categoriaDao.agregarCategoria(it) }
     }
+
+    override suspend fun existeCategoria(nombre: String): Boolean {
+        return categoriaDao.existeCategoria(nombre) > 0
+    }
+
+    override suspend fun limpiarYEliminarDuplicados() {
+        val categorias = categoriaDao.obtenerCategorias()
+        val normalizadas = mutableMapOf<String, CategoriaEntity>()
+        for (cat in categorias) {
+            val nombreNormalizado = cat.nombre.trim().lowercase().replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+            if (!normalizadas.containsKey(nombreNormalizado)) {
+                // Actualizar nombre si es necesario
+                if (cat.nombre != nombreNormalizado) {
+                    val actualizada = cat.copy(nombre = nombreNormalizado)
+                    categoriaDao.actualizarCategoria(actualizada)
+                    normalizadas[nombreNormalizado] = actualizada
+                } else {
+                    normalizadas[nombreNormalizado] = cat
+                }
+            } else {
+                // Eliminar duplicado
+                categoriaDao.eliminarCategoria(cat)
+            }
+        }
+    }
+
+    override suspend fun obtenerCategorias(): List<com.aranthalion.controlfinanzas.domain.categoria.Categoria> = categoriaDao.obtenerCategorias().map { toDomain(it) }
 } 

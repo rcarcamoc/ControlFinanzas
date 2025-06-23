@@ -25,4 +25,12 @@ class GestionarCategoriasUseCase @Inject constructor(
     suspend fun insertDefaultCategorias() {
         categoriaRepository.insertDefaultCategorias()
     }
+
+    suspend fun existeCategoria(nombre: String): Boolean {
+        return categoriaRepository.existeCategoria(nombre)
+    }
+
+    suspend fun limpiarYEliminarDuplicados() {
+        categoriaRepository.limpiarYEliminarDuplicados()
+    }
 } 

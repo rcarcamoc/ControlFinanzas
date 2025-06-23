@@ -27,6 +27,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +45,11 @@ fun HomeScreen(
     val currentTime = remember { 
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
     }
+
+    // Estado global de período
+    var periodoGlobal by rememberSaveable { mutableStateOf(obtenerPeriodoActual()) }
+    val periodosDisponibles = remember { generarPeriodosDisponibles() }
+    var expanded by remember { mutableStateOf(false) }
 
     // Refrescar al volver a primer plano
     DisposableEffect(lifecycleOwner) {
@@ -95,7 +104,37 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Dashboard Stats
+            // Selector de período/ciclo de facturación
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = periodoGlobal,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Período/Ciclo de facturación") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth().clickable { expanded = true }
+                )
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    periodosDisponibles.forEach { periodo ->
+                        DropdownMenuItem(
+                            text = { Text(periodo) },
+                            onClick = {
+                                periodoGlobal = periodo
+                                expanded = false
+                                // Aquí deberías propagar el cambio a los demás ViewModels
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Dashboard Stats simplificado
             when (uiState) {
                 is MovimientosUiState.Success -> {
                     val movimientos = (uiState as MovimientosUiState.Success).movimientos
@@ -111,60 +150,48 @@ fun HomeScreen(
                     )
                     val balance = FormatUtils.roundToTwoDecimals(totalIngresos - totalGastos)
                     
-                    // Tarjetas de estadísticas
+                    // Tarjetas de estadísticas simplificadas (solo 3)
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.height(240.dp)
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(120.dp)
                     ) {
                         item {
                             StatCard(
-                                title = "Gasto Total",
-                                value = totalGastos.toString(),
-                                icon = Icons.Default.Add,
+                                title = "Gastos",
+                                value = FormatUtils.formatMoneyCLP(totalGastos),
+                                icon = Icons.Default.KeyboardArrowDown,
                                 description = "Este mes",
-                                isMonetary = true,
+                                isMonetary = false,
                                 modifier = Modifier
-                                    .padding(4.dp)
-                                    .height(110.dp)
+                                    .padding(2.dp)
+                                    .height(100.dp)
                             )
                         }
                         item {
                             StatCard(
                                 title = "Ingresos",
-                                value = totalIngresos.toString(),
+                                value = FormatUtils.formatMoneyCLP(totalIngresos),
                                 icon = Icons.Default.Add,
                                 description = "Este mes",
-                                isMonetary = true,
+                                isMonetary = false,
                                 modifier = Modifier
-                                    .padding(4.dp)
-                                    .height(110.dp)
-                            )
-                        }
-                        item {
-                            StatCard(
-                                title = "Balance",
-                                value = balance.toString(),
-                                icon = Icons.Default.Add,
-                                description = if (balance >= 0) "Positivo" else "Negativo",
-                                isMonetary = true,
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .height(110.dp)
+                                    .padding(2.dp)
+                                    .height(100.dp)
                             )
                         }
                         item {
                             val movimientosSinCategoria = movimientos.count { it.categoriaId == null }
                             StatCard(
-                                title = "Sin Clasificar",
+                                title = "Pendientes",
                                 value = movimientosSinCategoria.toString(),
                                 icon = Icons.AutoMirrored.Filled.List,
-                                description = "Pendientes de categoría",
+                                description = "Sin clasificar",
                                 isMonetary = false,
                                 modifier = Modifier
-                                    .padding(4.dp)
-                                    .height(110.dp)
+                                    .padding(2.dp)
+                                    .height(100.dp)
                             )
                         }
                     }
@@ -172,12 +199,12 @@ fun HomeScreen(
                 else -> {
                     // Placeholder mientras carga
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.height(200.dp)
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(120.dp)
                     ) {
-                        items(4) {
+                        items(3) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(
@@ -187,7 +214,7 @@ fun HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(80.dp),
+                                        .height(100.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     CircularProgressIndicator()
@@ -222,7 +249,7 @@ fun HomeScreen(
                 item {
                     MenuCard(
                         title = "Categorías",
-                        icon = Icons.AutoMirrored.Filled.List,
+                        icon = Icons.Default.List,
                         description = "Administra categorías",
                         onClick = { navController.navigate("categorias") }
                     )
@@ -259,29 +286,17 @@ fun HomeScreen(
                         onClick = { navController.navigate("aporte_proporcional") }
                     )
                 }
+                item {
+                    MenuCard(
+                        title = "Presupuestos",
+                        icon = Icons.Default.List,
+                        description = "Control de presupuestos",
+                        onClick = { navController.navigate("presupuestos") }
+                    )
+                }
             }
 
-            // KPIs adicionales
-            val porcentajePresupuestoGastado = 78 // Simulado
-            val top3Sobreconsumo = listOf(
-                Triple("Alimentación", 120, 60000),
-                Triple("Transporte", 110, 22000),
-                Triple("Ocio", 105, 21000)
-            )
-            // Fila de KPIs
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatCard(
-                    title = "% Presupuesto Gastado",
-                    value = "$porcentajePresupuestoGastado%",
-                    icon = Icons.Default.Warning,
-                    description = "Este mes",
-                    isMonetary = false
-                )
-            }
-            // Transacciones pendientes de clasificación
+            // KPIs simplificados
             val movimientosSinCategoria = (uiState as? MovimientosUiState.Success)?.movimientos?.count { it.categoriaId == null } ?: 0
             if (movimientosSinCategoria > 0) {
                 Card(
@@ -294,37 +309,11 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("$movimientosSinCategoria transacciones sin clasificar", color = MaterialTheme.colorScheme.onErrorContainer)
-                        Button(onClick = { navController.navigate("clasificacionPendiente") }) {
+                        Button(onClick = { navController.navigate("clasificacion_pendiente") }) {
                             Text("Clasificar")
                         }
                     }
                 }
-            }
-            // Top 3 categorías con sobreconsumo
-            Text("Top 3 categorías con sobreconsumo proyectado", style = MaterialTheme.typography.titleMedium)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                top3Sobreconsumo.forEach { (nombre, porcentaje, monto) ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(nombre, modifier = Modifier.weight(1f))
-                            Text("$porcentaje%", color = MaterialTheme.colorScheme.error)
-                            Text("$monto CLP", modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                }
-            }
-            // Acceso a análisis detallado
-            Button(
-                onClick = { navController.navigate("dashboardAnalisis") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Ver análisis detallado")
             }
 
             // Información adicional
@@ -410,4 +399,27 @@ private fun MenuCard(
             )
         }
     }
+}
+
+// Helpers para obtener el período actual y generar la lista
+fun obtenerPeriodoActual(): String {
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH) + 1
+    return String.format("%04d-%02d", year, month)
+}
+
+fun generarPeriodosDisponibles(): List<String> {
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH) + 1
+    val periodos = mutableListOf<String>()
+    for (i in -11..2) {
+        val cal = Calendar.getInstance()
+        cal.set(year, month - 1, 1)
+        cal.add(Calendar.MONTH, i)
+        val periodo = String.format("%04d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
+        periodos.add(periodo)
+    }
+    return periodos.sortedDescending()
 } 

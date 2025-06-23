@@ -9,7 +9,6 @@ import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoManualDao
 import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
-import com.aranthalion.controlfinanzas.data.repository.CategoriaRepository
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.ClasificacionAutomaticaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
@@ -19,7 +18,7 @@ import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepos
 import com.aranthalion.controlfinanzas.data.repository.SueldoRepository
 import com.aranthalion.controlfinanzas.data.repository.SueldoRepositoryImpl
 import com.aranthalion.controlfinanzas.data.util.MovimientoManualMapper
-import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository as CategoriaRepositoryDomain
+import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
 import com.aranthalion.controlfinanzas.domain.movimiento.MovimientoManualRepository
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
@@ -41,7 +40,7 @@ abstract class AppModule {
     @Singleton
     abstract fun bindCategoriaRepository(
         categoriaRepository: CategoriaRepositoryImpl
-    ): CategoriaRepositoryDomain
+    ): CategoriaRepository
 
     @Binds
     @Singleton
@@ -108,12 +107,6 @@ abstract class AppModule {
 
         @Provides
         @Singleton
-        fun provideCategoriaRepository(categoriaDao: CategoriaDao): CategoriaRepository {
-            return CategoriaRepository(categoriaDao)
-        }
-
-        @Provides
-        @Singleton
         fun provideMovimientoRepository(
             movimientoDao: MovimientoDao, 
             categoriaDao: CategoriaDao,
@@ -170,9 +163,11 @@ abstract class AppModule {
         @Provides
         @Singleton
         fun provideGestionarPresupuestosUseCase(
-            presupuestoRepository: PresupuestoCategoriaRepository
+            presupuestoRepository: PresupuestoCategoriaRepository,
+            categoriaRepository: CategoriaRepository,
+            movimientoRepository: MovimientoRepository
         ): GestionarPresupuestosUseCase {
-            return GestionarPresupuestosUseCase(presupuestoRepository)
+            return GestionarPresupuestosUseCase(presupuestoRepository, categoriaRepository, movimientoRepository)
         }
 
         @Provides
@@ -186,5 +181,11 @@ abstract class AppModule {
             dao: PresupuestoCategoriaDao
         ): PresupuestoCategoriaRepository =
             PresupuestoCategoriaRepositoryImpl(dao)
+
+        @Provides
+        @Singleton
+        fun providePresupuestoCategoriaDao(database: AppDatabase): PresupuestoCategoriaDao {
+            return database.presupuestoCategoriaDao()
+        }
     }
 } 

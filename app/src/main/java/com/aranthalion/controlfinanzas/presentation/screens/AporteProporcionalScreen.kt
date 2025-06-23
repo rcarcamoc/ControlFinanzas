@@ -54,7 +54,7 @@ fun AporteProporcionalScreen(
                         Icon(Icons.Default.DateRange, contentDescription = "Seleccionar período")
                     }
                     IconButton(onClick = { showHistorialDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Ver historial")
+                        Icon(Icons.Default.List, contentDescription = "Ver historial")
                     }
                     IconButton(onClick = { showAddSueldoDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Agregar sueldo")
