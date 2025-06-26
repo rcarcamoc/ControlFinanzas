@@ -10,7 +10,7 @@ object CategoriaMapper {
         descripcion = entity.descripcion,
         tipo = entity.tipo,
         presupuestoMensual = entity.presupuestoMensual
-    )
+)
 
     fun toEntity(domain: Categoria): CategoriaEntity = CategoriaEntity(
         id = domain.id,

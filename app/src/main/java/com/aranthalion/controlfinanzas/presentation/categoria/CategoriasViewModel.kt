@@ -22,7 +22,7 @@ class CategoriasViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             gestionarCategoriasUseCase.limpiarYEliminarDuplicados()
-            cargarCategorias()
+        cargarCategorias()
         }
     }
 
