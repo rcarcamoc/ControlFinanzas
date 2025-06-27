@@ -29,21 +29,32 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.focusRequester
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PresupuestosScreen(
     navController: NavHostController,
-    viewModel: PresupuestosViewModel = hiltViewModel()
+    viewModel: PresupuestosViewModel = hiltViewModel(),
+    periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val periodoSeleccionado by viewModel.periodoSeleccionado.collectAsState()
+    val periodoSeleccionado by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    val periodosDisponibles by periodoGlobalViewModel.periodosDisponibles.collectAsState()
     val categorias by viewModel.categorias.collectAsState()
     val presupuestosPorCategoria by viewModel.presupuestosPorCategoria.collectAsState()
     val resumen by viewModel.resumen.collectAsState()
     val scope = rememberCoroutineScope()
-
     var showPeriodoSelector by remember { mutableStateOf(false) }
+    // Cuando cambie el período seleccionado, aplicar lazy copy si es necesario antes de cargar los presupuestos
+    LaunchedEffect(periodoSeleccionado, categorias) {
+        categorias.forEach { categoria ->
+            viewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
+        }
+        // Esperar un poco para asegurar que los presupuestos se creen antes de cargar
+        kotlinx.coroutines.delay(100)
+        viewModel.cargarPresupuestos(periodoSeleccionado)
+    }
 
     Scaffold(
         topBar = {
@@ -134,8 +145,9 @@ fun PresupuestosScreen(
                             val presupuesto = presupuestosPorCategoria[categoria.id]
                             var tienePresupuesto by remember(presupuesto) { mutableStateOf(presupuesto != null) }
                             var montoPresupuesto by remember(presupuesto) { mutableStateOf(presupuesto?.monto?.toLong()?.toString() ?: "") }
+                            var montoTemporal by remember { mutableStateOf(montoPresupuesto) }
+                            var isEditing by remember { mutableStateOf(false) }
                             val focusRequester = remember { FocusRequester() }
-                            var fieldHasFocus by remember { mutableStateOf(false) }
 
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -143,11 +155,14 @@ fun PresupuestosScreen(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             ) {
-                                Row(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
@@ -156,11 +171,12 @@ fun PresupuestosScreen(
                                             fontWeight = FontWeight.Bold
                                         )
                                         if (tienePresupuesto) {
+                                                if (isEditing) {
                                             OutlinedTextField(
-                                                value = montoPresupuesto,
+                                                        value = montoTemporal,
                                                 onValueChange = {
                                                     val filtered = it.filter { c -> c.isDigit() }
-                                                    montoPresupuesto = filtered
+                                                            montoTemporal = filtered
                                                 },
                                                 label = { Text("Monto presupuesto") },
                                                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -168,25 +184,18 @@ fun PresupuestosScreen(
                                                 ),
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .focusRequester(focusRequester)
-                                                    .onFocusChanged { focusState ->
-                                                        val wasFocused = fieldHasFocus
-                                                        fieldHasFocus = focusState.isFocused
-                                                        if (wasFocused && !focusState.isFocused) {
-                                                            val monto = montoPresupuesto.toLongOrNull()
-                                                            if (monto != null && monto > 0) {
-                                                                scope.launch {
-                                                                    viewModel.guardarPresupuesto(categoria.id, monto.toDouble(), periodoSeleccionado)
-                                                                }
-                                                            }
-                                                        }
-                                                    },
+                                                            .focusRequester(focusRequester),
                                                 singleLine = true
                                             )
-                                            LaunchedEffect(tienePresupuesto) {
-                                                if (tienePresupuesto) {
+                                                    LaunchedEffect(Unit) {
                                                     focusRequester.requestFocus()
-                                                }
+                                                    }
+                                                } else {
+                                                    Text(
+                                                        text = "Presupuesto: $${montoPresupuesto}",
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
                                             }
                                         }
                                     }
@@ -196,15 +205,68 @@ fun PresupuestosScreen(
                                             tienePresupuesto = checked
                                             if (!checked) {
                                                 montoPresupuesto = ""
+                                                    montoTemporal = ""
+                                                    isEditing = false
                                                 scope.launch {
                                                     viewModel.eliminarPresupuesto(categoria.id, periodoSeleccionado)
                                                 }
                                             } else {
-                                                // Si se activa, poner un valor por defecto
                                                 montoPresupuesto = ""
+                                                    montoTemporal = ""
+                                                    isEditing = true
+                                                }
+                                            }
+                                        )
+                                    }
+                                    
+                                    // Botones de acción cuando está editando
+                                    if (tienePresupuesto && isEditing) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 8.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Button(
+                                                onClick = {
+                                                    val monto = montoTemporal.toLongOrNull()
+                                                    if (monto != null && monto > 0) {
+                                                        montoPresupuesto = montoTemporal
+                                                        isEditing = false
+                                                        scope.launch {
+                                                            viewModel.guardarPresupuesto(categoria.id, monto.toDouble(), periodoSeleccionado)
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.weight(1f),
+                                                enabled = montoTemporal.isNotEmpty() && montoTemporal.toLongOrNull() != null && montoTemporal.toLongOrNull()!! > 0
+                                            ) {
+                                                Text("Guardar")
+                                            }
+                                            OutlinedButton(
+                                                onClick = {
+                                                    montoTemporal = montoPresupuesto
+                                                    isEditing = false
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Cancelar")
                                             }
                                         }
-                                    )
+                                    } else if (tienePresupuesto && !isEditing) {
+                                        // Botón para editar cuando no está en modo edición
+                                        Button(
+                                            onClick = {
+                                                montoTemporal = montoPresupuesto
+                                                isEditing = true
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 8.dp)
+                                        ) {
+                                            Text("Editar Presupuesto")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -246,11 +308,11 @@ fun PresupuestosScreen(
         // Selector de período
         if (showPeriodoSelector) {
             PeriodoSelectorDialogPresupuesto(
-                periodos = viewModel.periodosDisponibles,
+                periodos = periodosDisponibles,
                 periodoSeleccionado = periodoSeleccionado,
                 onDismiss = { showPeriodoSelector = false },
                 onPeriodoSelected = { periodo ->
-                    viewModel.cargarPresupuestos(periodo)
+                    periodoGlobalViewModel.cambiarPeriodo(periodo)
                     showPeriodoSelector = false
                 }
             )

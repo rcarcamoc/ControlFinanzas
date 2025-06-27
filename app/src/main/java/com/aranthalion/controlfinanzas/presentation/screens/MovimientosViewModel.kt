@@ -49,6 +49,26 @@ class MovimientosViewModel @Inject constructor(
         }
     }
 
+    fun cargarMovimientosPorPeriodo(periodo: String) {
+        viewModelScope.launch {
+            try {
+                val movimientos = gestionarMovimientosUseCase.obtenerMovimientosPorPeriodo(periodo)
+                val categorias = gestionarMovimientosUseCase.obtenerCategorias()
+                
+                // Ordenar movimientos: primero los sin categoría, luego por fecha descendente
+                val movimientosOrdenados = movimientos.sortedWith(
+                    compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
+                    .thenByDescending { it.fecha }
+                )
+                
+                _uiState.value = MovimientosUiState.Success(movimientosOrdenados, categorias)
+                calcularTotales(movimientosOrdenados)
+            } catch (e: Exception) {
+                _uiState.value = MovimientosUiState.Error(e.message ?: "Error al cargar movimientos")
+            }
+        }
+    }
+
     fun agregarMovimiento(movimiento: MovimientoEntity) {
         viewModelScope.launch {
             try {

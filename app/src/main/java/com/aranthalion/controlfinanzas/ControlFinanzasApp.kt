@@ -45,6 +45,15 @@ class ControlFinanzasApp : Application() {
                 movimientoRepository.cargarDatosHistoricos()
                 Log.d("ControlFinanzasApp", "✅ Datos históricos cargados correctamente")
                 
+                // Diagnosticar estado actual de datos históricos
+                Log.d("ControlFinanzasApp", "🔍 Diagnosticando datos históricos...")
+                movimientoRepository.diagnosticarDatosHistoricos()
+                
+                // Limpiar y recargar datos históricos con nuevas descripciones
+                Log.d("ControlFinanzasApp", "🔄 Limpiando y recargando datos históricos...")
+                movimientoRepository.limpiarYRecargarDatosHistoricos()
+                Log.d("ControlFinanzasApp", "✅ Datos históricos actualizados correctamente")
+                
             } catch (e: Exception) {
                 // Log del error pero no fallar la aplicación
                 Log.e("ControlFinanzasApp", "❌ Error al inicializar sistema: ${e.message}")

@@ -4,17 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
-import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
+import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.usecase.PresupuestoCategoria
 import com.aranthalion.controlfinanzas.domain.usecase.ResumenPresupuestos
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,9 +25,6 @@ class PresupuestosViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<PresupuestosUiState>(PresupuestosUiState.Loading)
     val uiState: StateFlow<PresupuestosUiState> = _uiState.asStateFlow()
 
-    private val _periodoSeleccionado = MutableStateFlow(obtenerPeriodoActual())
-    val periodoSeleccionado: StateFlow<String> = _periodoSeleccionado.asStateFlow()
-
     private val _categorias = MutableStateFlow<List<Categoria>>(emptyList())
     val categorias: StateFlow<List<Categoria>> = _categorias.asStateFlow()
 
@@ -38,29 +34,19 @@ class PresupuestosViewModel @Inject constructor(
     private val _resumen = MutableStateFlow<ResumenPresupuestos?>(null)
     val resumen: StateFlow<ResumenPresupuestos?> = _resumen.asStateFlow()
 
-    private val _periodosDisponibles = MutableStateFlow<List<String>>(generarPeriodosDisponibles())
-    val periodosDisponibles: List<String> get() = _periodosDisponibles.value
-
-    init {
-        cargarPresupuestos(_periodoSeleccionado.value)
-    }
-
     fun cargarPresupuestos(periodo: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = PresupuestosUiState.Loading
-                _periodoSeleccionado.value = periodo
-                
                 val categorias = categoriaRepository.obtenerCategorias()
                 val categoriasUnicas = categorias.distinctBy { it.nombre.trim().lowercase() }
                 val presupuestos = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodo)
+                val presupuestosMap = presupuestos.associateBy { it.categoriaId }
                 val resumen = gestionarPresupuestosUseCase.obtenerResumenPresupuestos(periodo)
-                
                 _categorias.value = categoriasUnicas
-                _presupuestosPorCategoria.value = presupuestos.associateBy { it.categoriaId }
+                _presupuestosPorCategoria.value = presupuestosMap
                 _resumen.value = resumen
                 _uiState.value = PresupuestosUiState.Success
-                
             } catch (e: Exception) {
                 _uiState.value = PresupuestosUiState.Error(e.message ?: "Error al cargar presupuestos")
             }
@@ -70,15 +56,65 @@ class PresupuestosViewModel @Inject constructor(
     fun guardarPresupuesto(categoriaId: Long, monto: Double, periodo: String) {
         viewModelScope.launch {
             try {
-                val entity = PresupuestoCategoriaEntity(
+                // Guardar para el mes actual
+                val entityActual = PresupuestoCategoriaEntity(
                     categoriaId = categoriaId,
                     monto = monto,
                     periodo = periodo
                 )
-                gestionarPresupuestosUseCase.guardarPresupuesto(entity)
+                gestionarPresupuestosUseCase.guardarPresupuesto(entityActual)
+
+                // Replicar para los próximos 2 meses si no existe presupuesto
+                val formato = java.text.SimpleDateFormat("yyyy-MM")
+                val fechaBase = formato.parse(periodo)
+                val calendar = java.util.Calendar.getInstance()
+                calendar.time = fechaBase
+                for (i in 1..2) {
+                    calendar.add(java.util.Calendar.MONTH, 1)
+                    val periodoFuturo = formato.format(calendar.time)
+                    val existe = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodoFuturo)
+                        .any { it.categoriaId == categoriaId }
+                    if (!existe) {
+                        val entityFuturo = PresupuestoCategoriaEntity(
+                            categoriaId = categoriaId,
+                            monto = monto,
+                            periodo = periodoFuturo
+                        )
+                        gestionarPresupuestosUseCase.guardarPresupuesto(entityFuturo)
+                    }
+                }
                 cargarPresupuestos(periodo)
             } catch (e: Exception) {
                 _uiState.value = PresupuestosUiState.Error(e.message ?: "Error al guardar presupuesto")
+            }
+        }
+    }
+
+    // Lazy copy: si se navega a un mes futuro sin presupuesto, replicar el último valor conocido
+    fun lazyCopyPresupuestoSiNoExiste(categoriaId: Long, periodo: String) {
+        viewModelScope.launch {
+            val existe = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodo)
+                .any { it.categoriaId == categoriaId }
+            if (!existe) {
+                // Buscar el último presupuesto anterior
+                val formato = java.text.SimpleDateFormat("yyyy-MM")
+                val calendar = java.util.Calendar.getInstance()
+                calendar.time = formato.parse(periodo) ?: return@launch
+                for (i in 1..24) { // Buscar hasta 2 años atrás
+                    calendar.add(java.util.Calendar.MONTH, -1)
+                    val periodoAnterior = formato.format(calendar.time)
+                    val presupuestos = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodoAnterior)
+                    val anterior = presupuestos.find { it.categoriaId == categoriaId }
+                    if (anterior != null) {
+                        val entity = PresupuestoCategoriaEntity(
+                            categoriaId = categoriaId,
+                            monto = anterior.monto,
+                            periodo = periodo
+                        )
+                        gestionarPresupuestosUseCase.guardarPresupuesto(entity)
+                        break
+                    }
+                }
             }
         }
     }
@@ -97,52 +133,27 @@ class PresupuestosViewModel @Inject constructor(
         }
     }
 
-    fun actualizarPresupuestoCategoria(categoriaId: Long, presupuesto: Double?) {
+    fun actualizarPresupuestoCategoria(categoriaId: Long, presupuesto: Double?, periodo: String) {
         viewModelScope.launch {
             try {
                 gestionarPresupuestosUseCase.actualizarPresupuestoCategoria(categoriaId, presupuesto)
-                
                 // Recargar presupuestos
-                cargarPresupuestos(_periodoSeleccionado.value)
-                
+                cargarPresupuestos(periodo)
             } catch (e: Exception) {
                 _uiState.value = PresupuestosUiState.Error(e.message ?: "Error al actualizar presupuesto")
             }
         }
     }
 
-    fun obtenerCategoriasConAlerta() {
+    fun obtenerCategoriasConAlerta(periodo: String) {
         viewModelScope.launch {
             try {
-                val alertas = gestionarPresupuestosUseCase.obtenerCategoriasConAlerta(_periodoSeleccionado.value)
+                val alertas = gestionarPresupuestosUseCase.obtenerCategoriasConAlerta(periodo)
                 // Aquí podrías manejar las alertas como notificaciones
             } catch (e: Exception) {
-                // Manejar error silenciosamente
+                // Manejo de error
             }
         }
-    }
-
-    private fun obtenerPeriodoActual(): String {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH) + 1
-        return String.format("%04d-%02d", year, month)
-    }
-
-    private fun generarPeriodosDisponibles(): List<String> {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH) + 1
-        val periodos = mutableListOf<String>()
-        // Últimos 11 meses + mes actual + 2 futuros
-        for (i in -11..2) {
-            val cal = Calendar.getInstance()
-            cal.set(year, month - 1, 1)
-            cal.add(Calendar.MONTH, i)
-            val periodo = String.format("%04d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-            periodos.add(periodo)
-        }
-        return periodos.sortedDescending()
     }
 }
 

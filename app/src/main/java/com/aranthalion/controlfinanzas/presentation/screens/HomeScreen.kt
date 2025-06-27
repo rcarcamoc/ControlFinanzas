@@ -31,37 +31,41 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextAlign
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    viewModel: MovimientosViewModel = hiltViewModel()
+    viewModel: MovimientosViewModel = hiltViewModel(),
+    periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val totales by viewModel.totales.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+    val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    val periodosDisponibles by periodoGlobalViewModel.periodosDisponibles.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
     val currentTime = remember { 
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
     }
-
-    // Estado global de período
-    var periodoGlobal by rememberSaveable { mutableStateOf(obtenerPeriodoActual()) }
-    val periodosDisponibles = remember { generarPeriodosDisponibles() }
-    var expanded by remember { mutableStateOf(false) }
-
     // Refrescar al volver a primer plano
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.cargarMovimientos()
+                viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
+    }
+    // Observar cambios en el período global y actualizar el ViewModel de movimientos
+    LaunchedEffect(periodoGlobal) {
+        viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
     }
 
     Scaffold(
@@ -105,34 +109,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Selector de período/ciclo de facturación
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
-                OutlinedTextField(
-                    value = periodoGlobal,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Período/Ciclo de facturación") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth().clickable { expanded = true }
-                )
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    periodosDisponibles.forEach { periodo ->
-                        DropdownMenuItem(
-                            text = { Text(periodo) },
-                            onClick = {
-                                periodoGlobal = periodo
-                                expanded = false
-                                // Aquí deberías propagar el cambio a los demás ViewModels
-                            }
-                        )
-                    }
-                }
-            }
+            PeriodoSelectorGlobal(modifier = Modifier.fillMaxWidth())
 
             // Dashboard Stats simplificado
             when (uiState) {

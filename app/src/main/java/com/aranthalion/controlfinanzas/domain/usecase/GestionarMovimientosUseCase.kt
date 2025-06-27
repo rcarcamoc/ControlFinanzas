@@ -12,6 +12,10 @@ class GestionarMovimientosUseCase @Inject constructor(
         return movimientoRepository.obtenerMovimientos()
     }
 
+    suspend fun obtenerMovimientosPorPeriodo(periodo: String): List<MovimientoEntity> {
+        return movimientoRepository.obtenerMovimientosPorPeriodo(periodo)
+    }
+
     suspend fun obtenerCategorias(): List<Categoria> {
         return movimientoRepository.obtenerCategorias()
     }

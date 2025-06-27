@@ -645,3 +645,58 @@ Realizar una revisión exhaustiva de la aplicación, optimizar el rendimiento, m
 -   La documentación del proyecto está actualizada y es completa.
 -   Se ha generado un APK de lanzamiento que puede ser instalado y probado externamente.
 -   El código base es limpio, bien comentado y sigue las mejores prácticas de Kotlin y Android.
+
+## Plan de Integración de Guía de Diseño UI (FinaVision)
+
+A continuación del cierre del hito actual, se implementará un plan de migración visual y de experiencia de usuario basado en la Guía de Especificaciones de UI de FinaVision. El objetivo es lograr una interfaz moderna, coherente y alineada con el prototipo web, mejorando la experiencia y la mantenibilidad del código.
+
+### Objetivo
+Unificar la experiencia visual y de interacción de la app, aplicando el sistema de diseño, paleta de colores, tipografía, componentes y microinteracciones definidos en la guía.
+
+### Pasos del Plan
+
+1. **Unificación de Paleta de Colores**
+    - Migrar la paleta de colores propuesta en la guía a `colors.xml`.
+    - Eliminar colores antiguos y definir variables reutilizables (`background`, `primary`, `accent`, etc.).
+    - (Opcional) Permitir selección de tema si se desea mantener más de una paleta.
+
+2. **Tipografía y Jerarquía Visual**
+    - Importar la fuente `PT Sans` desde Google Fonts.
+    - Definir los estilos de texto en `Type.kt` y `themes.xml` según la jerarquía de la guía (títulos, descripciones, botones, etc.).
+    - Aplicar los tamaños y pesos sugeridos en todos los componentes.
+
+3. **Componentes Reutilizables**
+    - Crear/ajustar componentes Compose (`Card`, `Button`, `Input`, `Dialog`, etc.) siguiendo los estilos de la guía (paddings, bordes, radios, sombras).
+    - Unificar el uso de estos componentes en todas las pantallas.
+
+4. **Iconografía**
+    - Usar iconos de Material Design o importar SVGs de Lucide para mantener la coherencia visual.
+    - Ajustar tamaños y colores según la guía.
+
+5. **Espaciado y Layout**
+    - Definir constantes de espaciado base (8dp, 16dp, 24dp) y aplicarlas en todos los layouts.
+    - Ajustar paddings y gaps en las pantallas para respetar la jerarquía visual.
+
+6. **Animaciones y Feedback Visual**
+    - Implementar transiciones suaves (`animate*AsState`, `AnimatedVisibility`) en botones, diálogos y gráficos.
+    - Añadir feedback visual inmediato en interacciones (hover, focus, loading, etc.).
+
+7. **Refactor de Pantallas**
+    - Revisar cada pantalla y ajustar los layouts y componentes para alinearse con la guía.
+    - Usar los mismos headers, cards, tablas y botones definidos en el sistema de diseño.
+
+8. **Pruebas Visuales y de Usabilidad**
+    - Validar la consistencia visual y la experiencia de usuario en todas las pantallas.
+    - Realizar pruebas de usabilidad para asegurar claridad y simplicidad.
+
+9. **Documentación y Mantenimiento**
+    - Documentar los nuevos estilos y componentes.
+    - Actualizar la guía de desarrollo para el equipo.
+
+### Criterios de Éxito
+- La app debe verse y sentirse coherente con el prototipo web de FinaVision.
+- Todos los componentes y pantallas deben usar la nueva paleta, tipografía y sistema de diseño.
+- La experiencia de usuario debe ser clara, moderna y profesional.
+- El código debe ser más mantenible y fácil de extender.
+
+---

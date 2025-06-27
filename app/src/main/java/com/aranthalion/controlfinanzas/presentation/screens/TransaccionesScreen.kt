@@ -25,27 +25,29 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.text.NumberFormat
 import com.aranthalion.controlfinanzas.data.util.ExcelProcessor
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransaccionesScreen(
     navController: NavHostController,
-    viewModel: MovimientosViewModel = hiltViewModel()
+    viewModel: MovimientosViewModel = hiltViewModel(),
+    periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val totales by viewModel.totales.collectAsState()
     val categoriasViewModel: CategoriasViewModel = hiltViewModel()
     val categoriasUiState by categoriasViewModel.uiState.collectAsState()
-    
+    val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var showFiltroDialog by remember { mutableStateOf(false) }
     var filtroTipoSeleccionado by remember { mutableStateOf("Todos") }
-    var filtroPeriodoSeleccionado by remember { mutableStateOf("Todos") }
+    var filtroPeriodoSeleccionado by remember { mutableStateOf(periodoGlobal) }
     var filtroFechaSeleccionada by remember { mutableStateOf<Date?>(null) }
     var movimientoAEditar by remember { mutableStateOf<MovimientoEntity?>(null) }
     var expandedPeriodo by remember { mutableStateOf(false) }
     var expandedTipo by remember { mutableStateOf(false) }
-
     val tipos = listOf("Todos", "Ingresos", "Gastos")
     val calendar = Calendar.getInstance()
     calendar.add(Calendar.MONTH, 2)
@@ -56,6 +58,11 @@ fun TransaccionesScreen(
         val month = (cal.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
         "$year-$month"
     }.toMutableList().apply { add(0, "Todos") }
+    // Actualizar filtro de período cuando cambie el período global
+    LaunchedEffect(periodoGlobal) {
+        filtroPeriodoSeleccionado = periodoGlobal
+        viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
+    }
 
     Scaffold(
         topBar = {
@@ -119,18 +126,11 @@ fun TransaccionesScreen(
                             "Gastos" -> movimiento.tipo == "GASTO"
                             else -> true
                         }
-                        
-                        val cumplePeriodo = if (filtroPeriodoSeleccionado != "Todos") {
-                            movimiento.periodoFacturacion == filtroPeriodoSeleccionado
-                        } else true
-                        
-                        val cumpleFecha = filtroFechaSeleccionada?.let { fecha ->
-                            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                            dateFormat.format(movimiento.fecha) == dateFormat.format(fecha)
-                        } ?: true
-                        
-                        cumpleTipo && cumplePeriodo && cumpleFecha
+                        val cumplePeriodo = movimiento.periodoFacturacion == periodoGlobal
+                        cumpleTipo && cumplePeriodo
                     }
+
+                    PeriodoSelectorGlobal(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -174,55 +174,6 @@ fun TransaccionesScreen(
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                }
-                            }
-                        }
-
-                        // Filtros activos
-                        if (filtroTipoSeleccionado != "Todos" || filtroPeriodoSeleccionado != "Todos" || filtroFechaSeleccionada != null) {
-                            item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(12.dp)
-                                    ) {
-                                        Text(
-                                            text = "Filtros activos:",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            if (filtroTipoSeleccionado != "Todos") {
-                                                AssistChip(
-                                                    onClick = { filtroTipoSeleccionado = "Todos" },
-                                                    label = { Text(filtroTipoSeleccionado) },
-                                                    trailingIcon = { Icon(Icons.Default.Close, null) }
-                                                )
-                                            }
-                                            if (filtroPeriodoSeleccionado != "Todos") {
-                                                AssistChip(
-                                                    onClick = { filtroPeriodoSeleccionado = "Todos" },
-                                                    label = { Text(filtroPeriodoSeleccionado) },
-                                                    trailingIcon = { Icon(Icons.Default.Close, null) }
-                                                )
-                                            }
-                                            if (filtroFechaSeleccionada != null) {
-                                                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                                AssistChip(
-                                                    onClick = { filtroFechaSeleccionada = null },
-                                                    label = { Text(dateFormat.format(filtroFechaSeleccionada!!)) },
-                                                    trailingIcon = { Icon(Icons.Default.Close, null) }
-                                                )
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }

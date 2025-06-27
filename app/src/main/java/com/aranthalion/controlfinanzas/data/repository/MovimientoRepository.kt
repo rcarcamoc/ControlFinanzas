@@ -74,12 +74,134 @@ class MovimientoRepository @Inject constructor(
     }
 
     /**
+     * Diagnostica el estado de los datos históricos
+     * Muestra información útil sobre los movimientos históricos existentes
+     */
+    suspend fun diagnosticarDatosHistoricos() {
+        val movimientosExistentes = movimientoDao.obtenerMovimientos()
+        val movimientosHistoricos = movimientosExistentes.filter { 
+            it.idUnico.startsWith("historico_") 
+        }
+        
+        println("🔍 DIAGNÓSTICO DE DATOS HISTÓRICOS:")
+        println("Total de movimientos: ${movimientosExistentes.size}")
+        println("Movimientos históricos: ${movimientosHistoricos.size}")
+        
+        if (movimientosHistoricos.isNotEmpty()) {
+            val conDescripcionAntigua = movimientosHistoricos.filter { 
+                it.descripcion == "Carga histórica" 
+            }
+            val conDescripcionNueva = movimientosHistoricos.filter { 
+                it.descripcion != "Carga histórica" 
+            }
+            
+            println("  - Con descripción 'Carga histórica': ${conDescripcionAntigua.size}")
+            println("  - Con descripción nueva: ${conDescripcionNueva.size}")
+            
+            if (conDescripcionAntigua.isNotEmpty()) {
+                println("  📝 Ejemplos de descripciones antiguas:")
+                conDescripcionAntigua.take(3).forEach { movimiento ->
+                    println("    * ${movimiento.idUnico} -> '${movimiento.descripcion}'")
+                }
+            }
+            
+            if (conDescripcionNueva.isNotEmpty()) {
+                println("  ✅ Ejemplos de descripciones nuevas:")
+                conDescripcionNueva.take(3).forEach { movimiento ->
+                    println("    * ${movimiento.idUnico} -> '${movimiento.descripcion}'")
+                }
+            }
+        } else {
+            println("  ℹ️ No hay movimientos históricos en la base de datos")
+        }
+    }
+
+    /**
+     * Limpia todos los movimientos históricos y los recarga con las nuevas descripciones
+     * Útil cuando se desinstala y reinstala la app pero la base de datos persiste
+     */
+    suspend fun limpiarYRecargarDatosHistoricos() {
+        try {
+            println("🧹 Limpiando movimientos históricos existentes...")
+            
+            // Obtener todos los movimientos históricos
+            val movimientosExistentes = movimientoDao.obtenerMovimientos()
+            val movimientosHistoricos = movimientosExistentes.filter { 
+                it.idUnico.startsWith("historico_") 
+            }
+            
+            if (movimientosHistoricos.isNotEmpty()) {
+                // Eliminar todos los movimientos históricos
+                movimientosHistoricos.forEach { movimiento ->
+                    movimientoDao.eliminarMovimiento(movimiento)
+                }
+                println("🗑️ Eliminados ${movimientosHistoricos.size} movimientos históricos")
+            }
+            
+            // Recargar datos históricos con las nuevas descripciones
+            println("📊 Recargando datos históricos con nuevas descripciones...")
+            cargarDatosHistoricos()
+            
+            println("✅ Datos históricos limpiados y recargados correctamente")
+            
+        } catch (e: Exception) {
+            println("❌ Error al limpiar y recargar datos históricos: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Actualiza las descripciones de movimientos históricos existentes
+     * de "Carga histórica" a los nombres de categorías correspondientes
+     */
+    suspend fun actualizarDescripcionesHistoricas() {
+        val movimientosExistentes = movimientoDao.obtenerMovimientos()
+        val movimientosHistoricos = movimientosExistentes.filter { 
+            it.descripcion == "Carga histórica" && it.idUnico.startsWith("historico_") 
+        }
+        
+        if (movimientosHistoricos.isEmpty()) {
+            println("No hay movimientos históricos con descripción 'Carga histórica' para actualizar")
+            return
+        }
+        
+        val categorias = categoriaDao.obtenerCategorias()
+        var actualizados = 0
+        
+        movimientosHistoricos.forEach { movimiento ->
+            // Extraer el nombre de la categoría del ID único
+            val idUnico = movimiento.idUnico
+            val partes = idUnico.split("_")
+            if (partes.size >= 4) {
+                val categoriaNombre = partes[2] // El nombre de la categoría está en la posición 2
+                
+                // Buscar la categoría por nombre
+                val categoria = categorias.find { 
+                    it.nombre.equals(categoriaNombre, ignoreCase = true) 
+                }
+                
+                // Actualizar el movimiento
+                val movimientoActualizado = movimiento.copy(
+                    descripcion = categoriaNombre,
+                    categoriaId = categoria?.id
+                )
+                
+                movimientoDao.actualizarMovimiento(movimientoActualizado)
+                actualizados++
+                println("Actualizado: ${movimiento.idUnico} -> descripción: $categoriaNombre")
+            }
+        }
+        
+        println("Se actualizaron $actualizados movimientos históricos")
+    }
+
+    /**
      * Carga datos históricos hardcodeados (solo una vez)
      */
     suspend fun cargarDatosHistoricos() {
         // Verificar si ya se han cargado datos históricos
         val movimientosExistentes = movimientoDao.obtenerMovimientos()
-        if (movimientosExistentes.any { it.descripcion == "Carga histórica" }) {
+        if (movimientosExistentes.any { it.idUnico.startsWith("historico_") }) {
             println("Los datos históricos ya han sido cargados anteriormente")
             return
         }
@@ -254,7 +376,7 @@ class MovimientoRepository @Inject constructor(
             val movimiento = MovimientoEntity(
                 tipo = "GASTO", // Todos los datos históricos son gastos
                 monto = -monto, // Negativo porque son gastos
-                descripcion = "Carga histórica",
+                descripcion = categoriaNombre, // Usar el nombre de la categoría como descripción
                 fecha = dateFormat.parse(fechaStr) ?: Date(),
                 periodoFacturacion = fechaStr.substring(0, 7), // Solo YYYY-MM
                 categoriaId = categoria?.id,

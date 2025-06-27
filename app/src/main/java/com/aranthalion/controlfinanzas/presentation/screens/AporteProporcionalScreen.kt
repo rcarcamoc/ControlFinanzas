@@ -20,8 +20,11 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcional
 import com.aranthalion.controlfinanzas.domain.usecase.ResumenAporteProporcional
 import com.aranthalion.controlfinanzas.presentation.components.HistorialAportesCharts
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +33,9 @@ fun AporteProporcionalScreen(
     viewModel: AporteProporcionalViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val periodoSeleccionado by viewModel.periodoSeleccionado.collectAsState()
+    val periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
+    val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    var periodoSeleccionado by remember { mutableStateOf(periodoGlobal) }
     val periodosDisponibles by viewModel.periodosDisponibles.collectAsState()
     val personasDisponibles by viewModel.personasDisponibles.collectAsState()
     val sueldosActuales by viewModel.sueldosActuales.collectAsState()
@@ -39,6 +44,15 @@ fun AporteProporcionalScreen(
     var showPeriodoSelector by remember { mutableStateOf(false) }
     var showHistorialDialog by remember { mutableStateOf(false) }
     var sueldoToEdit by remember { mutableStateOf<SueldoEntity?>(null) }
+
+    DisposableEffect(periodoGlobal) {
+        periodoSeleccionado = periodoGlobal
+        onDispose { }
+    }
+
+    LaunchedEffect(periodoSeleccionado) {
+        viewModel.calcularAporteProporcional(periodoSeleccionado)
+    }
 
     Scaffold(
         topBar = {
@@ -293,8 +307,7 @@ fun AporteProporcionalScreen(
                 periodoSeleccionado = periodoSeleccionado,
                 onDismiss = { showPeriodoSelector = false },
                 onPeriodoSelected = { periodo ->
-                    viewModel.calcularAporteProporcional(periodo)
-                    showPeriodoSelector = false
+                    periodoSeleccionado = periodo
                 }
             )
         }
@@ -304,8 +317,7 @@ fun AporteProporcionalScreen(
             HistorialAportesDialog(
                 onDismiss = { showHistorialDialog = false },
                 onPeriodoSelected = { periodo ->
-                    viewModel.calcularAporteProporcional(periodo)
-                    showHistorialDialog = false
+                    periodoSeleccionado = periodo
                 }
             )
         }

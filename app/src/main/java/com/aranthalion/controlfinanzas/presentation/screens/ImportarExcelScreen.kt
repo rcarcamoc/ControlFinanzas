@@ -35,6 +35,11 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import androidx.compose.runtime.DisposableEffect
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -59,7 +64,9 @@ fun ImportarExcelScreen(
     var tipoArchivo by remember { mutableStateOf("") }
     var expandedTipo by remember { mutableStateOf(false) }
     var expandedMes by remember { mutableStateOf(false) }
-    var mesSeleccionado by remember { mutableStateOf("") }
+    val periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
+    val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    var mesSeleccionado by remember { mutableStateOf(periodoGlobal) }
     val tipos = listOf("Estado de cierre", "Últimos movimientos")
     val calendar = Calendar.getInstance()
     val meses = (0..11).map { offset ->
@@ -88,6 +95,16 @@ fun ImportarExcelScreen(
     // Configurar el ExcelProcessor con el caso de uso de clasificación
     LaunchedEffect(clasificacionUseCase) {
         ExcelProcessor.setClasificacionUseCase(clasificacionUseCase)
+    }
+    
+    // Sincronizar mesSeleccionado con periodoGlobal
+    LaunchedEffect(periodoGlobal) {
+        if (mesSeleccionado != periodoGlobal) mesSeleccionado = periodoGlobal
+    }
+    
+    // Cuando el usuario cambie mesSeleccionado, actualizar periodoGlobalViewModel.cambiarPeriodo(mesSeleccionado)
+    LaunchedEffect(mesSeleccionado) {
+        periodoGlobalViewModel.cambiarPeriodo(mesSeleccionado)
     }
     
     Column(
@@ -138,6 +155,7 @@ fun ImportarExcelScreen(
                         onClick = {
                             mesSeleccionado = mes
                             expandedMes = false
+                            periodoGlobalViewModel.cambiarPeriodo(mes)
                         }
                     )
                 }
