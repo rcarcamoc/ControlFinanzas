@@ -11,14 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.aranthalion.controlfinanzas.presentation.components.StatCard
+import com.aranthalion.controlfinanzas.presentation.components.PresupuestoInfo
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosUiState
+import com.aranthalion.controlfinanzas.domain.usecase.EstadoPresupuesto
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.getValue
@@ -40,10 +43,12 @@ import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGl
 fun HomeScreen(
     navController: NavHostController,
     viewModel: MovimientosViewModel = hiltViewModel(),
+    presupuestosViewModel: PresupuestosViewModel = hiltViewModel(),
     periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val totales by viewModel.totales.collectAsState()
+    val resumenPresupuestos by presupuestosViewModel.resumen.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
     val periodosDisponibles by periodoGlobalViewModel.periodosDisponibles.collectAsState()
@@ -51,11 +56,26 @@ fun HomeScreen(
     val currentTime = remember { 
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
     }
+    
+    // Configuración responsive
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val isSmallScreen = screenWidth < 600.dp
+    val isMediumScreen = screenWidth >= 600.dp && screenWidth < 840.dp
+    
+    // Determinar número de columnas para StatCards
+    val statCardsColumns = when {
+        isSmallScreen -> 2
+        isMediumScreen -> 3
+        else -> 4
+    }
+    
     // Refrescar al volver a primer plano
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
+                presupuestosViewModel.cargarPresupuestos(periodoGlobal)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -63,135 +83,121 @@ fun HomeScreen(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    // Observar cambios en el período global y actualizar el ViewModel de movimientos
+    
+    // Observar cambios en el período global y actualizar los ViewModels
     LaunchedEffect(periodoGlobal) {
         viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
+        presupuestosViewModel.cargarPresupuestos(periodoGlobal)
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "FinaVision",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Control de Finanzas",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                        )
-                    }
-                },
-                navigationIcon = {
-                    // Espacio para mantener el título centrado
-                },
-                actions = {
-                    IconButton(onClick = { navController.navigate("configuracion") }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // Dashboard Stats con datos reales - Layout responsive
+        when (uiState) {
+            is MovimientosUiState.Success -> {
+                val movimientos = (uiState as MovimientosUiState.Success).movimientos
+                val gastos = movimientos.filter { it.tipo == "GASTO" }
+                val ingresos = movimientos.filter { it.tipo == "INGRESO" }
+                val totalGastos = FormatUtils.roundToTwoDecimals(
+                    gastos.sumOf { FormatUtils.normalizeAmount(it.monto) }
                 )
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Selector de período/ciclo de facturación
-            PeriodoSelectorGlobal(modifier = Modifier.fillMaxWidth())
+                val totalIngresos = FormatUtils.roundToTwoDecimals(
+                    ingresos.sumOf { FormatUtils.normalizeAmount(it.monto) }
+                )
+                val balance = FormatUtils.roundToTwoDecimals(totalIngresos - totalGastos)
+                val movimientosSinCategoria = movimientos.count { it.categoriaId == null }
+                val categoriasActivas = (uiState as MovimientosUiState.Success).categorias.size
 
-            // Dashboard Stats simplificado
-            when (uiState) {
-                is MovimientosUiState.Success -> {
-                    val movimientos = (uiState as MovimientosUiState.Success).movimientos
-                    val gastos = movimientos.filter { it.tipo == "GASTO" }
-                    val ingresos = movimientos.filter { it.tipo == "INGRESO" }
-                    
-                    // Normalizar y redondear montos
-                    val totalGastos = FormatUtils.roundToTwoDecimals(
-                        gastos.sumOf { FormatUtils.normalizeAmount(it.monto) }
+                // Información de presupuesto
+                val presupuestoInfo = resumenPresupuestos?.let { resumen ->
+                    PresupuestoInfo(
+                        porcentajeGastado = resumen.porcentajeGastado,
+                        presupuestoRestante = resumen.totalPresupuestado - resumen.totalGastado,
+                        estado = when {
+                            resumen.porcentajeGastado <= 80 -> EstadoPresupuesto.NORMAL
+                            resumen.porcentajeGastado <= 90 -> EstadoPresupuesto.ADVERTENCIA
+                            resumen.porcentajeGastado <= 100 -> EstadoPresupuesto.CRITICO
+                            else -> EstadoPresupuesto.EXCEDIDO
+                        }
                     )
-                    val totalIngresos = FormatUtils.roundToTwoDecimals(
-                        ingresos.sumOf { FormatUtils.normalizeAmount(it.monto) }
-                    )
-                    val balance = FormatUtils.roundToTwoDecimals(totalIngresos - totalGastos)
-                    
-                    // Tarjetas de estadísticas simplificadas (solo 3)
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.height(120.dp)
-                    ) {
-                        item {
-                            StatCard(
-                                title = "Gastos",
-                                value = FormatUtils.formatMoneyCLP(totalGastos),
-                                icon = Icons.Default.KeyboardArrowDown,
-                                description = "Este mes",
-                                isMonetary = false,
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .height(100.dp)
-                            )
-                        }
-                        item {
-                            StatCard(
-                                title = "Ingresos",
-                                value = FormatUtils.formatMoneyCLP(totalIngresos),
-                                icon = Icons.Default.Add,
-                                description = "Este mes",
-                                isMonetary = false,
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .height(100.dp)
-                            )
-                        }
-                        item {
-                            val movimientosSinCategoria = movimientos.count { it.categoriaId == null }
-                            StatCard(
-                                title = "Pendientes",
-                                value = movimientosSinCategoria.toString(),
-                                icon = Icons.AutoMirrored.Filled.List,
-                                description = "Sin clasificar",
-                                isMonetary = false,
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .height(100.dp)
-                            )
-                        }
+                }
+
+                // StatCards en grid responsive
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(statCardsColumns),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        StatCard(
+                            title = "Gasto Total",
+                            value = totalGastos.toString(),
+                            icon = Icons.Default.KeyboardArrowDown,
+                            description = "Este mes",
+                            trend = null,
+                            isMonetary = true,
+                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                        )
+                    }
+                    item {
+                        StatCard(
+                            title = "Cumplimiento Presupuesto",
+                            value = "${resumenPresupuestos?.porcentajeGastado?.toInt() ?: 0}%",
+                            icon = Icons.Default.Star,
+                            description = "Basado en presupuestos",
+                            trend = null,
+                            isMonetary = false,
+                            presupuestoInfo = presupuestoInfo,
+                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                        )
+                    }
+                    item {
+                        StatCard(
+                            title = "Balance",
+                            value = balance.toString(),
+                            icon = Icons.Default.Add,
+                            description = "Este mes",
+                            trend = null,
+                            isMonetary = true,
+                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                        )
+                    }
+                    item {
+                        StatCard(
+                            title = "Categorías Activas",
+                            value = categoriasActivas.toString(),
+                            icon = Icons.Default.Person,
+                            description = "En uso",
+                            trend = null,
+                            isMonetary = false,
+                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                        )
                     }
                 }
-                else -> {
-                    // Placeholder mientras carga
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.height(120.dp)
-                    ) {
-                        items(3) {
+            }
+            else -> {
+                // Placeholder mientras carga - también responsive
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(statCardsColumns),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    repeat(4) {
+                        item {
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
-                                )
+                                ),
+                                modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(100.dp),
+                                        .fillMaxHeight(),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     CircularProgressIndicator()
@@ -201,179 +207,61 @@ fun HomeScreen(
                     }
                 }
             }
+        }
 
-            // Navegación principal
-            Text(
-                text = "Funciones Principales",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    MenuCard(
-                        title = "Transacciones",
-                        icon = Icons.Default.Add,
-                        description = "Gestiona ingresos y gastos",
-                        onClick = { navController.navigate("transacciones") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Categorías",
-                        icon = Icons.Default.List,
-                        description = "Administra categorías",
-                        onClick = { navController.navigate("categorias") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Importar Excel",
-                        icon = Icons.Default.Add,
-                        description = "Carga extractos bancarios",
-                        onClick = { navController.navigate("importar_excel") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Clasificación",
-                        icon = Icons.Default.Edit,
-                        description = "Revisar transacciones pendientes",
-                        onClick = { navController.navigate("clasificacion_pendiente") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Análisis",
-                        icon = Icons.Default.List,
-                        description = "Dashboard y reportes",
-                        onClick = { navController.navigate("dashboardAnalisis") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Aporte Proporcional",
-                        icon = Icons.Default.Person,
-                        description = "Cálculo de aportes en pareja",
-                        onClick = { navController.navigate("aporte_proporcional") }
-                    )
-                }
-                item {
-                    MenuCard(
-                        title = "Presupuestos",
-                        icon = Icons.Default.List,
-                        description = "Control de presupuestos",
-                        onClick = { navController.navigate("presupuestos") }
-                    )
-                }
-            }
-
-            // KPIs simplificados
-            val movimientosSinCategoria = (uiState as? MovimientosUiState.Success)?.movimientos?.count { it.categoriaId == null } ?: 0
-            if (movimientosSinCategoria > 0) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("$movimientosSinCategoria transacciones sin clasificar", color = MaterialTheme.colorScheme.onErrorContainer)
-                        Button(onClick = { navController.navigate("clasificacion_pendiente") }) {
-                            Text("Clasificar")
-                        }
-                    }
-                }
-            }
-
-            // Información adicional
+        // KPIs simplificados
+        val movimientosSinCategoria = (uiState as? MovimientosUiState.Success)?.movimientos?.count { it.categoriaId == null } ?: 0
+        if (movimientosSinCategoria > 0) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Última actualización",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = currentTime,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Text("$movimientosSinCategoria transacciones sin clasificar", color = MaterialTheme.colorScheme.onErrorContainer)
+                    Button(onClick = { navController.navigate("clasificacion_pendiente") }) {
+                        Text("Clasificar")
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun MenuCard(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    description: String,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Información adicional
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Última actualización",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = currentTime,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

@@ -14,7 +14,6 @@ import com.aranthalion.controlfinanzas.presentation.components.BarChartData
 import com.aranthalion.controlfinanzas.presentation.components.PieChartData
 import android.util.Log
 import androidx.compose.runtime.LaunchedEffect
-import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 
 @Composable
 fun DashboardAnalisisScreen(

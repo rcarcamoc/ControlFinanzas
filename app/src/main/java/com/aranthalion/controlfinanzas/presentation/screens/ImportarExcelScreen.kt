@@ -40,6 +40,11 @@ import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewMode
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -111,56 +116,176 @@ fun ImportarExcelScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.Top),
+        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Importar archivo Excel", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Button(onClick = { launcher.launch("application/vnd.ms-excel") }) {
-            Text(if (archivoNombre.isNotEmpty()) "Archivo: $archivoNombre" else "Seleccionar archivo Excel")
-        }
-        ExposedDropdownMenuBox(expanded = expandedTipo, onExpandedChange = { expandedTipo = !expandedTipo }) {
-            OutlinedTextField(
-                value = tipoArchivo,
-                onValueChange = {},
-                label = { Text("Tipo de archivo") },
-                readOnly = true,
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTipo) }
+        // Header
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             )
-            ExposedDropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
-                tipos.forEach { tipo ->
-                    DropdownMenuItem(
-                        text = { Text(tipo) },
-                        onClick = {
-                            tipoArchivo = tipo
-                            expandedTipo = false
-                        }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Importar Excel",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Importa transacciones desde archivos Excel",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
         }
-        ExposedDropdownMenuBox(expanded = expandedMes, onExpandedChange = { expandedMes = !expandedMes }) {
-            OutlinedTextField(
-                value = mesSeleccionado,
-                onValueChange = {},
-                label = { Text("Mes de ciclo de facturación") },
-                readOnly = true,
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMes) }
-            )
-            ExposedDropdownMenu(expanded = expandedMes, onDismissRequest = { expandedMes = false }) {
-                meses.forEach { mes ->
-                    DropdownMenuItem(
-                        text = { Text(mes) },
-                        onClick = {
-                            mesSeleccionado = mes
-                            expandedMes = false
-                            periodoGlobalViewModel.cambiarPeriodo(mes)
-                        }
+        
+        // Selector de archivo
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Archivo",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                OutlinedButton(
+                    onClick = { launcher.launch("application/vnd.ms-excel") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (archivoNombre.isNotEmpty()) archivoNombre else "Seleccionar archivo Excel"
+                    )
+                }
+                
+                if (archivoNombre.isNotEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Archivo seleccionado",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
                 }
             }
         }
+        
+        // Configuración
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Configuración",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                ExposedDropdownMenuBox(expanded = expandedTipo, onExpandedChange = { expandedTipo = !expandedTipo }) {
+                    OutlinedTextField(
+                        value = tipoArchivo,
+                        onValueChange = {},
+                        label = { Text("Tipo de archivo") },
+                        readOnly = true,
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTipo) }
+                    )
+                    ExposedDropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
+                        tipos.forEach { tipo ->
+                            DropdownMenuItem(
+                                text = { Text(tipo) },
+                                onClick = {
+                                    tipoArchivo = tipo
+                                    expandedTipo = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                ExposedDropdownMenuBox(expanded = expandedMes, onExpandedChange = { expandedMes = !expandedMes }) {
+                    OutlinedTextField(
+                        value = mesSeleccionado,
+                        onValueChange = {},
+                        label = { Text("Mes de ciclo de facturación") },
+                        readOnly = true,
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMes) }
+                    )
+                    ExposedDropdownMenu(expanded = expandedMes, onDismissRequest = { expandedMes = false }) {
+                        meses.forEach { mes ->
+                            DropdownMenuItem(
+                                text = { Text(mes) },
+                                onClick = {
+                                    mesSeleccionado = mes
+                                    expandedMes = false
+                                    periodoGlobalViewModel.cambiarPeriodo(mes)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Botón de importar
         Button(
             onClick = {
                 resultado = null
@@ -189,7 +314,7 @@ fun ImportarExcelScreen(
                                     descripcion = t.descripcion,
                                     fecha = t.fecha,
                                     periodoFacturacion = mesSeleccionado,
-                                    categoriaId = t.categoriaId, // Usar la categoría sugerida automáticamente
+                                    categoriaId = t.categoriaId,
                                     tipoTarjeta = t.tipoTarjeta,
                                     idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
                                 )
@@ -210,12 +335,12 @@ fun ImportarExcelScreen(
                                 val movConCategoria = if (categoriaAnterior != null) {
                                     mov.copy(categoriaId = categoriaAnterior)
                                 } else {
-                                    mov // Ya tiene la categoría sugerida automáticamente
+                                    mov
                                 }
                                 viewModel.agregarMovimiento(movConCategoria)
                             }
                             
-                            val montoTotal = nuevos.sumOf { it.monto }
+                            val montoTotal = nuevos.sumOf { it.monto.toDouble() }
                             val clasificadasAutomaticamente = nuevos.count { it.categoriaId != null }
                             val pendientesClasificacion = nuevos.size - clasificadasAutomaticamente
                             
@@ -223,7 +348,7 @@ fun ImportarExcelScreen(
                                 totalProcesadas = movimientos.size,
                                 nuevas = nuevos.size,
                                 duplicadas = duplicados,
-                                montoTotal = montoTotal,
+                                montoTotal = montoTotal.toLong(),
                                 periodo = mesSeleccionado ?: "-",
                                 clasificadasAutomaticamente = clasificadasAutomaticamente,
                                 pendientesClasificacion = pendientesClasificacion
@@ -235,44 +360,182 @@ fun ImportarExcelScreen(
                     }
                 }
             },
-            enabled = archivoUri != null && tipoArchivo.isNotEmpty() && mesSeleccionado.isNotEmpty()
+            enabled = archivoUri != null && tipoArchivo.isNotEmpty() && mesSeleccionado.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
         ) {
-            Text("Procesar archivo e importar")
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Procesar archivo e importar",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
         }
         
+        // Resultados
         if (resultado != null) {
-            Text("Movimientos a importar: ${resultado!!.size}", fontWeight = FontWeight.Bold)
-            resultado!!.take(5).forEachIndexed { i, t ->
-                val clasificacionInfo = if (t.categoriaId != null) "✓ Clasificado" else "⚠ Pendiente"
-                Text("#${i+1}: ${t.fecha} | ${t.descripcion} | ${t.monto} | $clasificacionInfo")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Vista previa",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = "Movimientos a importar: ${resultado!!.size}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    
+                    resultado!!.take(5).forEachIndexed { i, t ->
+                        val clasificacionInfo = if (t.categoriaId != null) "✓ Clasificado" else "⚠ Pendiente"
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "#${i+1}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = t.descripcion,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "${t.fecha} • ${FormatUtils.formatMoneyCLP(t.monto)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    text = clasificacionInfo,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (t.categoriaId != null) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
         
         if (exito) {
-            Text("¡Importación completada!", color = MaterialTheme.colorScheme.primary)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "¡Importación completada exitosamente!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
         
         if (error != null) {
-            Text(error!!, color = MaterialTheme.colorScheme.error)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = error!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
         }
         
         if (resumenImportacion != null) {
             AlertDialog(
                 onDismissRequest = { resumenImportacion = null },
-                title = { Text("Resumen de Importación") },
+                title = { 
+                    Text(
+                        "Resumen de Importación",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 text = {
-                    Column {
-                        Text("Total procesadas: ${resumenImportacion!!.totalProcesadas}")
-                        Text("Nuevas importadas: ${resumenImportacion!!.nuevas}")
-                        Text("Duplicadas (omitidas): ${resumenImportacion!!.duplicadas}")
-                        Text("Clasificadas automáticamente: ${resumenImportacion!!.clasificadasAutomaticamente}")
-                        Text("Pendientes de clasificación: ${resumenImportacion!!.pendientesClasificacion}")
-                        Text("Monto total importado: ${FormatUtils.formatMoneyCLP(resumenImportacion!!.montoTotal)}")
-                        Text("Periodo: ${resumenImportacion!!.periodo}")
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ResumenItem("Total procesadas", "${resumenImportacion!!.totalProcesadas}")
+                        ResumenItem("Nuevas importadas", "${resumenImportacion!!.nuevas}")
+                        ResumenItem("Duplicadas (omitidas)", "${resumenImportacion!!.duplicadas}")
+                        ResumenItem("Clasificadas automáticamente", "${resumenImportacion!!.clasificadasAutomaticamente}")
+                        ResumenItem("Pendientes de clasificación", "${resumenImportacion!!.pendientesClasificacion}")
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        ResumenItem("Monto total importado", FormatUtils.formatMoneyCLP(resumenImportacion!!.montoTotal.toDouble()))
+                        ResumenItem("Periodo", resumenImportacion!!.periodo)
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { resumenImportacion = null }) {
+                    Button(onClick = { resumenImportacion = null }) {
                         Text("Aceptar")
                     }
                 }
@@ -281,12 +544,31 @@ fun ImportarExcelScreen(
     }
 }
 
+@Composable
+private fun ResumenItem(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
 data class ResumenImportacion(
     val totalProcesadas: Int,
     val nuevas: Int,
     val duplicadas: Int,
-    val montoTotal: Double,
+    val montoTotal: Long,
     val periodo: String,
-    val clasificadasAutomaticamente: Int = 0,
-    val pendientesClasificacion: Int = 0
+    val clasificadasAutomaticamente: Int,
+    val pendientesClasificacion: Int
 ) 

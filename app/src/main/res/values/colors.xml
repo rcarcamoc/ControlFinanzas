@@ -1,14 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Colores base del sistema -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Paleta de colores naranja del prototipo -->
+    <!-- Paleta de colores FinaVision - Tema Naranja (basado en el prototipo) -->
+    <!-- Valores HSL convertidos a HEX -->
+    <color name="finavision_background">#FFFEF9F6</color> <!-- 25 100% 97% -->
+    <color name="finavision_foreground">#FF594940</color> <!-- 25 30% 25% -->
+    <color name="finavision_card">#FFFFFFFF</color> <!-- 0 0% 100% -->
+    <color name="finavision_primary">#FFF78D1D</color> <!-- 30 90% 55% -->
+    <color name="finavision_primary_foreground">#FFFEFBF9</color> <!-- 25 50% 98% -->
+    <color name="finavision_secondary">#FFFADFCF</color> <!-- 35 80% 92% -->
+    <color name="finavision_secondary_foreground">#FF754C24</color> <!-- 30 70% 25% -->
+    <color name="finavision_accent">#FFF5B991</color> <!-- 35 85% 70% -->
+    <color name="finavision_accent_foreground">#FF754C24</color> <!-- 30 70% 25% -->
+    <color name="finavision_border">#FFEED9C9</color> <!-- 30 50% 85% -->
+    <color name="finavision_muted_foreground">#FF8C7C71</color> <!-- 30 25% 45% -->
+    <color name="finavision_destructive">#FFD9534F</color> <!-- 0 70% 50% -->
+    <color name="finavision_ring">#FFF78D1D</color> <!-- 30 90% 55% -->
+    <color name="finavision_input">#FFF0E6DC</color> <!-- 30 50% 88% -->
+    
+    <!-- Colores del sidebar -->
+    <color name="finavision_sidebar_background">#FFFADECB</color> <!-- 30 60% 92% -->
+    <color name="finavision_sidebar_foreground">#FF754C24</color> <!-- 30 80% 25% -->
+    <color name="finavision_sidebar_accent">#FFF5B991</color> <!-- 35 85% 70% -->
+    <color name="finavision_sidebar_accent_foreground">#FF754C24</color> <!-- 30 70% 25% -->
+    
+    <!-- Colores de gráficos -->
+    <color name="finavision_chart_1">#FFF78D1D</color> <!-- 30 90% 55% -->
+    <color name="finavision_chart_2">#FFF5B991</color> <!-- 35 80% 70% -->
+    <color name="finavision_chart_3">#FF9A6B4D</color> <!-- 20 60% 60% -->
+    <color name="finavision_chart_4">#FFE8BFA8</color> <!-- 30 70% 75% -->
+    <color name="finavision_chart_5">#FFB08A6A</color> <!-- 35 60% 65% -->
+    
+    <!-- Paleta de colores naranja del prototipo (mantener para compatibilidad) -->
     <color name="orange_50">#FFFEF7F0</color>
     <color name="orange_100">#FFFEE7CC</color>
     <color name="orange_200">#FFFED7A3</color>
@@ -47,4 +73,11 @@
     <!-- Colores de error -->
     <color name="red_500">#FFE53B3B</color>
     <color name="red_700">#FFD32F2F</color>
+    
+    <!-- Colores legacy para compatibilidad -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
 </resources>

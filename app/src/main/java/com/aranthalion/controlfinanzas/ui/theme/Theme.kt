@@ -13,22 +13,24 @@ import androidx.compose.ui.platform.LocalContext
 import com.aranthalion.controlfinanzas.presentation.configuracion.TemaApp
 import androidx.compose.ui.graphics.Color
 
-// Tema Naranja (basado en el prototipo)
+// Tema Naranja FinaVision (basado en el prototipo exacto)
 private val NaranjaLightColorScheme = lightColorScheme(
     primary = OrangePrimary,
     secondary = OrangeSecondary,
     tertiary = OrangeAccent,
     background = BackgroundLight,
     surface = SurfaceLight,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
+    onPrimary = Color(0xFFFEFBF9), // 25 50% 98% - Very light orange for text on primary
+    onSecondary = Color(0xFF754C24), // 30 70% 25% - Darker Orange for text on secondary
+    onTertiary = Color(0xFF754C24), // 30 70% 25% - Darker Orange for text on accent
     onBackground = TextPrimaryLight,
     onSurface = TextPrimaryLight,
-    surfaceVariant = Color(0xFFF8F4F0),
+    surfaceVariant = Color(0xFFF8F4F0), // Light variant
     onSurfaceVariant = TextSecondaryLight,
     outline = BorderLight,
-    outlineVariant = BorderLight
+    outlineVariant = BorderLight,
+    error = Error,
+    onError = Color.White
 )
 
 private val NaranjaDarkColorScheme = darkColorScheme(
@@ -37,18 +39,20 @@ private val NaranjaDarkColorScheme = darkColorScheme(
     tertiary = OrangeAccent,
     background = BackgroundDark,
     surface = SurfaceDark,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
+    onPrimary = Color(0xFFFEFBF9), // 25 50% 98% - Very light orange for text on primary
+    onSecondary = Color(0xFF754C24), // 30 70% 25% - Darker Orange for text on secondary
+    onTertiary = Color(0xFF754C24), // 30 70% 25% - Darker Orange for text on accent
     onBackground = TextPrimaryDark,
     onSurface = TextPrimaryDark,
-    surfaceVariant = Color(0xFF4A3A2A),
+    surfaceVariant = Color(0xFF4A3A2A), // Dark variant
     onSurfaceVariant = TextSecondaryDark,
     outline = BorderDark,
-    outlineVariant = BorderDark
+    outlineVariant = BorderDark,
+    error = Error,
+    onError = Color.White
 )
 
-// Tema Azul (nuevo)
+// Tema Azul (mantener compatibilidad)
 private val AzulLightColorScheme = lightColorScheme(
     primary = Color(0xFF2196F3), // Blue 500
     secondary = Color(0xFF90CAF9), // Blue 200
@@ -83,7 +87,7 @@ private val AzulDarkColorScheme = darkColorScheme(
     outlineVariant = Color(0xFF1976D2) // Blue 700
 )
 
-// Tema Verde (nuevo)
+// Tema Verde (mantener compatibilidad)
 private val VerdeLightColorScheme = lightColorScheme(
     primary = Color(0xFF4CAF50), // Green 500
     secondary = Color(0xFFA5D6A7), // Green 200

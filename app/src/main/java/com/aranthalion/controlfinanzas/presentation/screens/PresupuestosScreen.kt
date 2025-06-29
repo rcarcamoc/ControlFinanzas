@@ -65,11 +65,6 @@ fun PresupuestosScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
-                actions = {
-                    IconButton(onClick = { showPeriodoSelector = true }) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Seleccionar período")
-                    }
-                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -95,41 +90,6 @@ fun PresupuestosScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Selector de período actual
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Período Actual",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = periodoSeleccionado,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                    }
-                                    Button(onClick = { showPeriodoSelector = true }) {
-                                        Icon(Icons.Default.DateRange, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Cambiar")
-                                    }
-                                }
-                            }
-                        }
-
                         // Resumen de presupuestos
                         if (resumen != null) {
                             item {
@@ -303,19 +263,6 @@ fun PresupuestosScreen(
                 }
                 else -> {}
             }
-        }
-
-        // Selector de período
-        if (showPeriodoSelector) {
-            PeriodoSelectorDialogPresupuesto(
-                periodos = periodosDisponibles,
-                periodoSeleccionado = periodoSeleccionado,
-                onDismiss = { showPeriodoSelector = false },
-                onPeriodoSelected = { periodo ->
-                    periodoGlobalViewModel.cambiarPeriodo(periodo)
-                    showPeriodoSelector = false
-                }
-            )
         }
     }
 }

@@ -13,37 +13,42 @@ import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendien
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosScreen
+import com.aranthalion.controlfinanzas.presentation.components.AppShell
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
-        composable("home") {
-            HomeScreen(navController = navController)
-        }
-        composable("categorias") {
-            CategoriasScreen(navController = navController)
-        }
-        composable("transacciones") {
-            TransaccionesScreen(navController = navController)
-        }
-        composable("importar_excel") { ImportarExcelScreen() }
-        composable("configuracion") {
-            ConfiguracionScreen(navController = navController)
-        }
-        composable("clasificacion_pendiente") {
-            ClasificacionPendienteScreen(navController = navController)
-        }
-        composable("dashboardAnalisis") {
-            DashboardAnalisisScreen()
-        }
-        composable("aporte_proporcional") {
-            AporteProporcionalScreen(navController = navController)
-        }
-        composable("presupuestos") {
-            PresupuestosScreen(navController = navController)
+    AppShell(navController = navController) {
+        NavHost(
+            navController = navController,
+            startDestination = "home"
+        ) {
+            composable("home") {
+                HomeScreen(navController = navController)
+            }
+            composable("categorias") {
+                CategoriasScreen(navController = navController)
+            }
+            composable("transacciones") {
+                TransaccionesScreen(navController = navController)
+            }
+            composable("importar_excel") { 
+                ImportarExcelScreen() 
+            }
+            composable("configuracion") {
+                ConfiguracionScreen(navController = navController)
+            }
+            composable("clasificacion_pendiente") {
+                ClasificacionPendienteScreen(navController = navController)
+            }
+            composable("dashboardAnalisis") {
+                DashboardAnalisisScreen()
+            }
+            composable("aporte_proporcional") {
+                AporteProporcionalScreen(navController = navController)
+            }
+            composable("presupuestos") {
+                PresupuestosScreen(navController = navController)
+            }
         }
     }
 } 

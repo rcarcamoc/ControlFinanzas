@@ -1,25 +1,27 @@
 package com.aranthalion.controlfinanzas.presentation.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.max
 
 data class BarChartData(
     val label: String,
     val value: Float,
     val color: Color,
-    val budgetValue: Float? = null // Valor del presupuesto (opcional)
+    val budgetValue: Float? = null
 )
 
 @Composable
@@ -28,7 +30,7 @@ fun BarChart(
     modifier: Modifier = Modifier,
     title: String? = null,
     showValues: Boolean = true,
-    showBudget: Boolean = false // Nuevo parámetro para mostrar presupuesto
+    showBudget: Boolean = false
 ) {
     if (data.isEmpty()) return
     
@@ -38,129 +40,247 @@ fun BarChart(
         data.maxOfOrNull { it.value } ?: 0f
     }
     
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .padding(16.dp)
+    // Animación para las barras
+    val animatedProgress by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(1000, easing = EaseOutCubic),
+        label = "barAnimation"
+    )
+    
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        // Título
-        title?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-        
-        // Gráfico
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .height(320.dp)
+                .padding(20.dp)
         ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 40.dp, top = 20.dp)
+            // Título y leyenda
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val barWidth = (size.width - (data.size - 1) * 8f) / data.size
-                val maxBarHeight = size.height - 40f
-                
-                data.forEachIndexed { index, barData ->
-                    val x = index * (barWidth + 8f)
-                    
-                    // Si hay presupuesto, dibujar barra de fondo (presupuesto)
-                    if (showBudget && barData.budgetValue != null) {
-                        val budgetHeight = if (maxValue > 0) {
-                            (barData.budgetValue / maxValue) * maxBarHeight
-                        } else 0f
-                        
-                        val budgetY = size.height - budgetHeight - 20f
-                        
-                        // Barra de fondo (presupuesto) - color gris claro
-                        drawRect(
-                            color = Color.LightGray.copy(alpha = 0.3f),
-                            topLeft = Offset(x, budgetY),
-                            size = Size(barWidth, budgetHeight)
-                        )
-                    }
-                    
-                    // Barra principal (gasto)
-                    val barHeight = if (maxValue > 0) {
-                        (barData.value / maxValue) * maxBarHeight
-                    } else 0f
-                    
-                    val y = size.height - barHeight - 20f
-                    
-                    // Dibujar barra de gasto
-                    drawRect(
-                        color = barData.color,
-                        topLeft = Offset(x, y),
-                        size = Size(barWidth, barHeight)
+                title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-            }
-            
-            // Mostrar valores y porcentajes encima de las barras
-            if (showValues) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 40.dp, top = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    data.forEach { barData ->
-                        val percentage = if (showBudget && barData.budgetValue != null && barData.budgetValue > 0) {
-                            (barData.value / barData.budgetValue * 100).toInt()
-                        } else null
-                        
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f)
+                
+                // Leyenda
+                if (showBudget) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (percentage != null) {
-                                Text(
-                                    text = "${percentage}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = when {
-                                        percentage > 100 -> MaterialTheme.colorScheme.error
-                                        percentage > 80 -> MaterialTheme.colorScheme.tertiary
-                                        else -> MaterialTheme.colorScheme.primary
-                                    }
-                                )
-                            } else {
-                                Text(
-                                    text = "%.0f".format(barData.value),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Gasto",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Presupuesto",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
             
-            // Etiquetas del eje X
-            Row(
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Gráfico
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .weight(1f)
             ) {
-                data.forEach { barData ->
-                    Text(
-                        text = barData.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1
-                    )
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 50.dp, top = 20.dp)
+                ) {
+                    val barWidth = (size.width - (data.size - 1) * 12f) / data.size
+                    val maxBarHeight = size.height - 40f
+                    
+                    data.forEachIndexed { index, barData ->
+                        val x = index * (barWidth + 12f)
+                        
+                        // Barra de presupuesto (fondo)
+                        if (showBudget && barData.budgetValue != null) {
+                            val budgetHeight = if (maxValue > 0) {
+                                (barData.budgetValue / maxValue) * maxBarHeight
+                            } else 0f
+                            
+                            val budgetY = size.height - budgetHeight - 20f
+                            
+                            // Barra de fondo con gradiente
+                            drawBarWithGradient(
+                                color = Color.Gray.copy(alpha = 0.3f),
+                                topLeft = Offset(x, budgetY),
+                                size = Size(barWidth, budgetHeight),
+                                isBudget = true
+                            )
+                        }
+                        
+                        // Barra principal (gasto)
+                        val barHeight = if (maxValue > 0) {
+                            (barData.value / maxValue) * maxBarHeight * animatedProgress
+                        } else 0f
+                        
+                        val y = size.height - barHeight - 20f
+                        
+                        // Barra de gasto con gradiente
+                        drawBarWithGradient(
+                            color = barData.color,
+                            topLeft = Offset(x, y),
+                            size = Size(barWidth, barHeight),
+                            isBudget = false
+                        )
+                    }
+                }
+                
+                // Valores encima de las barras
+                if (showValues) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 50.dp, top = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        data.forEach { barData ->
+                            val percentage = if (showBudget && barData.budgetValue != null && barData.budgetValue > 0) {
+                                (barData.value / barData.budgetValue * 100).toInt()
+                            } else null
+                            
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (percentage != null) {
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = when {
+                                                percentage > 100 -> MaterialTheme.colorScheme.errorContainer
+                                                percentage > 80 -> MaterialTheme.colorScheme.tertiaryContainer
+                                                else -> MaterialTheme.colorScheme.primaryContainer
+                                            }
+                                        ),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "${percentage}%",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = when {
+                                                percentage > 100 -> MaterialTheme.colorScheme.onErrorContainer
+                                                percentage > 80 -> MaterialTheme.colorScheme.onTertiaryContainer
+                                                else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                            },
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = "%.0f".format(barData.value),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Etiquetas del eje X
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    data.forEach { barData ->
+                        Text(
+                            text = barData.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+private fun DrawScope.drawBarWithGradient(
+    color: Color,
+    topLeft: Offset,
+    size: Size,
+    isBudget: Boolean
+) {
+    val alpha = if (isBudget) 0.3f else 0.8f
+    
+    // Barra principal
+    drawRect(
+        color = color.copy(alpha = alpha),
+        topLeft = topLeft,
+        size = size
+    )
+    
+    // Efecto de gradiente (simulado con una barra más clara en la parte superior)
+    if (!isBudget) {
+        drawRect(
+            color = color.copy(alpha = 0.3f),
+            topLeft = topLeft,
+            size = Size(size.width, size.height * 0.3f)
+        )
+    }
+    
+    // Borde
+    drawRect(
+        color = color.copy(alpha = 0.5f),
+        topLeft = topLeft,
+        size = size,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
+    )
 } 

@@ -20,7 +20,6 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcional
 import com.aranthalion.controlfinanzas.domain.usecase.ResumenAporteProporcional
 import com.aranthalion.controlfinanzas.presentation.components.HistorialAportesCharts
-import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import java.text.SimpleDateFormat
 import java.util.*

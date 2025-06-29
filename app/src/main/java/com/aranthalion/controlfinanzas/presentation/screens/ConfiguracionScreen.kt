@@ -9,8 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,15 +60,43 @@ fun ConfiguracionScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
-                Text(
-                    text = "Apariencia",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Apariencia",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Personaliza el aspecto de la aplicación",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
             }
             
             item {
@@ -80,14 +108,14 @@ fun ConfiguracionScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
                             text = "Tema de la aplicación",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -120,48 +148,82 @@ fun ConfiguracionScreen(
             }
             
             item {
-                Text(
-                    text = "General",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "General",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "Configuraciones generales de la aplicación",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
             }
             
             item {
-                ConfiguracionItem(
-                    icon = Icons.Default.Notifications,
-                    title = "Notificaciones",
-                    subtitle = "Configurar alertas y recordatorios",
-                    onClick = { /* TODO */ }
-                )
-            }
-            
-            item {
-                ConfiguracionItem(
-                    icon = Icons.Default.Lock,
-                    title = "Privacidad y Seguridad",
-                    subtitle = "Configurar opciones de seguridad",
-                    onClick = { /* TODO */ }
-                )
-            }
-            
-            item {
-                ConfiguracionItem(
-                    icon = Icons.Default.Info,
-                    title = "Ayuda y Soporte",
-                    subtitle = "Obtener ayuda y contactar soporte",
-                    onClick = { /* TODO */ }
-                )
-            }
-            
-            item {
-                ConfiguracionItem(
-                    icon = Icons.Default.Info,
-                    title = "Acerca de",
-                    subtitle = "Información de la aplicación",
-                    onClick = { /* TODO */ }
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        ConfiguracionItem(
+                            icon = Icons.Default.Notifications,
+                            title = "Notificaciones",
+                            subtitle = "Configurar alertas y recordatorios",
+                            onClick = { /* TODO */ }
+                        )
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                        ConfiguracionItem(
+                            icon = Icons.Default.Lock,
+                            title = "Privacidad y Seguridad",
+                            subtitle = "Configurar opciones de seguridad",
+                            onClick = { /* TODO */ }
+                        )
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                        ConfiguracionItem(
+                            icon = Icons.Default.Info,
+                            title = "Ayuda y Soporte",
+                            subtitle = "Obtener ayuda y contactar soporte",
+                            onClick = { /* TODO */ }
+                        )
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                        ConfiguracionItem(
+                            icon = Icons.Default.Info,
+                            title = "Acerca de",
+                            subtitle = "Información de la aplicación",
+                            onClick = { /* TODO */ }
+                        )
+                    }
+                }
             }
         }
     }
@@ -254,7 +316,7 @@ private fun ConfiguracionItem(
                 )
             }
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = Icons.Default.ArrowForward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
