@@ -18,6 +18,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.aranthalion.controlfinanzas.presentation.components.StatCard
 import com.aranthalion.controlfinanzas.presentation.components.PresupuestoInfo
+import com.aranthalion.controlfinanzas.presentation.components.BarChart
+import com.aranthalion.controlfinanzas.presentation.components.BarChartData
+import com.aranthalion.controlfinanzas.presentation.components.PieChart
+import com.aranthalion.controlfinanzas.presentation.components.PieChartData
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosUiState
@@ -130,7 +134,8 @@ fun HomeScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(statCardsColumns),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.height(if (isSmallScreen) 320.dp else 160.dp)
                 ) {
                     item {
                         StatCard(
@@ -140,7 +145,7 @@ fun HomeScreen(
                             description = "Este mes",
                             trend = null,
                             isMonetary = true,
-                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                            modifier = Modifier.fillMaxHeight()
                         )
                     }
                     item {
@@ -152,7 +157,7 @@ fun HomeScreen(
                             trend = null,
                             isMonetary = false,
                             presupuestoInfo = presupuestoInfo,
-                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                            modifier = Modifier.fillMaxHeight()
                         )
                     }
                     item {
@@ -163,7 +168,7 @@ fun HomeScreen(
                             description = "Este mes",
                             trend = null,
                             isMonetary = true,
-                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                            modifier = Modifier.fillMaxHeight()
                         )
                     }
                     item {
@@ -174,8 +179,319 @@ fun HomeScreen(
                             description = "En uso",
                             trend = null,
                             isMonetary = false,
-                            modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                            modifier = Modifier.fillMaxHeight()
                         )
+                    }
+                }
+
+                // Grid de 2 columnas para contenido principal (Dashboard completo)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(if (isSmallScreen) 1 else 2),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Tarjeta: "Tendencia de Gasto Mensual" (con BarChart)
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Tendencia de Gasto Mensual",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowUp,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                
+                                // Datos de ejemplo para el gráfico
+                                val chartData = listOf(
+                                    BarChartData("Ene", 1200.0f, MaterialTheme.colorScheme.primary),
+                                    BarChartData("Feb", 1500.0f, MaterialTheme.colorScheme.primary),
+                                    BarChartData("Mar", 1100.0f, MaterialTheme.colorScheme.primary),
+                                    BarChartData("Abr", 1800.0f, MaterialTheme.colorScheme.primary),
+                                    BarChartData("May", 1600.0f, MaterialTheme.colorScheme.primary),
+                                    BarChartData("Jun", totalGastos.toFloat(), MaterialTheme.colorScheme.primary)
+                                )
+                                
+                                BarChart(
+                                    data = chartData,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Tarjeta: "Estado del Presupuesto" (con ProgressBar)
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Estado del Presupuesto",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                
+                                // Información detallada del presupuesto
+                                resumenPresupuestos?.let { resumen ->
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        // Barra de progreso principal
+                                        LinearProgressIndicator(
+                                            progress = (resumen.porcentajeGastado.toFloat() / 100f).coerceIn(0f, 1f),
+                                            modifier = Modifier.fillMaxWidth(),
+                                            color = when {
+                                                resumen.porcentajeGastado <= 80 -> MaterialTheme.colorScheme.primary
+                                                resumen.porcentajeGastado <= 90 -> MaterialTheme.colorScheme.tertiary
+                                                else -> MaterialTheme.colorScheme.error
+                                            },
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        
+                                        // Estadísticas del presupuesto
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = "Gastado",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = FormatUtils.formatMoneyCLP(resumen.totalGastado),
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text(
+                                                    text = "Presupuestado",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = FormatUtils.formatMoneyCLP(resumen.totalPresupuestado),
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        
+                                        // Botón para ver detalles
+                                        Button(
+                                            onClick = { navController.navigate("presupuestos") },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Ver Detalles del Presupuesto")
+                                        }
+                                    }
+                                } ?: run {
+                                    Text(
+                                        text = "No hay presupuestos configurados",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Tarjeta: "Gasto por Categoría" (con PieChart + drill-down)
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Gasto por Categoría",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                
+                                // Datos de ejemplo para el gráfico circular
+                                val categorias = (uiState as MovimientosUiState.Success).categorias
+                                val gastosPorCategoria = gastos.groupBy { it.categoriaId }
+                                    .mapValues { (_, movimientos) -> 
+                                        movimientos.sumOf { FormatUtils.normalizeAmount(it.monto) }
+                                    }
+                                
+                                val pieChartData = categorias.mapNotNull { categoria ->
+                                    val gasto = gastosPorCategoria[categoria.id] ?: 0.0
+                                    if (gasto > 0) PieChartData(categoria.nombre, gasto.toFloat(), MaterialTheme.colorScheme.primary, categoria.id.toString()) else null
+                                }.take(5) // Top 5 categorías
+                                
+                                if (pieChartData.isNotEmpty()) {
+                                    // PieChart(
+                                    //     data = pieChartData,
+                                    //     modifier = Modifier
+                                    //         .fillMaxWidth()
+                                    //         .height(200.dp)
+                                    // )
+                                    Text(
+                                        text = "Gráfico de gastos por categoría",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                } else {
+                                    Text(
+                                        text = "No hay gastos categorizados",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                                
+                                // Botón para drill-down
+                                Button(
+                                    onClick = { navController.navigate("dashboard_analisis") },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Ver Análisis Detallado")
+                                }
+                            }
+                        }
+                    }
+
+                    // Tarjeta: "Proyecciones y Perspectivas"
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Proyecciones y Perspectivas",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowUp,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                
+                                // Información de proyecciones
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Proyección mensual",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = FormatUtils.formatMoneyCLP(totalGastos * 1.1),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Ahorro potencial",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = FormatUtils.formatMoneyCLP(totalGastos * 0.2),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+                                    }
+                                    
+                                    // Botón condicional "Ver Resumen General"
+                                    if (totalGastos > 1000) {
+                                        Button(
+                                            onClick = { navController.navigate("dashboard_analisis") },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Ver Resumen General")
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -184,7 +500,8 @@ fun HomeScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(statCardsColumns),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.height(if (isSmallScreen) 320.dp else 160.dp)
                 ) {
                     repeat(4) {
                         item {
@@ -192,7 +509,7 @@ fun HomeScreen(
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
-                                modifier = Modifier.height(if (isSmallScreen) 140.dp else 160.dp)
+                                modifier = Modifier.fillMaxHeight()
                             ) {
                                 Box(
                                     modifier = Modifier
