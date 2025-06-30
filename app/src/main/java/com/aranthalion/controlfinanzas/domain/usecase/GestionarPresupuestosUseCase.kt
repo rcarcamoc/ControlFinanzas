@@ -54,26 +54,36 @@ class GestionarPresupuestosUseCase @Inject constructor(
      */
     suspend fun obtenerEstadoPresupuestos(periodo: String): List<PresupuestoCategoria> {
         val categorias = categoriaRepository.obtenerCategorias()
+        val presupuestosEntity = repository.obtenerPresupuestosPorPeriodo(periodo)
         val presupuestos = mutableListOf<PresupuestoCategoria>()
         
+        println("🔍 ESTADO: Buscando presupuestos para periodo $periodo")
+        println("🔍 ESTADO: Categorías encontradas: ${categorias.size}")
+        println("🔍 ESTADO: Presupuestos en tabla: ${presupuestosEntity.size}")
+        
         for (categoria in categorias) {
-            if (categoria.presupuestoMensual != null && categoria.presupuestoMensual > 0) {
+            // Buscar presupuesto en la tabla PresupuestoCategoriaEntity
+            val presupuestoEntity = presupuestosEntity.find { it.categoriaId == categoria.id }
+            
+            if (presupuestoEntity != null) {
                 val gastoActual = calcularGastoCategoria(categoria.id, periodo)
-                val porcentajeGastado = (gastoActual / categoria.presupuestoMensual) * 100
+                val porcentajeGastado = (gastoActual / presupuestoEntity.monto) * 100
                 val estado = determinarEstadoPresupuesto(porcentajeGastado)
                 
                 presupuestos.add(
                     PresupuestoCategoria(
                         categoria = categoria,
-                        presupuesto = categoria.presupuestoMensual,
+                        presupuesto = presupuestoEntity.monto,
                         gastoActual = gastoActual,
                         porcentajeGastado = porcentajeGastado,
                         estado = estado
                     )
                 )
+                println("🔍 ESTADO: Presupuesto encontrado para ${categoria.nombre}: ${presupuestoEntity.monto}")
             }
         }
         
+        println("🔍 ESTADO: Total presupuestos procesados: ${presupuestos.size}")
         return presupuestos.sortedByDescending { it.porcentajeGastado }
     }
     
@@ -101,13 +111,32 @@ class GestionarPresupuestosUseCase @Inject constructor(
      * Calcula el gasto total de una categoría en un período
      */
     private suspend fun calcularGastoCategoria(categoriaId: Long, periodo: String): Double {
-        val movimientos = movimientoRepository.obtenerMovimientosPorPeriodo(periodo)
-        return movimientos
-            .filter { 
-                it.categoriaId == categoriaId && 
-                it.tipo == TipoMovimiento.GASTO.name 
-            }
-            .sumOf { abs(it.monto) }
+        // Obtener todos los movimientos y filtrar por período de facturación
+        val todosLosMovimientos = movimientoRepository.obtenerMovimientos()
+        println("🔍 GASTO: Total movimientos obtenidos: ${todosLosMovimientos.size}")
+        todosLosMovimientos.forEach { m ->
+            println("🔍 GASTO: Movimiento: id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
+        }
+        
+        // Filtrar por período de facturación en lugar de fecha
+        val movimientosDelPeriodo = todosLosMovimientos.filter { movimiento ->
+            movimiento.periodoFacturacion == periodo
+        }
+        println("🔍 GASTO: Movimientos en periodo de facturación ($periodo): ${movimientosDelPeriodo.size}")
+        movimientosDelPeriodo.forEach { m ->
+            println("🔍 GASTO: [Periodo] id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
+        }
+        
+        val movimientosCategoria = movimientosDelPeriodo.filter {
+            it.categoriaId == categoriaId && it.tipo == TipoMovimiento.GASTO.name
+        }
+        println("🔍 GASTO: Movimientos de la categoría $categoriaId y tipo GASTO: ${movimientosCategoria.size}")
+        movimientosCategoria.forEach { m ->
+            println("🔍 GASTO: [Categoria] id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
+        }
+        val gasto = movimientosCategoria.sumOf { abs(it.monto) }
+        println("🔍 GASTO: Categoría $categoriaId, periodo $periodo, gasto calculado: $gasto")
+        return gasto
     }
     
     /**
@@ -132,7 +161,7 @@ class GestionarPresupuestosUseCase @Inject constructor(
         val porcentajeTotalGastado = if (totalPresupuestado > 0) {
             (totalGastado / totalPresupuestado) * 100
         } else 0.0
-        
+        println("🔍 RESUMEN: periodo=$periodo, presupuestos=${presupuestos.size}, totalPresupuestado=$totalPresupuestado, totalGastado=$totalGastado, porcentaje=$porcentajeTotalGastado")
         return ResumenPresupuestos(
             totalPresupuestado = totalPresupuestado,
             totalGastado = totalGastado,

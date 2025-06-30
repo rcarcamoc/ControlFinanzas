@@ -26,7 +26,7 @@ class MovimientosViewModel @Inject constructor(
     val totales: StateFlow<Totales> = _totales.asStateFlow()
 
     init {
-        cargarMovimientos()
+        // No cargar movimientos automáticamente, esperar a que se establezca el período
     }
 
     fun cargarMovimientos() {
@@ -52,8 +52,14 @@ class MovimientosViewModel @Inject constructor(
     fun cargarMovimientosPorPeriodo(periodo: String) {
         viewModelScope.launch {
             try {
-                val movimientos = gestionarMovimientosUseCase.obtenerMovimientosPorPeriodo(periodo)
+                println("🔍 DEBUG: Cargando movimientos para período: $periodo")
+                val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
                 val categorias = gestionarMovimientosUseCase.obtenerCategorias()
+                
+                println("🔍 DEBUG: Movimientos obtenidos: ${movimientos.size}")
+                movimientos.take(5).forEach { movimiento ->
+                    println("  - ${movimiento.descripcion}: ${movimiento.fecha} (tipo: ${movimiento.tipo})")
+                }
                 
                 // Ordenar movimientos: primero los sin categoría, luego por fecha descendente
                 val movimientosOrdenados = movimientos.sortedWith(
@@ -63,7 +69,9 @@ class MovimientosViewModel @Inject constructor(
                 
                 _uiState.value = MovimientosUiState.Success(movimientosOrdenados, categorias)
                 calcularTotales(movimientosOrdenados)
+                println("🔍 DEBUG: Estado actualizado con ${movimientosOrdenados.size} movimientos")
             } catch (e: Exception) {
+                println("❌ ERROR: ${e.message}")
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al cargar movimientos")
             }
         }

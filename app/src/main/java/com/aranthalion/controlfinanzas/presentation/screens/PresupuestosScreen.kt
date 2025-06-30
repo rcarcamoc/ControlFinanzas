@@ -30,6 +30,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.focusRequester
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,265 +50,733 @@ fun PresupuestosScreen(
     val presupuestosPorCategoria by viewModel.presupuestosPorCategoria.collectAsState()
     val resumen by viewModel.resumen.collectAsState()
     val scope = rememberCoroutineScope()
+    
+    var showAddDialog by remember { mutableStateOf(false) }
+    var presupuestoToEdit by remember { mutableStateOf<PresupuestoCategoriaEntity?>(null) }
     var showPeriodoSelector by remember { mutableStateOf(false) }
+    
     // Cuando cambie el período seleccionado, aplicar lazy copy si es necesario antes de cargar los presupuestos
-    LaunchedEffect(periodoSeleccionado, categorias) {
-        categorias.forEach { categoria ->
-            viewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
-        }
-        // Esperar un poco para asegurar que los presupuestos se creen antes de cargar
-        kotlinx.coroutines.delay(100)
+    LaunchedEffect(periodoSeleccionado) {
         viewModel.cargarPresupuestos(periodoSeleccionado)
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Presupuestos") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+    
+    // Cuando cambien las categorías, aplicar lazy copy
+    LaunchedEffect(categorias) {
+        if (categorias.isNotEmpty()) {
+            categorias.forEach { categoria ->
+                viewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
+            }
+            // Recargar presupuestos después de aplicar lazy copy
+            kotlinx.coroutines.delay(200)
+            viewModel.cargarPresupuestos(periodoSeleccionado)
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // Header mejorado con diseño consistente
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            when (uiState) {
-                is PresupuestosUiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Presupuestos",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Gestiona los presupuestos por categoría",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                is PresupuestosUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showPeriodoSelector = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
-                        // Resumen de presupuestos
-                        if (resumen != null) {
-                            item {
-                                ResumenPresupuestosCard(
-                                    resumen = resumen!!,
-                                    onVerDetalle = { /* TODO: Navegar a detalle */ }
-                                )
-                            }
+                        Icon(
+                            Icons.Default.DateRange,
+                            contentDescription = "Seleccionar período",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Período")
+                    }
+                    Button(
+                        onClick = { showAddDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = "Agregar presupuesto",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Nuevo")
+                    }
+                }
+            }
+        }
+
+        when (uiState) {
+            is PresupuestosUiState.Loading -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Cargando presupuestos...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-
-                        // Lista editable de presupuestos por categoría
-                        items(categorias.distinctBy { it.nombre.trim().lowercase() }) { categoria: Categoria ->
-                            val presupuesto = presupuestosPorCategoria[categoria.id]
-                            var tienePresupuesto by remember(presupuesto) { mutableStateOf(presupuesto != null) }
-                            var montoPresupuesto by remember(presupuesto) { mutableStateOf(presupuesto?.monto?.toLong()?.toString() ?: "") }
-                            var montoTemporal by remember { mutableStateOf(montoPresupuesto) }
-                            var isEditing by remember { mutableStateOf(false) }
-                            val focusRequester = remember { FocusRequester() }
-
-                            Card(
+                    }
+                }
+            }
+            is PresupuestosUiState.Success -> {
+                // Resumen de presupuestos mejorado
+                if (resumen != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp)
+                        ) {
+                            Text(
+                                "Resumen del Período",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        "Total Presupuestado",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "Total Gastado",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        FormatUtils.formatMoneyCLP(resumen!!.totalGastado),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            LinearProgressIndicator(
+                                progress = (resumen!!.porcentajeGastado / 100.0).toFloat().coerceIn(0f, 1f),
+                                modifier = Modifier.fillMaxWidth(),
+                                color = when {
+                                    resumen!!.porcentajeGastado <= 80 -> MaterialTheme.colorScheme.primary
+                                    resumen!!.porcentajeGastado <= 90 -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.error
+                                },
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "${resumen!!.porcentajeGastado.toInt()}% utilizado",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+
+                // Tabla de presupuestos mejorada
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Presupuestos por Categoría (${categorias.size})",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Período: $periodoSeleccionado",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        if (categorias.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(40.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp)
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = categoria.nombre,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        if (tienePresupuesto) {
-                                                if (isEditing) {
-                                            OutlinedTextField(
-                                                        value = montoTemporal,
-                                                onValueChange = {
-                                                    val filtered = it.filter { c -> c.isDigit() }
-                                                            montoTemporal = filtered
-                                                },
-                                                label = { Text("Monto presupuesto") },
-                                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                                    keyboardType = KeyboardType.Number
-                                                ),
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                            .focusRequester(focusRequester),
-                                                singleLine = true
-                                            )
-                                                    LaunchedEffect(Unit) {
-                                                    focusRequester.requestFocus()
-                                                    }
-                                                } else {
-                                                    Text(
-                                                        text = "Presupuesto: $${montoPresupuesto}",
-                                                        style = MaterialTheme.typography.bodyLarge,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
+                                    Icon(
+                                        Icons.Default.AccountCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "No hay categorías",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "Agrega categorías para crear presupuestos",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(categorias.distinctBy { it.nombre.trim().lowercase() }) { categoria ->
+                                    val presupuesto = presupuestosPorCategoria[categoria.id]
+                                    PresupuestoItem(
+                                        categoria = categoria,
+                                        presupuesto = presupuesto,
+                                        onEdit = { presupuestoToEdit = presupuesto },
+                                        onDelete = {
+                                            scope.launch {
+                                                viewModel.eliminarPresupuesto(categoria.id, periodoSeleccionado)
+                                            }
+                                        },
+                                        onSave = { monto ->
+                                            scope.launch {
+                                                viewModel.guardarPresupuesto(categoria.id, monto, periodoSeleccionado)
                                             }
                                         }
-                                    }
-                                    Switch(
-                                        checked = tienePresupuesto,
-                                        onCheckedChange = { checked ->
-                                            tienePresupuesto = checked
-                                            if (!checked) {
-                                                montoPresupuesto = ""
-                                                    montoTemporal = ""
-                                                    isEditing = false
-                                                scope.launch {
-                                                    viewModel.eliminarPresupuesto(categoria.id, periodoSeleccionado)
-                                                }
-                                            } else {
-                                                montoPresupuesto = ""
-                                                    montoTemporal = ""
-                                                    isEditing = true
-                                                }
-                                            }
-                                        )
-                                    }
-                                    
-                                    // Botones de acción cuando está editando
-                                    if (tienePresupuesto && isEditing) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 8.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Button(
-                                                onClick = {
-                                                    val monto = montoTemporal.toLongOrNull()
-                                                    if (monto != null && monto > 0) {
-                                                        montoPresupuesto = montoTemporal
-                                                        isEditing = false
-                                                        scope.launch {
-                                                            viewModel.guardarPresupuesto(categoria.id, monto.toDouble(), periodoSeleccionado)
-                                                        }
-                                                    }
-                                                },
-                                                modifier = Modifier.weight(1f),
-                                                enabled = montoTemporal.isNotEmpty() && montoTemporal.toLongOrNull() != null && montoTemporal.toLongOrNull()!! > 0
-                                            ) {
-                                                Text("Guardar")
-                                            }
-                                            OutlinedButton(
-                                                onClick = {
-                                                    montoTemporal = montoPresupuesto
-                                                    isEditing = false
-                                                },
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                Text("Cancelar")
-                                            }
-                                        }
-                                    } else if (tienePresupuesto && !isEditing) {
-                                        // Botón para editar cuando no está en modo edición
-                                        Button(
-                                            onClick = {
-                                                montoTemporal = montoPresupuesto
-                                                isEditing = true
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 8.dp)
-                                        ) {
-                                            Text("Editar Presupuesto")
-                                        }
-                                    }
+                                    )
                                 }
                             }
                         }
                     }
                 }
-                is PresupuestosUiState.Error -> {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+            }
+            is PresupuestosUiState.Error -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onErrorContainer
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Error al cargar presupuestos",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = (uiState as PresupuestosUiState.Error).mensaje,
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         }
                     }
                 }
-                else -> {}
             }
         }
+    }
+
+    // Diálogo para agregar nuevo presupuesto
+    if (showAddDialog) {
+        PresupuestoDialog(
+            categorias = categorias,
+            periodoSeleccionado = periodoSeleccionado,
+            onDismiss = { showAddDialog = false },
+            onConfirm = { categoriaId, monto ->
+                scope.launch {
+                    viewModel.guardarPresupuesto(categoriaId, monto, periodoSeleccionado)
+                }
+                showAddDialog = false
+            }
+        )
+    }
+
+    // Diálogo para editar presupuesto
+    presupuestoToEdit?.let { presupuesto ->
+        PresupuestoEditDialog(
+            presupuesto = presupuesto,
+            onDismiss = { presupuestoToEdit = null },
+            onConfirm = { monto ->
+                scope.launch {
+                    viewModel.guardarPresupuesto(presupuesto.categoriaId, monto, periodoSeleccionado)
+                }
+                presupuestoToEdit = null
+            }
+        )
+    }
+
+    // Selector de período
+    if (showPeriodoSelector) {
+        PresupuestosPeriodoSelectorDialog(
+            periodos = periodosDisponibles,
+            periodoSeleccionado = periodoSeleccionado,
+            onDismiss = { showPeriodoSelector = false },
+            onPeriodoSelected = { periodo ->
+                periodoGlobalViewModel.cambiarPeriodo(periodo)
+                showPeriodoSelector = false
+            }
+        )
+    }
+}
+
+@Composable
+fun PresupuestoItem(
+    categoria: Categoria,
+    presupuesto: PresupuestoCategoriaEntity?,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onSave: (Double) -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var montoTemporal by remember { mutableStateOf(presupuesto?.monto?.toString() ?: "") }
+    val focusRequester = remember { FocusRequester() }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = categoria.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (presupuesto != null) {
+                        if (isEditing) {
+                            OutlinedTextField(
+                                value = formatNumberWithSeparators(montoTemporal),
+                                onValueChange = {
+                                    val cleaned = cleanNumberFormat(it)
+                                    montoTemporal = cleaned
+                                },
+                                label = { Text("Monto presupuesto") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = KeyboardType.Number
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            LaunchedEffect(Unit) {
+                                focusRequester.requestFocus()
+                            }
+                        } else {
+                            Text(
+                                text = "Presupuesto: ${FormatUtils.formatMoneyCLP(presupuesto.monto)}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        if (isEditing) {
+                            OutlinedTextField(
+                                value = formatNumberWithSeparators(montoTemporal),
+                                onValueChange = {
+                                    val cleaned = cleanNumberFormat(it)
+                                    montoTemporal = cleaned
+                                },
+                                label = { Text("Monto presupuesto") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = KeyboardType.Number
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            LaunchedEffect(Unit) {
+                                focusRequester.requestFocus()
+                            }
+                        } else {
+                            Text(
+                                text = "Sin presupuesto",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                
+                // Botones de acción
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (presupuesto != null) {
+                        if (isEditing) {
+                            IconButton(
+                                onClick = {
+                                    val monto = montoTemporal.toDoubleOrNull()
+                                    if (monto != null && monto > 0) {
+                                        onSave(monto)
+                                        isEditing = false
+                                    }
+                                },
+                                modifier = Modifier.size(36.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "Guardar",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            IconButton(
+                                onClick = { 
+                                    isEditing = false
+                                    montoTemporal = presupuesto.monto.toString()
+                                },
+                                modifier = Modifier.size(36.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Cancelar",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = { 
+                                    isEditing = true
+                                    montoTemporal = presupuesto.monto.toString()
+                                },
+                                modifier = Modifier.size(36.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Editar",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(
+                                onClick = { showDeleteDialog = true },
+                                modifier = Modifier.size(36.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Eliminar",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { 
+                                isEditing = true
+                                montoTemporal = ""
+                            },
+                            modifier = Modifier.size(36.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Agregar presupuesto",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Botones de acción cuando está editando y no hay presupuesto previo
+            if (presupuesto == null && isEditing) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val monto = montoTemporal.toDoubleOrNull()
+                            if (monto != null && monto > 0) {
+                                onSave(monto)
+                                isEditing = false
+                            }
+                        },
+                        enabled = montoTemporal.toDoubleOrNull() ?: 0.0 > 0,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Guardar")
+                    }
+                    OutlinedButton(
+                        onClick = { 
+                            isEditing = false
+                            montoTemporal = ""
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            }
+        }
+    }
+    
+    // Diálogo de confirmación de eliminación
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { 
+                Text(
+                    "Eliminar presupuesto",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = { 
+                Text(
+                    "¿Estás seguro de que quieres eliminar el presupuesto de '${categoria.nombre}'? Esta acción no se puede deshacer.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AgregarPresupuestoDialog(
-    presupuesto: PresupuestoCategoria?,
+fun PresupuestoDialog(
+    categorias: List<Categoria>,
+    periodoSeleccionado: String,
     onDismiss: () -> Unit,
-    onConfirm: (Long, Double?) -> Unit
+    onConfirm: (Long, Double) -> Unit
 ) {
-    var presupuestoValue by remember { mutableStateOf(presupuesto?.presupuesto?.toString() ?: "") }
+    var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
+    var monto by remember { mutableStateOf("") }
+    var expandedCategoria by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (presupuesto == null) "Configurar Presupuesto" else "Editar Presupuesto") },
+        title = {
+            Text(
+                "Nuevo Presupuesto",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
-            Column {
-                if (presupuesto != null) {
-                    Text(
-                        text = "Categoría: ${presupuesto.categoria.nombre}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Selector de categoría
+                ExposedDropdownMenuBox(
+                    expanded = expandedCategoria,
+                    onExpandedChange = { expandedCategoria = !expandedCategoria }
+                ) {
+                    OutlinedTextField(
+                        value = categoriaSeleccionada?.nombre ?: "",
+                        onValueChange = {},
+                        label = { Text("Categoría") },
+                        readOnly = true,
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    ExposedDropdownMenu(
+                        expanded = expandedCategoria,
+                        onDismissRequest = { expandedCategoria = false }
+                    ) {
+                        categorias.forEach { categoria ->
+                            DropdownMenuItem(
+                                text = { Text(categoria.nombre) },
+                                onClick = {
+                                    categoriaSeleccionada = categoria
+                                    expandedCategoria = false
+                                }
+                            )
+                        }
+                    }
                 }
                 
+                // Campo de monto
                 OutlinedTextField(
-                    value = presupuestoValue,
-                    onValueChange = { presupuestoValue = it },
-                    label = { Text("Presupuesto mensual") },
+                    value = formatNumberWithSeparators(monto),
+                    onValueChange = { 
+                        val cleaned = cleanNumberFormat(it)
+                        monto = cleaned
+                    },
+                    label = { Text("Monto") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = KeyboardType.Number
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
+                // Información del período
                 Text(
-                    text = "Deja vacío para eliminar el presupuesto",
+                    text = "Período: $periodoSeleccionado",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -312,18 +785,95 @@ fun AgregarPresupuestoDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val presupuestoDouble = presupuestoValue.toDoubleOrNull()
-                    if (presupuesto != null) {
-                        onConfirm(presupuesto.categoria.id, presupuestoDouble)
+                    val montoDouble = monto.toDoubleOrNull()
+                    if (categoriaSeleccionada != null && montoDouble != null && montoDouble > 0) {
+                        onConfirm(categoriaSeleccionada!!.id, montoDouble)
                     }
                 },
-                enabled = presupuesto != null
+                enabled = categoriaSeleccionada != null && monto.toDoubleOrNull() ?: 0.0 > 0,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
-                Text(if (presupuesto == null) "Guardar" else "Actualizar")
+                Text("Guardar")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PresupuestoEditDialog(
+    presupuesto: PresupuestoCategoriaEntity,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var monto by remember { mutableStateOf(presupuesto.monto.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Editar Presupuesto",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = formatNumberWithSeparators(monto),
+                    onValueChange = { 
+                        val cleaned = cleanNumberFormat(it)
+                        monto = cleaned
+                    },
+                    label = { Text("Monto") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val montoDouble = monto.toDoubleOrNull()
+                    if (montoDouble != null && montoDouble > 0) {
+                        onConfirm(montoDouble)
+                    }
+                },
+                enabled = monto.toDoubleOrNull() ?: 0.0 > 0,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
                 Text("Cancelar")
             }
         }
@@ -331,7 +881,7 @@ fun AgregarPresupuestoDialog(
 }
 
 @Composable
-fun PeriodoSelectorDialogPresupuesto(
+fun PresupuestosPeriodoSelectorDialog(
     periodos: List<String>,
     periodoSeleccionado: String,
     onDismiss: () -> Unit,
@@ -339,7 +889,13 @@ fun PeriodoSelectorDialogPresupuesto(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Seleccionar Período") },
+        title = {
+            Text(
+                "Seleccionar Período",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
             Column {
                 periodos.forEach { periodo ->
@@ -359,9 +915,41 @@ fun PeriodoSelectorDialogPresupuesto(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
                 Text("Cerrar")
             }
         }
     )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+fun PresupuestosScreenPreview() {
+    MaterialTheme {
+        PresupuestosScreen(
+            navController = rememberNavController(),
+            viewModel = hiltViewModel(),
+            periodoGlobalViewModel = hiltViewModel()
+        )
+    }
+}
+
+// Función para formatear números con separadores de miles
+private fun formatNumberWithSeparators(value: String): String {
+    return try {
+        val number = value.toLongOrNull() ?: 0L
+        NumberFormat.getNumberInstance(Locale("es", "CL")).format(number)
+    } catch (e: Exception) {
+        value
+    }
+}
+
+// Función para limpiar formato y obtener solo números
+private fun cleanNumberFormat(value: String): String {
+    return value.replace(Regex("[^\\d]"), "")
 } 

@@ -37,17 +37,19 @@ class PresupuestosViewModel @Inject constructor(
     fun cargarPresupuestos(periodo: String) {
         viewModelScope.launch {
             try {
-                _uiState.value = PresupuestosUiState.Loading
+                println("🔍 PRESUPUESTO: Cargando presupuestos para periodo: $periodo")
                 val categorias = categoriaRepository.obtenerCategorias()
                 val categoriasUnicas = categorias.distinctBy { it.nombre.trim().lowercase() }
                 val presupuestos = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodo)
                 val presupuestosMap = presupuestos.associateBy { it.categoriaId }
                 val resumen = gestionarPresupuestosUseCase.obtenerResumenPresupuestos(periodo)
+                println("🔍 PRESUPUESTO: Resumen obtenido: totalPresupuestado=${resumen.totalPresupuestado}, totalGastado=${resumen.totalGastado}, porcentaje=${resumen.porcentajeGastado}")
                 _categorias.value = categoriasUnicas
                 _presupuestosPorCategoria.value = presupuestosMap
                 _resumen.value = resumen
                 _uiState.value = PresupuestosUiState.Success
             } catch (e: Exception) {
+                println("❌ PRESUPUESTO: ${e.message}")
                 _uiState.value = PresupuestosUiState.Error(e.message ?: "Error al cargar presupuestos")
             }
         }

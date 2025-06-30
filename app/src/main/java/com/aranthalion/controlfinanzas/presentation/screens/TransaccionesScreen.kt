@@ -30,6 +30,9 @@ import com.aranthalion.controlfinanzas.data.util.ExcelProcessor
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 import com.aranthalion.controlfinanzas.presentation.components.StatCard
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.aranthalion.controlfinanzas.domain.categoria.Categoria as DomainCategoria
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,11 +49,13 @@ fun TransaccionesScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var showFiltroDialog by remember { mutableStateOf(false) }
     var filtroTipoSeleccionado by remember { mutableStateOf("Todos") }
-    var filtroPeriodoSeleccionado by remember { mutableStateOf(periodoGlobal) }
+    var filtroCategoriaSeleccionada by remember { mutableStateOf<DomainCategoria?>(null) }
     var filtroFechaSeleccionada by remember { mutableStateOf<Date?>(null) }
+    var busquedaTexto by remember { mutableStateOf("") }
     var movimientoAEditar by remember { mutableStateOf<MovimientoEntity?>(null) }
     var expandedPeriodo by remember { mutableStateOf(false) }
     var expandedTipo by remember { mutableStateOf(false) }
+    var expandedCategoria by remember { mutableStateOf(false) }
     val tipos = listOf("Todos", "Ingresos", "Gastos")
     val calendar = Calendar.getInstance()
     calendar.add(Calendar.MONTH, 2)
@@ -64,7 +69,6 @@ fun TransaccionesScreen(
     
     // Actualizar filtro de período cuando cambie el período global
     LaunchedEffect(periodoGlobal) {
-        filtroPeriodoSeleccionado = periodoGlobal
         viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
     }
 
@@ -74,50 +78,145 @@ fun TransaccionesScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header con acciones
-        Row(
+        // Header mejorado con diseño consistente
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Text(
-                "Transacciones",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
-            )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = { showFiltroDialog = true },
-                    modifier = Modifier
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = "Filtrar")
-                }
-                IconButton(
-                    onClick = { showAddDialog = true },
-                    modifier = Modifier
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(
-                        Icons.Default.Add, 
-                        contentDescription = "Agregar transacción",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                Column {
+                    Text(
+                        "Transacciones",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Gestiona tus ingresos y gastos",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Botón de filtros mejorado
+                    OutlinedButton(
+                        onClick = { showFiltroDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Filtrar",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Filtros")
+                    }
+                    
+                    // Botón de agregar mejorado
+                    Button(
+                        onClick = { showAddDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = "Agregar transacción",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Nueva")
+                    }
+                }
+            }
+        }
+
+        // Campo de búsqueda
+        if (uiState is MovimientosUiState.Success) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                OutlinedTextField(
+                    value = busquedaTexto,
+                    onValueChange = { busquedaTexto = it },
+                    label = { Text("Buscar transacciones...") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Buscar",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingIcon = {
+                        if (busquedaTexto.isNotEmpty()) {
+                            IconButton(
+                                onClick = { busquedaTexto = "" }
+                            ) {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = "Limpiar",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
             }
         }
 
         when (uiState) {
             is MovimientosUiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
-                    CircularProgressIndicator()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Cargando transacciones...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
             is MovimientosUiState.Success -> {
@@ -131,61 +230,142 @@ fun TransaccionesScreen(
                         "Gastos" -> movimiento.tipo == "GASTO"
                         else -> true
                     }
-                    val cumplePeriodo = movimiento.periodoFacturacion == periodoGlobal
-                    cumpleTipo && cumplePeriodo
+                    val cumpleCategoria = filtroCategoriaSeleccionada?.let { categoria ->
+                        movimiento.categoriaId == categoria.id
+                    } ?: true
+                    val cumpleFecha = filtroFechaSeleccionada?.let { fecha ->
+                        val movimientoDate = Calendar.getInstance().apply { time = movimiento.fecha }
+                        val filtroDate = Calendar.getInstance().apply { time = fecha }
+                        movimientoDate.get(Calendar.YEAR) == filtroDate.get(Calendar.YEAR) &&
+                        movimientoDate.get(Calendar.MONTH) == filtroDate.get(Calendar.MONTH) &&
+                        movimientoDate.get(Calendar.DAY_OF_MONTH) == filtroDate.get(Calendar.DAY_OF_MONTH)
+                    } ?: true
+                    val cumpleBusqueda = busquedaTexto.isEmpty() || 
+                        movimiento.descripcion.contains(busquedaTexto, ignoreCase = true) ||
+                        (movimiento.categoriaId?.let { catId ->
+                            categorias.find { it.id == catId }?.nombre?.contains(busquedaTexto, ignoreCase = true)
+                        } ?: false)
+                    
+                    cumpleTipo && cumpleCategoria && cumpleFecha && cumpleBusqueda
                 }
 
-                // Stats Cards
-                Row(
+                // Stats Cards mejorados con diseño consistente
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    StatCard(
-                        title = "Ingresos",
-                        value = totales.ingresos.toString(),
-                        icon = Icons.Default.KeyboardArrowUp,
-                        description = "Este período",
-                        modifier = Modifier.weight(1f),
-                        isMonetary = true
-                    )
-                    StatCard(
-                        title = "Gastos",
-                        value = totales.gastos.toString(),
-                        icon = Icons.Default.KeyboardArrowDown,
-                        description = "Este período",
-                        modifier = Modifier.weight(1f),
-                        isMonetary = true
-                    )
-                    StatCard(
-                        title = "Balance",
-                        value = totales.balance.toString(),
-                        icon = Icons.Default.Add,
-                        description = "Neto",
-                        modifier = Modifier.weight(1f),
-                        isMonetary = true
-                    )
-                }
-
-                // Lista de transacciones
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            text = "Transacciones (${movimientosFiltrados.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        StatCard(
+                            title = "Ingresos",
+                            value = totales.ingresos.toString(),
+                            icon = Icons.Default.KeyboardArrowUp,
+                            description = "Este período",
+                            modifier = Modifier.weight(1f),
+                            isMonetary = true
+                        )
+                        StatCard(
+                            title = "Gastos",
+                            value = totales.gastos.toString(),
+                            icon = Icons.Default.KeyboardArrowDown,
+                            description = "Este período",
+                            modifier = Modifier.weight(1f),
+                            isMonetary = true
+                        )
+                        StatCard(
+                            title = "Balance",
+                            value = totales.balance.toString(),
+                            icon = Icons.Default.Add,
+                            description = "Neto",
+                            modifier = Modifier.weight(1f),
+                            isMonetary = true
                         )
                     }
+                }
 
-                    items(movimientosFiltrados) { movimiento ->
-                        TransaccionItem(
-                            movimiento = movimiento,
-                            categorias = categorias,
-                            onEdit = { movimientoAEditar = it },
-                            onDelete = { viewModel.eliminarMovimiento(it) }
-                        )
+                // Lista de transacciones mejorada
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Transacciones (${movimientosFiltrados.size})",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (movimientosFiltrados.isNotEmpty()) {
+                                Text(
+                                    text = "Período: $periodoGlobal",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        if (movimientosFiltrados.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.List,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "No hay transacciones",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "Agrega tu primera transacción para comenzar",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(movimientosFiltrados) { movimiento ->
+                                    TransaccionItem(
+                                        movimiento = movimiento,
+                                        categorias = categorias,
+                                        onEdit = { movimientoAEditar = it },
+                                        onDelete = { viewModel.eliminarMovimiento(it) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -194,29 +374,40 @@ fun TransaccionesScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             Icons.Default.Warning,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = (uiState as MovimientosUiState.Error).mensaje,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Error al cargar transacciones",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = (uiState as MovimientosUiState.Error).mensaje,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    // Diálogo de filtros
+    // Diálogo de filtros mejorado
     if (showFiltroDialog) {
         AlertDialog(
             onDismissRequest = { showFiltroDialog = false },
@@ -229,73 +420,147 @@ fun TransaccionesScreen(
             },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     // Filtro por tipo
-                    Text(
-                        text = "Tipo de transacción",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    tipos.forEach { tipo ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = filtroTipoSeleccionado == tipo,
-                                onClick = { filtroTipoSeleccionado = tipo }
-                            )
-                            Text(
-                                text = tipo,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Tipo de transacción",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        tipos.forEach { tipo ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { filtroTipoSeleccionado = tipo }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = filtroTipoSeleccionado == tipo,
+                                    onClick = { filtroTipoSeleccionado = tipo }
+                                )
+                                Text(
+                                    text = tipo,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
                         }
                     }
                     
                     Divider()
                     
-                    // Filtro por periodo
-                    Text(
-                        text = "Periodo de facturación",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    periodos.take(6).forEach { periodo ->
+                    // Filtro por categoría
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Categoría",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        when (categoriasUiState) {
+                            is CategoriasUiState.Success -> {
+                                val domainCategorias = (categoriasUiState as CategoriasUiState.Success).categorias
+                                domainCategorias.forEach { categoria ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { filtroCategoriaSeleccionada = categoria }
+                                            .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = filtroCategoriaSeleccionada == categoria,
+                                            onClick = { filtroCategoriaSeleccionada = categoria }
+                                        )
+                                        Text(
+                                            text = categoria.nombre,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.padding(start = 8.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            else -> {
+                                Text(
+                                    text = "Categorías no disponibles",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Filtro por fecha
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Fecha",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            RadioButton(
-                                selected = filtroPeriodoSeleccionado == periodo,
-                                onClick = { filtroPeriodoSeleccionado = periodo }
+                            OutlinedTextField(
+                                value = filtroFechaSeleccionada?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) } ?: "",
+                                onValueChange = { },
+                                label = { Text("Desde") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Text),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
                             )
-                            Text(
-                                text = periodo,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp)
+                            OutlinedTextField(
+                                value = filtroFechaSeleccionada?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) } ?: "",
+                                onValueChange = { },
+                                label = { Text("Hasta") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Text),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
                             )
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showFiltroDialog = false }) {
+                TextButton(
+                    onClick = { showFiltroDialog = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
                     Text("Aplicar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
-                    filtroTipoSeleccionado = "Todos"
-                    filtroPeriodoSeleccionado = "Todos"
-                    filtroFechaSeleccionada = null
-                    showFiltroDialog = false 
-                }) {
+                TextButton(
+                    onClick = { 
+                        filtroTipoSeleccionado = "Todos"
+                        filtroCategoriaSeleccionada = null
+                        filtroFechaSeleccionada = null
+                        showFiltroDialog = false 
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
                     Text("Limpiar")
                 }
             }
@@ -373,11 +638,17 @@ private fun TransaccionItem(
             .clickable { onEdit(movimiento) },
         colors = CardDefaults.cardColors(
             containerColor = if (movimiento.categoriaId == null) 
-                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
             else 
                 MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = if (movimiento.categoriaId == null) {
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+            )
+        } else null
     ) {
         Row(
             modifier = Modifier
@@ -385,7 +656,7 @@ private fun TransaccionItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de tipo de transacción
+            // Icono de tipo de transacción mejorado
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = MaterialTheme.shapes.medium,
@@ -415,7 +686,7 @@ private fun TransaccionItem(
             
             Spacer(modifier = Modifier.width(16.dp))
             
-            // Información de la transacción
+            // Información de la transacción mejorada
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -427,15 +698,33 @@ private fun TransaccionItem(
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(
-                            text = categoria?.nombre ?: "Sin categoría",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = if (movimiento.categoriaId == null) 
-                                MaterialTheme.colorScheme.error 
-                            else 
-                                MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = categoria?.nombre ?: "Sin categoría",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = if (movimiento.categoriaId == null) 
+                                    MaterialTheme.colorScheme.error 
+                                else 
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                            if (movimiento.categoriaId == null) {
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                ) {
+                                    Text(
+                                        text = "Sin clasificar",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
                         if (movimiento.descripcion.isNotEmpty()) {
                             Text(
                                 text = movimiento.descripcion,
@@ -444,14 +733,25 @@ private fun TransaccionItem(
                                 maxLines = 2
                             )
                         }
-                        Text(
-                            text = formattedDate,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = formattedDate,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     
-                    // Monto
+                    // Monto mejorado
                     Column(
                         horizontalAlignment = Alignment.End
                     ) {
@@ -464,38 +764,56 @@ private fun TransaccionItem(
                             else 
                                 MaterialTheme.colorScheme.error
                         )
-                        Text(
-                            text = movimiento.tipo,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = if (movimiento.tipo == "INGRESO") 
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            else 
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                text = movimiento.tipo,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (movimiento.tipo == "INGRESO") 
+                                    MaterialTheme.colorScheme.primary
+                                else 
+                                    MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
             
-            // Botones de acción
-            Column(
-                horizontalAlignment = Alignment.End
+            // Botones de acción mejorados
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(
                     onClick = { onEdit(movimiento) },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Editar",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(
                     onClick = { showDeleteDialog = true },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
                 ) {
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Eliminar",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -503,24 +821,43 @@ private fun TransaccionItem(
         }
     }
     
-    // Diálogo de confirmación de eliminación
+    // Diálogo de confirmación de eliminación mejorado
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar transacción") },
-            text = { Text("¿Estás seguro de que quieres eliminar esta transacción?") },
+            title = { 
+                Text(
+                    "Eliminar transacción",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = { 
+                Text(
+                    "¿Estás seguro de que quieres eliminar esta transacción? Esta acción no se puede deshacer.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         onDelete(movimiento)
                         showDeleteDialog = false
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
                     Text("Eliminar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
                     Text("Cancelar")
                 }
             }
@@ -566,52 +903,111 @@ private fun TransaccionDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Tipo de transacción
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Tipo de transacción mejorado
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Text(
+                        text = "Tipo de transacción",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        RadioButton(
-                            selected = tipoSeleccionado == "GASTO",
-                            onClick = { tipoSeleccionado = "GASTO" }
-                        )
-                        Text("Gasto")
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = tipoSeleccionado == "INGRESO",
-                            onClick = { tipoSeleccionado = "INGRESO" }
-                        )
-                        Text("Ingreso")
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { tipoSeleccionado = "GASTO" }
+                                .padding(12.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (tipoSeleccionado == "GASTO") 
+                                        MaterialTheme.colorScheme.errorContainer 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tipoSeleccionado == "GASTO",
+                                onClick = { tipoSeleccionado = "GASTO" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.error
+                                )
+                            )
+                            Text(
+                                "Gasto",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (tipoSeleccionado == "GASTO") 
+                                    MaterialTheme.colorScheme.onErrorContainer 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { tipoSeleccionado = "INGRESO" }
+                                .padding(12.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (tipoSeleccionado == "INGRESO") 
+                                        MaterialTheme.colorScheme.primaryContainer 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tipoSeleccionado == "INGRESO",
+                                onClick = { tipoSeleccionado = "INGRESO" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Text(
+                                "Ingreso",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (tipoSeleccionado == "INGRESO") 
+                                    MaterialTheme.colorScheme.onPrimaryContainer 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
                 
-                // Monto
+                // Monto mejorado
                 OutlinedTextField(
                     value = monto,
                     onValueChange = { monto = it },
                     label = { Text("Monto") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
                 
-                // Descripción
+                // Descripción mejorada
                 OutlinedTextField(
                     value = descripcion,
                     onValueChange = { descripcion = it },
                     label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
                 
-                // Periodo de facturación
+                // Periodo de facturación mejorado
                 ExposedDropdownMenuBox(
                     expanded = expandedPeriodo,
                     onExpandedChange = { expandedPeriodo = !expandedPeriodo }
@@ -622,7 +1018,11 @@ private fun TransaccionDialog(
                         label = { Text("Período de Facturación") },
                         readOnly = true,
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) }
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
                     )
                     ExposedDropdownMenu(
                         expanded = expandedPeriodo,
@@ -640,7 +1040,7 @@ private fun TransaccionDialog(
                     }
                 }
                 
-                // Categoría (opcional)
+                // Categoría (opcional) mejorada
                 if (categorias.isNotEmpty()) {
                     var expandedCategoria by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
@@ -653,7 +1053,11 @@ private fun TransaccionDialog(
                             label = { Text("Categoría (opcional)") },
                             readOnly = true,
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) }
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
                         )
                         ExposedDropdownMenu(
                             expanded = expandedCategoria,
@@ -681,7 +1085,7 @@ private fun TransaccionDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     val montoDouble = monto.toDoubleOrNull() ?: 0.0
                     if (montoDouble > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
@@ -694,13 +1098,21 @@ private fun TransaccionDialog(
                         )
                     }
                 },
-                enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
+                enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
                 Text("Guardar")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
                 Text("Cancelar")
             }
         }
@@ -743,52 +1155,111 @@ private fun TransaccionEditDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Tipo de transacción
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Tipo de transacción mejorado
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Text(
+                        text = "Tipo de transacción",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        RadioButton(
-                            selected = tipoSeleccionado == "GASTO",
-                            onClick = { tipoSeleccionado = "GASTO" }
-                        )
-                        Text("Gasto")
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = tipoSeleccionado == "INGRESO",
-                            onClick = { tipoSeleccionado = "INGRESO" }
-                        )
-                        Text("Ingreso")
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { tipoSeleccionado = "GASTO" }
+                                .padding(12.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (tipoSeleccionado == "GASTO") 
+                                        MaterialTheme.colorScheme.errorContainer 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tipoSeleccionado == "GASTO",
+                                onClick = { tipoSeleccionado = "GASTO" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.error
+                                )
+                            )
+                            Text(
+                                "Gasto",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (tipoSeleccionado == "GASTO") 
+                                    MaterialTheme.colorScheme.onErrorContainer 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { tipoSeleccionado = "INGRESO" }
+                                .padding(12.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (tipoSeleccionado == "INGRESO") 
+                                        MaterialTheme.colorScheme.primaryContainer 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tipoSeleccionado == "INGRESO",
+                                onClick = { tipoSeleccionado = "INGRESO" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Text(
+                                "Ingreso",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (tipoSeleccionado == "INGRESO") 
+                                    MaterialTheme.colorScheme.onPrimaryContainer 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
                 
-                // Monto
+                // Monto mejorado
                 OutlinedTextField(
                     value = monto,
                     onValueChange = { monto = it },
                     label = { Text("Monto") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
                 
-                // Descripción
+                // Descripción mejorada
                 OutlinedTextField(
                     value = descripcion,
                     onValueChange = { descripcion = it },
                     label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
                 
-                // Periodo de facturación
+                // Periodo de facturación mejorado
                 ExposedDropdownMenuBox(
                     expanded = expandedPeriodo,
                     onExpandedChange = { expandedPeriodo = !expandedPeriodo }
@@ -799,7 +1270,11 @@ private fun TransaccionEditDialog(
                         label = { Text("Período de Facturación") },
                         readOnly = true,
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) }
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
                     )
                     ExposedDropdownMenu(
                         expanded = expandedPeriodo,
@@ -817,7 +1292,7 @@ private fun TransaccionEditDialog(
                     }
                 }
                 
-                // Categoría
+                // Categoría mejorada
                 if (categorias.isNotEmpty()) {
                     var expandedCategoria by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
@@ -830,7 +1305,11 @@ private fun TransaccionEditDialog(
                             label = { Text("Categoría") },
                             readOnly = true,
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) }
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
                         )
                         ExposedDropdownMenu(
                             expanded = expandedCategoria,
@@ -858,7 +1337,7 @@ private fun TransaccionEditDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     val montoDouble = monto.toDoubleOrNull() ?: 0.0
                     if (montoDouble > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
@@ -872,15 +1351,35 @@ private fun TransaccionEditDialog(
                         onConfirm(movimientoEditado)
                     }
                 },
-                enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
+                enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
                 Text("Guardar")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
                 Text("Cancelar")
             }
         }
     )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+fun TransaccionesScreenPreview() {
+    MaterialTheme {
+        TransaccionesScreen(
+            navController = rememberNavController(),
+            viewModel = hiltViewModel(),
+            periodoGlobalViewModel = hiltViewModel()
+        )
+    }
 } 
