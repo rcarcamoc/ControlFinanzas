@@ -109,47 +109,47 @@ Este plan detalla la implementación de los cambios necesarios para alinear la a
 - `app/src/main/java/com/aranthalion/controlfinanzas/presentation/components/BarChart.kt` ✅
 - `app/src/main/java/com/aranthalion/controlfinanzas/presentation/components/PieChart.kt` ✅
 
-## 4. **Pantallas Secundarias** ⭐ PRIORIDAD MEDIA
+## 4. **Pantallas Secundarias** ⭐ PRIORIDAD MEDIA ✅ COMPLETADO
 
-### 4.1 Rediseñar TransaccionesScreen (Statements)
+### 4.1 Rediseñar TransaccionesScreen (Statements) ✅
 **Objetivo:** Mejorar diseño manteniendo funcionalidad existente
 
 **Tareas:**
-- [ ] **MANTENER toda la funcionalidad actual** (botones, filtros, etc.)
-- [ ] Rediseñar visualmente para consistencia con el resto de la app
-- [ ] Mejorar layout y espaciado
-- [ ] Actualizar colores y tipografía
+- [x] ✅ **MANTENER toda la funcionalidad actual** (botones, filtros, etc.)
+- [x] ✅ Rediseñar visualmente para consistencia con el resto de la app
+- [x] ✅ Mejorar layout y espaciado
+- [x] ✅ Actualizar colores y tipografía
 
 **Archivos a modificar:**
-- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/TransaccionesScreen.kt`
+- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/TransaccionesScreen.kt` ✅
 
-### 4.2 Rediseñar CategoriasScreen y PresupuestosScreen
+### 4.2 Rediseñar CategoriasScreen y PresupuestosScreen ✅
 **Objetivo:** Implementar patrón tabla + diálogo con confirmación de cambios históricos
 
 **Tareas:**
-- [ ] Implementar patrón de tabla + diálogo de edición
-- [ ] Agregar botones de acción (Add New, Edit, Delete)
-- [ ] **NUEVO:** Implementar diálogo de confirmación al editar categoría:
+- [x] ✅ Implementar patrón de tabla + diálogo de edición
+- [x] ✅ Agregar botones de acción (Add New, Edit, Delete)
+- [x] ✅ **NUEVO:** Implementar diálogo de confirmación al editar categoría:
   - Preguntar si aplicar cambios al histórico
   - Opciones: "Solo esta categoría" / "Aplicar a todo el histórico"
-- [ ] Implementar formularios de edición mejorados
+- [x] ✅ Implementar formularios de edición mejorados
 
 **Archivos a modificar:**
-- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/CategoriasScreen.kt`
-- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/PresupuestosScreen.kt`
+- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/CategoriasScreen.kt` ✅
+- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/PresupuestosScreen.kt` ✅
 
-### 4.3 Rediseñar ClasificacionPendienteScreen (Classify)
+### 4.3 Rediseñar ClasificacionPendienteScreen (Classify) ✅
 **Objetivo:** Mejorar diseño manteniendo funcionalidad
 
 **Tareas:**
-- [ ] **MANTENER toda la funcionalidad actual**
-- [ ] Rediseñar visualmente para consistencia
-- [ ] Mejorar tabla de transacciones sin categorizar
-- [ ] Actualizar selects para edición en línea
-- [ ] Implementar badges de estado mejorados
+- [x] ✅ **MANTENER toda la funcionalidad actual**
+- [x] ✅ Rediseñar visualmente para consistencia
+- [x] ✅ Mejorar tabla de transacciones sin categorizar
+- [x] ✅ Actualizar selects para edición en línea
+- [x] ✅ Implementar badges de estado mejorados
 
 **Archivos a modificar:**
-- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/ClasificacionPendienteScreen.kt`
+- `app/src/main/java/com/aranthalion/controlfinanzas/presentation/screens/ClasificacionPendienteScreen.kt` ✅
 
 ## 5. **Gráficos y Visualizaciones** ⭐ PRIORIDAD MEDIA ✅ COMPLETADO
 
