@@ -35,6 +35,11 @@ import androidx.navigation.compose.rememberNavController
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -368,37 +373,47 @@ fun PresupuestosScreen(
         }
     }
 
-    // Diálogo para agregar nuevo presupuesto
-    if (showAddDialog) {
+    // Diálogo para agregar presupuesto con animación
+    AnimatedVisibility(
+        visible = showAddDialog,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut()
+    ) {
         PresupuestoDialog(
             categorias = categorias,
             periodoSeleccionado = periodoSeleccionado,
             onDismiss = { showAddDialog = false },
             onConfirm = { categoriaId, monto ->
-                scope.launch {
-                    viewModel.guardarPresupuesto(categoriaId, monto, periodoSeleccionado)
-                }
+                viewModel.guardarPresupuesto(categoriaId, monto, periodoSeleccionado)
                 showAddDialog = false
             }
         )
     }
 
-    // Diálogo para editar presupuesto
-    presupuestoToEdit?.let { presupuesto ->
-        PresupuestoEditDialog(
-            presupuesto = presupuesto,
-            onDismiss = { presupuestoToEdit = null },
-            onConfirm = { monto ->
-                scope.launch {
+    // Diálogo para editar presupuesto con animación
+    AnimatedVisibility(
+        visible = presupuestoToEdit != null,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut()
+    ) {
+        presupuestoToEdit?.let { presupuesto ->
+            PresupuestoEditDialog(
+                presupuesto = presupuesto,
+                onDismiss = { presupuestoToEdit = null },
+                onConfirm = { monto ->
                     viewModel.guardarPresupuesto(presupuesto.categoriaId, monto, periodoSeleccionado)
+                    presupuestoToEdit = null
                 }
-                presupuestoToEdit = null
-            }
-        )
+            )
+        }
     }
 
-    // Selector de período
-    if (showPeriodoSelector) {
+    // Diálogo para seleccionar período con animación
+    AnimatedVisibility(
+        visible = showPeriodoSelector,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut()
+    ) {
         PresupuestosPeriodoSelectorDialog(
             periodos = periodosDisponibles,
             periodoSeleccionado = periodoSeleccionado,

@@ -1,5 +1,7 @@
 package com.aranthalion.controlfinanzas.presentation.screens
 
+import androidx.compose.animation.core.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -273,7 +275,17 @@ fun AporteProporcionalScreen(
         }
 
         // Diálogo para agregar/editar sueldo
-        if (showAddSueldoDialog || sueldoToEdit != null) {
+        AnimatedVisibility(
+            visible = showAddSueldoDialog || sueldoToEdit != null,
+            enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ),
+            exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(200, easing = FastOutLinearInEasing)
+            )
+        ) {
             AgregarSueldoDialog(
                 sueldo = sueldoToEdit,
                 onDismiss = { 
@@ -300,7 +312,17 @@ fun AporteProporcionalScreen(
         }
 
         // Selector de período
-        if (showPeriodoSelector) {
+        AnimatedVisibility(
+            visible = showPeriodoSelector,
+            enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ),
+            exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(200, easing = FastOutLinearInEasing)
+            )
+        ) {
             PeriodoSelectorDialog(
                 periodos = periodosDisponibles,
                 periodoSeleccionado = periodoSeleccionado,
@@ -312,7 +334,17 @@ fun AporteProporcionalScreen(
         }
 
         // Diálogo de historial con gráficas
-        if (showHistorialDialog) {
+        AnimatedVisibility(
+            visible = showHistorialDialog,
+            enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ),
+            exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(200, easing = FastOutLinearInEasing)
+            )
+        ) {
             HistorialAportesDialog(
                 onDismiss = { showHistorialDialog = false },
                 onPeriodoSelected = { periodo ->
@@ -371,7 +403,17 @@ fun SueldoItem(
         }
     }
 
-    if (showDeleteDialog) {
+    AnimatedVisibility(
+        visible = showDeleteDialog,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Eliminar Sueldo") },

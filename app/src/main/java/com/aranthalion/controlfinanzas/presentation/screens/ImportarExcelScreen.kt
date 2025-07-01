@@ -7,6 +7,8 @@ import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -510,7 +512,17 @@ fun ImportarExcelScreen(
             }
         }
         
-        if (resumenImportacion != null) {
+        AnimatedVisibility(
+            visible = resumenImportacion != null,
+            enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ),
+            exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(200, easing = FastOutLinearInEasing)
+            )
+        ) {
             AlertDialog(
                 onDismissRequest = { resumenImportacion = null },
                 title = { 

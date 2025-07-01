@@ -1,5 +1,7 @@
 package com.aranthalion.controlfinanzas.presentation.screens
 
+import androidx.compose.animation.core.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -408,7 +410,17 @@ fun TransaccionesScreen(
     }
 
     // Diálogo de filtros mejorado
-    if (showFiltroDialog) {
+    AnimatedVisibility(
+        visible = showFiltroDialog,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         AlertDialog(
             onDismissRequest = { showFiltroDialog = false },
             title = {
@@ -457,7 +469,8 @@ fun TransaccionesScreen(
                     // Filtro por categoría
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    )
+                    {
                         Text(
                             text = "Categoría",
                             style = MaterialTheme.typography.titleMedium,
@@ -568,7 +581,17 @@ fun TransaccionesScreen(
     }
 
     // Diálogo para agregar nueva transacción
-    if (showAddDialog) {
+    AnimatedVisibility(
+        visible = showAddDialog,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         val categorias = when (categoriasUiState) {
             is CategoriasUiState.Success -> {
                 val domainCategorias = (categoriasUiState as CategoriasUiState.Success).categorias

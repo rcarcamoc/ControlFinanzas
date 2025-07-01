@@ -19,6 +19,11 @@ import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasViewMode
 import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasUiState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -243,8 +248,12 @@ fun CategoriasScreen(
         }
     }
 
-    // Diálogo para agregar nueva categoría
-    if (showAddDialog) {
+    // Diálogo para agregar categoría con animación
+    AnimatedVisibility(
+        visible = showAddDialog,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut()
+    ) {
         CategoriaDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { nombre, descripcion ->
@@ -254,24 +263,28 @@ fun CategoriasScreen(
         )
     }
 
-    // Diálogo para editar categoría con confirmación histórica
-    categoriaToEdit?.let { categoria ->
-        CategoriaEditDialog(
-            categoria = categoria,
-            onDismiss = { categoriaToEdit = null },
-            onConfirm = { nombre, descripcion ->
-                // Por ahora, eliminar y crear nueva categoría
-                viewModel.eliminarCategoria(categoria)
-                viewModel.agregarCategoria(nombre, descripcion)
-                categoriaToEdit = null
-            },
-            onConfirmWithHistorico = { nombre, descripcion, aplicarAHistorico ->
-                // Por ahora, eliminar y crear nueva categoría
-                viewModel.eliminarCategoria(categoria)
-                viewModel.agregarCategoria(nombre, descripcion)
-                categoriaToEdit = null
-            }
-        )
+    // Diálogo para editar categoría con animación
+    AnimatedVisibility(
+        visible = categoriaToEdit != null,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut()
+    ) {
+        categoriaToEdit?.let { categoria ->
+            CategoriaEditDialog(
+                categoria = categoria,
+                onDismiss = { categoriaToEdit = null },
+                onConfirm = { nombre, descripcion ->
+                    viewModel.eliminarCategoria(categoria)
+                    viewModel.agregarCategoria(nombre, descripcion)
+                    categoriaToEdit = null
+                },
+                onConfirmWithHistorico = { nombre, descripcion, aplicarAHistorico ->
+                    viewModel.eliminarCategoria(categoria)
+                    viewModel.agregarCategoria(nombre, descripcion)
+                    categoriaToEdit = null
+                }
+            )
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 package com.aranthalion.controlfinanzas.presentation.screens
 
+import androidx.compose.animation.core.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -184,7 +186,17 @@ fun ClasificacionPendienteScreen(
     }
 
     // Diálogo de clasificación
-    if (showClasificacionDialog && transaccionSeleccionada != null) {
+    AnimatedVisibility(
+        visible = showClasificacionDialog && transaccionSeleccionada != null,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         val categorias = when (categoriasUiState) {
             is CategoriasUiState.Success -> {
                 val domainCategorias = (categoriasUiState as CategoriasUiState.Success).categorias
