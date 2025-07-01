@@ -41,7 +41,7 @@ fun AppNavigation(navController: NavHostController) {
                 ClasificacionPendienteScreen(navController = navController)
             }
             composable("dashboardAnalisis") {
-                DashboardAnalisisScreen()
+                DashboardAnalisisScreen(navController = navController)
             }
             composable("aporte_proporcional") {
                 AporteProporcionalScreen(navController = navController)
