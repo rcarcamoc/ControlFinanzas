@@ -401,6 +401,7 @@ fun DashboardAnalisisScreen(
                 }
                 
                 is DashboardAnalisisUiState.Error -> {
+                    val errorState = uiState as DashboardAnalisisUiState.Error
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -420,10 +421,14 @@ fun DashboardAnalisisScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = (uiState as DashboardAnalisisUiState.Error).mensaje,
+                                    text = errorState.mensaje,
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(onClick = { errorState.onRetry() }) {
+                                    Text("Reintentar")
+                                }
                             }
                         }
                     }
@@ -516,6 +521,37 @@ private fun ComparacionItem(
 private fun calcularProgresoPeriodo(periodo: String): Double {
     // Implementación simplificada - en producción calcular basado en la fecha actual
     return 75.0 // Ejemplo: 75% del período completado
+}
+
+// Tendencias
+if (data.tendencias.isEmpty()) {
+    item {
+        Text("No hay datos de tendencias para este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+// Categorías
+if (data.analisisCategorias.isEmpty()) {
+    item {
+        Text("No hay movimientos registrados en categorías para este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+// Predicciones
+if (data.predicciones.isEmpty()) {
+    item {
+        Text("No hay suficientes datos para generar predicciones.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+// Gastos inusuales
+if (data.gastosInusuales.isEmpty()) {
+    item {
+        Text("No se detectaron gastos inusuales en este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+// Métricas de rendimiento
+if (data.metricasRendimiento == null) {
+    item {
+        Text("No hay métricas de rendimiento disponibles para este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
  
