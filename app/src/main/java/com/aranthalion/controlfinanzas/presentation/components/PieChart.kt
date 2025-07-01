@@ -21,6 +21,11 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.background
 
 data class PieChartData(
     val label: String,
@@ -42,6 +47,8 @@ fun PieChart(
     if (total <= 0) return
     
     var selectedSlice by remember { mutableStateOf<PieChartData?>(null) }
+    var tooltipOffset by remember { mutableStateOf(IntOffset.Zero) }
+    val density = LocalDensity.current
     
     // Animación para el gráfico
     val animatedProgress by animateFloatAsState(
@@ -84,22 +91,24 @@ fun PieChart(
                         .height(220.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    var tapPosition by remember { mutableStateOf<Offset?>(null) }
                     Canvas(
                         modifier = Modifier
                             .size(200.dp)
-                            .clickable(enabled = onSliceClick != null) {
-                                // Lógica de click en el gráfico
+                            .pointerInput(data, selectedSlice) {
+                                detectTapGestures { offset ->
+                                    tapPosition = offset
+                                }
                             }
                     ) {
                         val center = Offset(size.width / 2, size.height / 2)
                         val radius = min(size.width, size.height) / 2 - 15f
                         var startAngle = -90f // Empezar desde arriba
-                        
+                        var tappedSlice: PieChartData? = null
                         data.forEach { slice ->
                             val sweepAngle = (slice.value / total) * 360f * animatedProgress
                             val isSelected = selectedSlice?.id == slice.id
                             val offset = if (isSelected) 8f else 0f
-                            
                             // Dibujar sector con efecto 3D
                             drawPieSlice(
                                 color = slice.color,
@@ -109,13 +118,47 @@ fun PieChart(
                                 sweepAngle = sweepAngle,
                                 isSelected = isSelected
                             )
-                            
+                            // Detección de tap
+                            tapPosition?.let { tap ->
+                                val dx = tap.x - center.x
+                                val dy = tap.y - center.y
+                                val angle = (atan2(dy, dx) * 180f / Math.PI).toFloat() + 180f
+                                val normAngle = (angle + 360f) % 360f
+                                val sliceStart = (startAngle + 360f) % 360f
+                                val sliceEnd = (startAngle + sweepAngle + 360f) % 360f
+                                if (normAngle in sliceStart..sliceEnd) {
+                                    tappedSlice = slice
+                                }
+                            }
                             startAngle += sweepAngle
+                        }
+                        if (tappedSlice != null) {
+                            selectedSlice = if (selectedSlice?.id == tappedSlice?.id) null else tappedSlice
+                            tapPosition = null
+                        }
+                    }
+                    // Tooltip flotante centrado
+                    if (selectedSlice != null) {
+                        val slice = selectedSlice!!
+                        val percentage = (slice.value / total) * 100
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = MaterialTheme.shapes.medium
+                                )
+                                .padding(8.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(slice.label, style = MaterialTheme.typography.labelMedium)
+                                Text("${slice.value.toInt()} (${"%.1f".format(percentage)}%)", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
                 
-                // Leyenda mejorada
+                // Leyenda mejorada y accesible
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -199,7 +242,7 @@ fun PieChart(
                                                 MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = "%.0f".format(slice.value),
+                                            text = slice.value.toInt().toString(),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = if (isSelected) 
                                                 MaterialTheme.colorScheme.onPrimaryContainer 

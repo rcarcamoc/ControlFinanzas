@@ -41,7 +41,7 @@ sealed class DashboardAnalisisUiState {
         val metricasRendimiento: MetricasRendimiento?,
         val resumenFinanciero: ResumenFinanciero?
     ) : DashboardAnalisisUiState()
-    data class Error(val mensaje: String) : DashboardAnalisisUiState()
+    data class Error(val mensaje: String, val onRetry: () -> Unit) : DashboardAnalisisUiState()
 }
 
 @HiltViewModel
@@ -52,11 +52,18 @@ class DashboardAnalisisViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<DashboardAnalisisUiState>(DashboardAnalisisUiState.Loading)
     val uiState: StateFlow<DashboardAnalisisUiState> = _uiState.asStateFlow()
 
-    fun cargarAnalisis(periodo: String) {
+    private var lastPeriodo: String? = null
+    private var lastSuccessState: DashboardAnalisisUiState.Success? = null
+
+    fun cargarAnalisis(periodo: String, force: Boolean = false) {
+        if (!force && lastPeriodo == periodo && lastSuccessState != null) {
+            _uiState.value = lastSuccessState!!
+            return
+        }
         viewModelScope.launch {
             try {
                 _uiState.value = DashboardAnalisisUiState.Loading
-
+                lastPeriodo = periodo
                 // Cargar todos los análisis en paralelo para mejor rendimiento
                 val kpis = analisisFinancieroUseCase.obtenerKPIsJerarquicos(periodo)
                 val tendencias = analisisFinancieroUseCase.obtenerTendenciasMensuales(6)
@@ -69,7 +76,7 @@ class DashboardAnalisisViewModel @Inject constructor(
                 val metricasRendimiento = analisisFinancieroUseCase.obtenerMetricasRendimiento(periodo)
                 val resumenFinanciero = analisisFinancieroUseCase.obtenerResumenFinancieroPorPeriodo(periodo)
 
-                _uiState.value = DashboardAnalisisUiState.Success(
+                val success = DashboardAnalisisUiState.Success(
                     kpis = kpis,
                     tendencias = tendencias,
                     analisisCategorias = analisisCategorias,
@@ -81,9 +88,12 @@ class DashboardAnalisisViewModel @Inject constructor(
                     metricasRendimiento = metricasRendimiento,
                     resumenFinanciero = resumenFinanciero
                 )
+                lastSuccessState = success
+                _uiState.value = success
             } catch (e: Exception) {
                 _uiState.value = DashboardAnalisisUiState.Error(
-                    e.message ?: "Error al cargar análisis financiero"
+                    mensaje = e.message ?: "Error al cargar análisis financiero",
+                    onRetry = { cargarAnalisis(periodo, force = true) }
                 )
             }
         }

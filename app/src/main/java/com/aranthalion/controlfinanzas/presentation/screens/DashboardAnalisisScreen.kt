@@ -181,6 +181,26 @@ fun DashboardAnalisisScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
+                    } ?: run {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "No hay métricas de rendimiento disponibles para este período.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                     
                     // Comparación con Período Anterior
@@ -242,6 +262,70 @@ fun DashboardAnalisisScreen(
                         }
                     }
                     
+                    // Predicciones de Gasto
+                    if (data.predicciones.isNotEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Text(
+                                        "Predicciones para el Próximo Mes",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    data.predicciones.take(3).forEach { prediccion ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                prediccion.nombreCategoria,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            Text(
+                                                FormatUtils.formatMoneyCLP(prediccion.prediccion),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "No hay suficientes datos para generar predicciones.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
                     // Insights y Recomendaciones
                     item {
                         InsightsCard(
@@ -258,6 +342,26 @@ fun DashboardAnalisisScreen(
                                 gastosInusuales = data.gastosInusuales,
                                 modifier = Modifier.fillMaxWidth()
                             )
+                        }
+                    } else {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "No se detectaron gastos inusuales en este período.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                     
@@ -297,6 +401,26 @@ fun DashboardAnalisisScreen(
                                 }
                             }
                         }
+                    } else {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "No hay datos de tendencias para este período.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                     
                     // Análisis por Categorías
@@ -331,6 +455,26 @@ fun DashboardAnalisisScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(200.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "No hay movimientos registrados en categorías para este período.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -522,36 +666,3 @@ private fun calcularProgresoPeriodo(periodo: String): Double {
     // Implementación simplificada - en producción calcular basado en la fecha actual
     return 75.0 // Ejemplo: 75% del período completado
 }
-
-// Tendencias
-if (data.tendencias.isEmpty()) {
-    item {
-        Text("No hay datos de tendencias para este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-// Categorías
-if (data.analisisCategorias.isEmpty()) {
-    item {
-        Text("No hay movimientos registrados en categorías para este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-// Predicciones
-if (data.predicciones.isEmpty()) {
-    item {
-        Text("No hay suficientes datos para generar predicciones.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-// Gastos inusuales
-if (data.gastosInusuales.isEmpty()) {
-    item {
-        Text("No se detectaron gastos inusuales en este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-// Métricas de rendimiento
-if (data.metricasRendimiento == null) {
-    item {
-        Text("No hay métricas de rendimiento disponibles para este período.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
- 

@@ -15,6 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 
 data class BarChartData(
     val label: String,
@@ -45,6 +49,11 @@ fun BarChart(
         animationSpec = tween(1000, easing = EaseOutCubic),
         label = "barAnimation"
     )
+
+    // Estado para tooltip
+    var tooltipIndex by remember { mutableStateOf<Int?>(null) }
+    var tooltipOffset by remember { mutableStateOf(Offset.Zero) }
+    val density = LocalDensity.current
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -56,7 +65,7 @@ fun BarChart(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .heightIn(min = 220.dp, max = 380.dp)
                 .padding(20.dp)
         ) {
             // Título
@@ -170,6 +179,52 @@ fun BarChart(
                         )
                     }
                 }
+                // Tooltips interactivos
+                if (tooltipIndex != null && tooltipIndex!! in data.indices) {
+                    val barData = data[tooltipIndex!!]
+                    Box(
+                        modifier = Modifier
+                            .offset {
+                                IntOffset(
+                                    x = tooltipOffset.x.toInt(),
+                                    y = tooltipOffset.y.toInt() - 60 // arriba de la barra
+                                )
+                            }
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = MaterialTheme.shapes.medium
+                            )
+                            .padding(8.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(barData.label, style = MaterialTheme.typography.labelMedium)
+                            Text(barData.value.toString(), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                // Overlay para detectar clicks
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 50.dp, top = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    data.forEachIndexed { index, _ ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable {
+                                    tooltipIndex = if (tooltipIndex == index) null else index
+                                    // Calcular posición aproximada del tooltip
+                                    tooltipOffset = Offset(
+                                        x = (index + 0.5f) * (with(density) { 40.dp.toPx() }),
+                                        y = with(density) { 40.dp.toPx() }
+                                    )
+                                }
+                        ) {}
+                    }
+                }
             }
             
             // Valores encima de las barras
@@ -198,29 +253,21 @@ fun BarChart(
                                             else -> MaterialTheme.colorScheme.primaryContainer
                                         }
                                     ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    modifier = Modifier.padding(bottom = 2.dp)
                                 ) {
                                     Text(
-                                        text = "${percentage}%",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = when {
-                                            percentage > 100 -> MaterialTheme.colorScheme.onErrorContainer
-                                            percentage > 80 -> MaterialTheme.colorScheme.onTertiaryContainer
-                                            else -> MaterialTheme.colorScheme.onPrimaryContainer
-                                        },
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        textAlign = TextAlign.Center
+                                        text = "$percentage%",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                     )
                                 }
-                            } else {
-                                Text(
-                                    text = "%.0f".format(barData.value),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
                             }
+                            Text(
+                                text = barData.value.toInt().toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
