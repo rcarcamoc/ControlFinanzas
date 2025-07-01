@@ -3,7 +3,7 @@ package com.aranthalion.controlfinanzas.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +13,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
+import com.aranthalion.controlfinanzas.presentation.components.MetricasAvanzadasCard
+import com.aranthalion.controlfinanzas.presentation.components.InsightsCard
+import com.aranthalion.controlfinanzas.presentation.components.GastosInusualesCard
+import com.aranthalion.controlfinanzas.presentation.components.BarChart
+import com.aranthalion.controlfinanzas.presentation.components.BarChartData
+import com.aranthalion.controlfinanzas.presentation.components.PieChart
+import com.aranthalion.controlfinanzas.presentation.components.PieChartData
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 
@@ -68,108 +75,273 @@ fun DashboardAnalisisScreen(
                 is DashboardAnalisisUiState.Success -> {
                     val data = (uiState as DashboardAnalisisUiState.Success)
                     
-                    // Predicción de Cierre del Período
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
+                    // Resumen Financiero Principal
+                    data.resumenFinanciero?.let { resumen ->
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
                                 ) {
-                                    Icon(
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                                                            Icon(
                                         Icons.Default.Info,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Resumen Financiero - ${periodoSeleccionado}",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        StatCard(
+                                            titulo = "Ingresos",
+                                            valor = FormatUtils.formatMoneyCLP(resumen.ingresos),
+                                            icon = Icons.Default.Info,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatCard(
+                                            titulo = "Gastos",
+                                            valor = FormatUtils.formatMoneyCLP(resumen.gastos),
+                                            icon = Icons.Default.Info,
+                                            color = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatCard(
+                                            titulo = "Balance",
+                                            valor = FormatUtils.formatMoneyCLP(resumen.balance),
+                                            icon = Icons.Default.Info,
+                                            color = if (resumen.balance >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    // Tasa de ahorro
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surface
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Info,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    "Tasa de Ahorro",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                                Text(
+                                                    "${resumen.tasaAhorro.toInt()}%",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Métricas de Rendimiento Avanzadas
+                    data.metricasRendimiento?.let { metricas ->
+                        item {
+                            MetricasAvanzadasCard(
+                                metricas = metricas,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    
+                    // Comparación con Período Anterior
+                    data.comparacionPeriodo?.let { comparacion ->
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Comparación con ${comparacion.periodoAnterior}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        ComparacionItem(
+                                            titulo = "Ingresos",
+                                            cambio = comparacion.cambioIngresos,
+                                            icon = Icons.Default.Info,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        ComparacionItem(
+                                            titulo = "Gastos",
+                                            cambio = comparacion.cambioGastos,
+                                            icon = Icons.Default.Info,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        ComparacionItem(
+                                            titulo = "Balance",
+                                            cambio = comparacion.cambioBalance,
+                                            icon = Icons.Default.Info,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Insights y Recomendaciones
+                    item {
+                        InsightsCard(
+                            insights = viewModel.obtenerInsightsFinancieros(),
+                            recomendaciones = viewModel.obtenerRecomendaciones(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    
+                    // Gastos Inusuales
+                    if (data.gastosInusuales.isNotEmpty()) {
+                        item {
+                            GastosInusualesCard(
+                                gastosInusuales = data.gastosInusuales,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    
+                    // Gráfico de Tendencias
+                    if (data.tendencias.isNotEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
                                     Text(
-                                        "Predicción de Cierre - ${periodoSeleccionado}",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        "Tendencias Mensuales",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    val datosGrafico = data.tendencias.map { tendencia ->
+                                        BarChartData(
+                                            label = tendencia.periodo,
+                                            value = tendencia.gastos.toFloat(),
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    
+                                    BarChart(
+                                        data = datosGrafico,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp)
                                     )
                                 }
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                // Progreso del período
-                                val progresoPeriodo = calcularProgresoPeriodo(periodoSeleccionado)
-                                Text(
-                                    "Progreso del período: ${progresoPeriodo.toInt()}%",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                
-                                LinearProgressIndicator(
-                                    progress = (progresoPeriodo / 100f).toFloat(),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f)
-                                )
-                                
-                                // Predicción de gasto total
-                                val prediccionTotal = data.predicciones.sumOf { (it as PrediccionPrueba).prediccion }
-                                Text(
-                                    "Gasto Predicho: ${FormatUtils.formatMoneyCLP(prediccionTotal)}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
                             }
                         }
                     }
                     
-                    // Resumen de KPIs
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
+                    // Análisis por Categorías
+                    if (data.analisisCategorias.isNotEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
                             ) {
-                                Text(
-                                    "Resumen Ejecutivo",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Text(
-                                    "KPIs Generados: ${data.kpis.size}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    "Tendencias: ${data.tendencias.size}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    "Categorías Analizadas: ${data.analisisCategorias.size}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    "Predicciones: ${data.predicciones.size}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Text(
+                                        "Distribución por Categorías",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    val datosPie = data.analisisCategorias.take(5).map { categoria ->
+                                        PieChartData(
+                                            label = categoria.nombreCategoria,
+                                            value = categoria.totalGastado.toFloat(),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    
+                                    PieChart(
+                                        data = datosPie,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp)
+                                    )
+                                }
                             }
                         }
                     }
                     
-                    // Top 5 Categorías con Mayor Gasto
+                    // Top Categorías con Mayor Gasto
                     if (data.analisisCategorias.isNotEmpty()) {
                         item {
                             Text(
-                                "Top 5 Categorías",
+                                "Top Categorías",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -178,7 +350,6 @@ fun DashboardAnalisisScreen(
                         val topCategorias = data.analisisCategorias.take(5)
                         topCategorias.forEach { categoria ->
                             item {
-                                val cat = categoria as CategoriaPrueba
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(
@@ -196,17 +367,12 @@ fun DashboardAnalisisScreen(
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Text(
-                                                cat.nombreCategoria,
+                                                categoria.nombreCategoria,
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Medium
                                             )
                                             Text(
-                                                "${cat.porcentajeDelTotal.toInt()}% del total",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                "Promedio diario: ${FormatUtils.formatMoneyCLP(cat.promedioDiario)}",
+                                                "${categoria.porcentajeDelTotal.toInt()}% del total",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -216,97 +382,17 @@ fun DashboardAnalisisScreen(
                                             horizontalAlignment = Alignment.End
                                         ) {
                                             Text(
-                                                FormatUtils.formatMoneyCLP(cat.totalGastado),
+                                                FormatUtils.formatMoneyCLP(categoria.totalGastado),
                                                 style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Surface(
-                                                shape = MaterialTheme.shapes.small,
-                                                color = when (cat.tendencia) {
-                                                    "AUMENTO" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                                                    "DISMINUCION" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                                    else -> MaterialTheme.colorScheme.surfaceVariant
-                                                }
-                                            ) {
-                                                Text(
-                                                    cat.tendencia,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = when (cat.tendencia) {
-                                                        "AUMENTO" -> MaterialTheme.colorScheme.error
-                                                        "DISMINUCION" -> MaterialTheme.colorScheme.primary
-                                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                    },
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Predicciones para Próximo Mes
-                    if (data.predicciones.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Predicciones para Próximo Mes",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        
-                        val topPredicciones = data.predicciones.take(5)
-                        topPredicciones.forEach { prediccion ->
-                            item {
-                                val pred = prediccion as PrediccionPrueba
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface
-                                    )
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                pred.nombreCategoria,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Medium
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
-                                                FormatUtils.formatMoneyCLP(pred.prediccion),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
+                                                "Promedio diario: ${FormatUtils.formatMoneyCLP(categoria.promedioDiario)}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        
-                                        Text(
-                                            "Intervalo: ${FormatUtils.formatMoneyCLP(pred.intervaloConfianza.first)} - ${FormatUtils.formatMoneyCLP(pred.intervaloConfianza.second)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        
-                                        LinearProgressIndicator(
-                                            progress = pred.confiabilidad.toFloat(),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 4.dp),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        
-                                        Text(
-                                            "Confiabilidad: ${(pred.confiabilidad * 100).toInt()}%",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
                                     }
                                 }
                             }
@@ -322,18 +408,20 @@ fun DashboardAnalisisScreen(
                                 containerColor = MaterialTheme.colorScheme.errorContainer
                             )
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    Icons.Default.Warning,
+                                    Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(48.dp)
                                 )
-                                Spacer(modifier = Modifier.width(16.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    (uiState as DashboardAnalisisUiState.Error).mensaje,
+                                    text = (uiState as DashboardAnalisisUiState.Error).mensaje,
+                                    style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             }
@@ -346,32 +434,88 @@ fun DashboardAnalisisScreen(
 }
 
 @Composable
-private fun calcularProgresoPeriodo(periodo: String): Double {
-    val calendar = java.util.Calendar.getInstance()
-    val currentYear = calendar.get(java.util.Calendar.YEAR)
-    val currentMonth = calendar.get(java.util.Calendar.MONTH) + 1
-    
-    val periodoYear = periodo.substring(0, 4).toInt()
-    val periodoMonth = periodo.substring(5, 7).toInt()
-    
-    return if (currentYear == periodoYear && currentMonth == periodoMonth) {
-        val dayOfMonth = calendar.get(java.util.Calendar.DAY_OF_MONTH)
-        val daysInMonth = calendar.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
-        (dayOfMonth.toDouble() / daysInMonth) * 100
-    } else if (currentYear > periodoYear || (currentYear == periodoYear && currentMonth > periodoMonth)) {
-        100.0
-    } else {
-        0.0
+private fun StatCard(
+    titulo: String,
+    valor: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = valor,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = titulo,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
-sealed class DashboardAnalisisUiState {
-    object Loading : DashboardAnalisisUiState()
-    data class Success(
-        val kpis: List<Any>,
-        val tendencias: List<Any>,
-        val analisisCategorias: List<Any>,
-        val predicciones: List<Any>
-    ) : DashboardAnalisisUiState()
-    data class Error(val mensaje: String) : DashboardAnalisisUiState()
-} 
+@Composable
+private fun ComparacionItem(
+    titulo: String,
+    cambio: Double,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    val color = when {
+        cambio > 5 -> MaterialTheme.colorScheme.primary
+        cambio < -5 -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    val icono = Icons.Default.Info
+    
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = icono,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "${if (cambio >= 0) "+" else ""}${cambio.toInt()}%",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = titulo,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+    }
+}
+
+private fun calcularProgresoPeriodo(periodo: String): Double {
+    // Implementación simplificada - en producción calcular basado en la fecha actual
+    return 75.0 // Ejemplo: 75% del período completado
+}
+
+ 
