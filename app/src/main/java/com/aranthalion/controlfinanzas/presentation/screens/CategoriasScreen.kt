@@ -260,42 +260,16 @@ fun CategoriasScreen(
             categoria = categoria,
             onDismiss = { categoriaToEdit = null },
             onConfirm = { nombre, descripcion ->
-                categoriaPendienteConfirmacion = categoria.copy(
-                    nombre = nombre,
-                    descripcion = descripcion
-                )
-                showConfirmacionHistorica = true
+                // Por ahora, eliminar y crear nueva categoría
+                viewModel.eliminarCategoria(categoria)
+                viewModel.agregarCategoria(nombre, descripcion)
                 categoriaToEdit = null
-            }
-        )
-    }
-
-    // Diálogo de confirmación para cambios históricos
-    if (showConfirmacionHistorica && categoriaPendienteConfirmacion != null) {
-        ConfirmacionHistoricaDialog(
-            onDismiss = { 
-                showConfirmacionHistorica = false
-                categoriaPendienteConfirmacion = null
             },
-            onConfirmarSoloActual = {
-                // Por ahora solo eliminamos y creamos una nueva
-                viewModel.eliminarCategoria(categoriaPendienteConfirmacion!!)
-                viewModel.agregarCategoria(
-                    categoriaPendienteConfirmacion!!.nombre,
-                    categoriaPendienteConfirmacion!!.descripcion
-                )
-                showConfirmacionHistorica = false
-                categoriaPendienteConfirmacion = null
-            },
-            onConfirmarHistorico = {
-                // Por ahora solo eliminamos y creamos una nueva
-                viewModel.eliminarCategoria(categoriaPendienteConfirmacion!!)
-                viewModel.agregarCategoria(
-                    categoriaPendienteConfirmacion!!.nombre,
-                    categoriaPendienteConfirmacion!!.descripcion
-                )
-                showConfirmacionHistorica = false
-                categoriaPendienteConfirmacion = null
+            onConfirmWithHistorico = { nombre, descripcion, aplicarAHistorico ->
+                // Por ahora, eliminar y crear nueva categoría
+                viewModel.eliminarCategoria(categoria)
+                viewModel.agregarCategoria(nombre, descripcion)
+                categoriaToEdit = null
             }
         )
     }
@@ -499,72 +473,88 @@ fun CategoriaDialog(
 fun CategoriaEditDialog(
     categoria: Categoria,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String) -> Unit,
+    onConfirmWithHistorico: (String, String, Boolean) -> Unit
 ) {
     var nombre by remember { mutableStateOf(categoria.nombre) }
     var descripcion by remember { mutableStateOf(categoria.descripcion) }
+    var showConfirmacionHistorica by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Editar Categoría",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+    if (showConfirmacionHistorica) {
+        ConfirmacionHistoricaDialog(
+            onDismiss = { showConfirmacionHistorica = false },
+            onConfirmarSoloActual = {
+                onConfirmWithHistorico(nombre, descripcion, false)
+                showConfirmacionHistorica = false
+            },
+            onConfirmarHistorico = {
+                onConfirmWithHistorico(nombre, descripcion, true)
+                showConfirmacionHistorica = false
+            }
+        )
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    "Editar Categoría",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = nombre,
+                        onValueChange = { nombre = it },
+                        label = { Text("Nombre") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
                     )
-                )
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción (opcional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    OutlinedTextField(
+                        value = descripcion,
+                        onValueChange = { descripcion = it },
+                        label = { Text("Descripción (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
                     )
-                )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (nombre.isNotBlank()) {
+                            showConfirmacionHistorica = true
+                        }
+                    },
+                    enabled = nombre.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Cancelar")
+                }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (nombre.isNotBlank()) {
-                        onConfirm(nombre, descripcion)
-                    }
-                },
-                enabled = nombre.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }
 
 @Composable
