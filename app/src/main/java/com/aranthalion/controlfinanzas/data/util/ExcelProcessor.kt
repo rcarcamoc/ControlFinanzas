@@ -139,7 +139,7 @@ object ExcelProcessor {
 
     /**
      * Importa transacciones desde un archivo de 'estado de cierre'.
-     * @param periodoFacturacion El periodo seleccionado en la UI
+     * @param periodoFacturacion El periodo seleccionado en la UI (usado como fallback si no se puede calcular desde la fecha)
      */
     fun importarEstadoDeCierre(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
         val workbook = WorkbookFactory.create(inputStream)
@@ -155,6 +155,12 @@ object ExcelProcessor {
             val tipoTarjeta = getCellString(row, 4)
             val monto = getCellDoubleFlexible(row, 5)
             if (descripcion.isBlank() || monto == 0.0) continue
+            
+            // Para tarjetas de crédito, el período de facturación se determina por la lógica de negocio
+            // Por ahora, usamos el período seleccionado por el usuario como base
+            // TODO: Implementar lógica específica de períodos de facturación según el banco
+            val periodoCalculado = periodoFacturacion ?: "2025-01"
+            
             transacciones.add(
                 ExcelTransaction(
                     fecha = fecha,
@@ -163,7 +169,7 @@ object ExcelProcessor {
                     descripcion = descripcion,
                     tipoTarjeta = tipoTarjeta,
                     monto = monto,
-                    periodoFacturacion = periodoFacturacion,
+                    periodoFacturacion = periodoCalculado,
                     categoria = null
                 )
             )
@@ -199,6 +205,12 @@ object ExcelProcessor {
             val tipoTarjeta = getCellString(row, 4)
             val monto = getCellDoubleFlexible(row, 5)
             if (descripcion.isBlank() || monto == 0.0) continue
+            
+            // Para tarjetas de crédito, el período de facturación se determina por la lógica de negocio
+            // Por ahora, usamos el período seleccionado por el usuario como base
+            // TODO: Implementar lógica específica de períodos de facturación según el banco
+            val periodoCalculado = periodoFacturacion ?: "2025-01"
+            
             transacciones.add(
                 ExcelTransaction(
                     fecha = fecha,
@@ -207,7 +219,7 @@ object ExcelProcessor {
                     descripcion = descripcion,
                     tipoTarjeta = tipoTarjeta,
                     monto = monto,
-                    periodoFacturacion = periodoFacturacion,
+                    periodoFacturacion = periodoCalculado,
                     categoria = null
                 )
             )

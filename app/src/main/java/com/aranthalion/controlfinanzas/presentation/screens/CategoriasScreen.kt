@@ -24,6 +24,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -365,8 +368,18 @@ fun CategoriaItem(
         }
     }
     
-    // Diálogo de confirmación de eliminación mejorado
-    if (showDeleteDialog) {
+    // Diálogo de confirmación de eliminación mejorado con animación
+    AnimatedVisibility(
+        visible = showDeleteDialog,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { 
@@ -418,99 +431,22 @@ fun CategoriaDialog(
     var nombre by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Nueva Categoría",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción (opcional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (nombre.isNotBlank()) {
-                        onConfirm(nombre, descripcion)
-                    }
-                },
-                enabled = nombre.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategoriaEditDialog(
-    categoria: Categoria,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit,
-    onConfirmWithHistorico: (String, String, Boolean) -> Unit
-) {
-    var nombre by remember { mutableStateOf(categoria.nombre) }
-    var descripcion by remember { mutableStateOf(categoria.descripcion) }
-    var showConfirmacionHistorica by remember { mutableStateOf(false) }
-
-    if (showConfirmacionHistorica) {
-        ConfirmacionHistoricaDialog(
-            onDismiss = { showConfirmacionHistorica = false },
-            onConfirmarSoloActual = {
-                onConfirmWithHistorico(nombre, descripcion, false)
-                showConfirmacionHistorica = false
-            },
-            onConfirmarHistorico = {
-                onConfirmWithHistorico(nombre, descripcion, true)
-                showConfirmacionHistorica = false
-            }
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
         )
-    } else {
+    ) {
         AlertDialog(
             onDismissRequest = onDismiss,
             title = {
                 Text(
-                    "Editar Categoría",
+                    "Nueva Categoría",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -545,7 +481,7 @@ fun CategoriaEditDialog(
                 Button(
                     onClick = {
                         if (nombre.isNotBlank()) {
-                            showConfirmacionHistorica = true
+                            onConfirm(nombre, descripcion)
                         }
                     },
                     enabled = nombre.isNotBlank(),
@@ -570,76 +506,189 @@ fun CategoriaEditDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategoriaEditDialog(
+    categoria: Categoria,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit,
+    onConfirmWithHistorico: (String, String, Boolean) -> Unit
+) {
+    var nombre by remember { mutableStateOf(categoria.nombre) }
+    var descripcion by remember { mutableStateOf(categoria.descripcion) }
+    var showConfirmacionHistorica by remember { mutableStateOf(false) }
+
+    if (showConfirmacionHistorica) {
+        ConfirmacionHistoricaDialog(
+            onDismiss = { showConfirmacionHistorica = false },
+            onConfirmarSoloActual = {
+                onConfirmWithHistorico(nombre, descripcion, false)
+                showConfirmacionHistorica = false
+            },
+            onConfirmarHistorico = {
+                onConfirmWithHistorico(nombre, descripcion, true)
+                showConfirmacionHistorica = false
+            }
+        )
+    } else {
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ),
+            exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(200, easing = FastOutLinearInEasing)
+            )
+        ) {
+            AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Text(
+                        "Editar Categoría",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = nombre,
+                            onValueChange = { nombre = it },
+                            label = { Text("Nombre") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                        OutlinedTextField(
+                            value = descripcion,
+                            onValueChange = { descripcion = it },
+                            label = { Text("Descripción (opcional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (nombre.isNotBlank()) {
+                                showConfirmacionHistorica = true
+                            }
+                        },
+                        enabled = nombre.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Guardar")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+    }
+}
+
 @Composable
 fun ConfirmacionHistoricaDialog(
     onDismiss: () -> Unit,
     onConfirmarSoloActual: () -> Unit,
     onConfirmarHistorico: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Aplicar cambios",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
                 Text(
-                    "¿Cómo quieres aplicar los cambios a esta categoría?",
-                    style = MaterialTheme.typography.bodyLarge
+                    "Aplicar cambios",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
-                Text(
-                    "• Solo esta categoría: Los cambios se aplican únicamente a la categoría actual",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "• Aplicar a todo el histórico: Los cambios se aplican a todos los movimientos que usan esta categoría",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        confirmButton = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onConfirmarSoloActual,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("Solo esta categoría")
+                    Text(
+                        "¿Cómo quieres aplicar los cambios a esta categoría?",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        "• Solo esta categoría: Los cambios se aplican únicamente a la categoría actual",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "• Aplicar a todo el histórico: Los cambios se aplican a todos los movimientos que usan esta categoría",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                OutlinedButton(
-                    onClick = onConfirmarHistorico,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
+            },
+            confirmButton = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onConfirmarSoloActual,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Solo esta categoría")
+                    }
+                    OutlinedButton(
+                        onClick = onConfirmarHistorico,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Aplicar a todo el histórico")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("Aplicar a todo el histórico")
+                    Text("Cancelar")
                 }
             }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)

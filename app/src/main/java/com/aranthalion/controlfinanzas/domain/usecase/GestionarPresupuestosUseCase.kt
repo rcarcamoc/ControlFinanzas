@@ -39,6 +39,13 @@ class GestionarPresupuestosUseCase @Inject constructor(
     suspend fun eliminarPresupuesto(presupuesto: PresupuestoCategoriaEntity) =
         repository.eliminarPresupuesto(presupuesto)
 
+    suspend fun eliminarPresupuestosPorPeriodo(periodo: String) {
+        val presupuestos = repository.obtenerPresupuestosPorPeriodo(periodo)
+        presupuestos.forEach { presupuesto ->
+            repository.eliminarPresupuesto(presupuesto)
+        }
+    }
+
     suspend fun obtenerPresupuestosPorPeriodo(periodo: String): List<PresupuestoCategoriaEntity> {
         return repository.obtenerPresupuestosPorPeriodo(periodo)
     }

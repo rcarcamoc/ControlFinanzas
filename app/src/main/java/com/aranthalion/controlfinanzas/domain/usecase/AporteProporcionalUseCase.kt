@@ -6,6 +6,7 @@ import com.aranthalion.controlfinanzas.data.repository.SueldoRepository
 import java.util.*
 import javax.inject.Inject
 import kotlin.math.abs
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 
 data class AporteProporcional(
     val nombrePersona: String,
@@ -110,6 +111,19 @@ class AporteProporcionalUseCase @Inject constructor(
             sueldo = sueldo
         )
         sueldoRepository.insertarSueldo(sueldoEntity)
+
+        // Crear movimiento de ingreso asociado al sueldo
+        val movimientoIngreso = MovimientoEntity(
+            tipo = "INGRESO",
+            monto = sueldo,
+            descripcion = "Sueldo de $nombrePersona",
+            fecha = Date(),
+            periodoFacturacion = periodo,
+            categoriaId = null, // O puedes asignar una categoría específica si existe
+            tipoTarjeta = null,
+            idUnico = "sueldo_${nombrePersona}_$periodo"
+        )
+        movimientoRepository.agregarMovimiento(movimientoIngreso)
     }
 
     /**

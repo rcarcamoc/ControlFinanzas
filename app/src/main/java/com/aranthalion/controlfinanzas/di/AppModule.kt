@@ -24,6 +24,7 @@ import com.aranthalion.controlfinanzas.domain.movimiento.MovimientoManualReposit
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcionalUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
+import com.aranthalion.controlfinanzas.domain.usecase.GestionarMovimientosUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -169,6 +170,16 @@ abstract class AppModule {
         ): GestionarPresupuestosUseCase {
             return GestionarPresupuestosUseCase(presupuestoRepository, categoriaRepository, movimientoRepository)
         }
+
+        @Provides
+        @Singleton
+        fun provideGestionarMovimientosUseCase(
+            movimientoRepository: MovimientoRepository
+        ): GestionarMovimientosUseCase {
+            return GestionarMovimientosUseCase(movimientoRepository)
+        }
+
+
 
         @Provides
         @Singleton

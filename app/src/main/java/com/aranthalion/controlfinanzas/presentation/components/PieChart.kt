@@ -135,8 +135,8 @@ fun PieChart(
                         if (tappedSlice != null) {
                             selectedSlice = if (selectedSlice?.id == tappedSlice?.id) null else tappedSlice
                             tapPosition = null
-                        }
                     }
+                }
                     // Tooltip flotante centrado
                     if (selectedSlice != null) {
                         val slice = selectedSlice!!

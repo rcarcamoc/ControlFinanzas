@@ -77,35 +77,35 @@ fun DashboardAnalisisScreen(
                     
                     // Resumen Financiero Principal
                     data.resumenFinanciero?.let { resumen ->
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                                                            Icon(
+                                    Icon(
                                         Icons.Default.Info,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
                                             "Resumen Financiero - ${periodoSeleccionado}",
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -154,9 +154,9 @@ fun DashboardAnalisisScreen(
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(
+                                Text(
                                                     "Tasa de Ahorro",
-                                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Medium
                                                 )
                                                 Text(
@@ -224,10 +224,10 @@ fun DashboardAnalisisScreen(
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
+                                Text(
                                             "Comparación con ${comparacion.periodoAnterior}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer
                                         )
                                     }
@@ -264,23 +264,23 @@ fun DashboardAnalisisScreen(
                     
                     // Predicciones de Gasto
                     if (data.predicciones.isNotEmpty()) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                )
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
+                                Text(
                                         "Predicciones para el Próximo Mes",
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    fontWeight = FontWeight.Bold
+                                )
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    
+                                
                                     data.predicciones.take(3).forEach { prediccion ->
                                         Row(
                                             modifier = Modifier
@@ -355,7 +355,7 @@ fun DashboardAnalisisScreen(
                                     modifier = Modifier.padding(16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
+                                Text(
                                         "No se detectaron gastos inusuales en este período.",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -377,7 +377,7 @@ fun DashboardAnalisisScreen(
                                 Column(
                                     modifier = Modifier.padding(16.dp)
                                 ) {
-                                    Text(
+                                Text(
                                         "Tendencias Mensuales",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
@@ -413,7 +413,7 @@ fun DashboardAnalisisScreen(
                                     modifier = Modifier.padding(16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
+                                Text(
                                         "No hay datos de tendencias para este período.",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -435,7 +435,7 @@ fun DashboardAnalisisScreen(
                                 Column(
                                     modifier = Modifier.padding(16.dp)
                                 ) {
-                                    Text(
+                                Text(
                                         "Distribución por Categorías",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
@@ -475,7 +475,7 @@ fun DashboardAnalisisScreen(
                                         "No hay movimientos registrados en categorías para este período.",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                )
                                 }
                             }
                         }
@@ -533,9 +533,9 @@ fun DashboardAnalisisScreen(
                                             )
                                             Text(
                                                 "Promedio diario: ${FormatUtils.formatMoneyCLP(categoria.promedioDiario)}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                         }
                                     }
                                 }
@@ -665,4 +665,4 @@ private fun ComparacionItem(
 private fun calcularProgresoPeriodo(periodo: String): Double {
     // Implementación simplificada - en producción calcular basado en la fecha actual
     return 75.0 // Ejemplo: 75% del período completado
-}
+} 

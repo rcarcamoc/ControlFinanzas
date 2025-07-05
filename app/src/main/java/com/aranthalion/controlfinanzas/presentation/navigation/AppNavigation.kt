@@ -13,6 +13,8 @@ import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendien
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosScreen
+import com.aranthalion.controlfinanzas.presentation.screens.FirstRunScreen
+
 import com.aranthalion.controlfinanzas.presentation.components.AppShell
 
 @Composable
@@ -22,6 +24,9 @@ fun AppNavigation(navController: NavHostController) {
             navController = navController,
             startDestination = "home"
         ) {
+            composable("first_run") {
+                FirstRunScreen(navController = navController)
+            }
             composable("home") {
                 HomeScreen(navController = navController)
             }
@@ -49,6 +54,7 @@ fun AppNavigation(navController: NavHostController) {
             composable("presupuestos") {
                 PresupuestosScreen(navController = navController)
             }
+
         }
     }
 } 

@@ -376,92 +376,104 @@ private fun ClasificacionDialog(
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
     var expandedCategoria by remember { mutableStateOf(false) }
     
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Clasificar Transacción",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Información de la transacción
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    "Clasificar Transacción",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp)
-                    ) {
-                        Text(
-                            text = transaccion.descripcion,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
+                    // Información de la transacción
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
-                        Text(
-                            text = FormatUtils.formatMoneyCLP(transaccion.monto),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (transaccion.tipo == "INGRESO") 
-                                MaterialTheme.colorScheme.primary 
-                            else 
-                                MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-                
-                // Selector de categoría
-                ExposedDropdownMenuBox(
-                    expanded = expandedCategoria,
-                    onExpandedChange = { expandedCategoria = !expandedCategoria }
-                ) {
-                    OutlinedTextField(
-                        value = categoriaSeleccionada?.nombre ?: "Seleccionar categoría",
-                        onValueChange = {},
-                        label = { Text("Categoría") },
-                        readOnly = true,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) }
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedCategoria,
-                        onDismissRequest = { expandedCategoria = false }
                     ) {
-                        categorias.forEach { categoria ->
-                            DropdownMenuItem(
-                                text = { Text(categoria.nombre) },
-                                onClick = {
-                                    categoriaSeleccionada = categoria
-                                    expandedCategoria = false
-                                }
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Text(
+                                text = transaccion.descripcion,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = FormatUtils.formatMoneyCLP(transaccion.monto),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (transaccion.tipo == "INGRESO") 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.error
                             )
                         }
                     }
+                    
+                    // Selector de categoría
+                    ExposedDropdownMenuBox(
+                        expanded = expandedCategoria,
+                        onExpandedChange = { expandedCategoria = !expandedCategoria }
+                    ) {
+                        OutlinedTextField(
+                            value = categoriaSeleccionada?.nombre ?: "Seleccionar categoría",
+                            onValueChange = {},
+                            label = { Text("Categoría") },
+                            readOnly = true,
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedCategoria,
+                            onDismissRequest = { expandedCategoria = false }
+                        ) {
+                            categorias.forEach { categoria ->
+                                DropdownMenuItem(
+                                    text = { Text(categoria.nombre) },
+                                    onClick = {
+                                        categoriaSeleccionada = categoria
+                                        expandedCategoria = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        categoriaSeleccionada?.let { categoria ->
+                            onClasificar(categoria.id)
+                        }
+                    },
+                    enabled = categoriaSeleccionada != null
+                ) {
+                    Text("Clasificar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar")
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    categoriaSeleccionada?.let { categoria ->
-                        onClasificar(categoria.id)
-                    }
-                },
-                enabled = categoriaSeleccionada != null
-            ) {
-                Text("Clasificar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }
 
 sealed class ClasificacionPendienteUiState {

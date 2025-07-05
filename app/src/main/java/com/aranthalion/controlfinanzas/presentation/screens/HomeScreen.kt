@@ -20,6 +20,7 @@ import com.aranthalion.controlfinanzas.presentation.components.StatCard
 import com.aranthalion.controlfinanzas.presentation.components.PresupuestoInfo
 import com.aranthalion.controlfinanzas.presentation.components.BarChart
 import com.aranthalion.controlfinanzas.presentation.components.BarChartData
+import com.aranthalion.controlfinanzas.presentation.components.procesarDatosParaGrafico
 import com.aranthalion.controlfinanzas.presentation.components.PieChart
 import com.aranthalion.controlfinanzas.presentation.components.PieChartData
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
@@ -220,18 +221,12 @@ fun HomeScreen(
                                     )
                                 }
                                 
-                                // Datos de ejemplo para el gráfico
-                                val chartData = listOf(
-                                    BarChartData("Ene", 1200.0f, MaterialTheme.colorScheme.primary),
-                                    BarChartData("Feb", 1500.0f, MaterialTheme.colorScheme.primary),
-                                    BarChartData("Mar", 1100.0f, MaterialTheme.colorScheme.primary),
-                                    BarChartData("Abr", 1800.0f, MaterialTheme.colorScheme.primary),
-                                    BarChartData("May", 1600.0f, MaterialTheme.colorScheme.primary),
-                                    BarChartData("Jun", totalGastos.toFloat(), MaterialTheme.colorScheme.primary)
-                                )
+                                // Procesar datos reales para el gráfico
+                                val chartData = procesarDatosParaGrafico(gastos, MaterialTheme.colorScheme.primary)
                                 
                                 BarChart(
                                     data = chartData,
+                                    title = "Tendencia de Gasto Mensual",
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(200.dp)
@@ -405,7 +400,7 @@ fun HomeScreen(
                                 
                                 // Botón para drill-down
                                 Button(
-                                    onClick = { navController.navigate("dashboard_analisis") },
+                                    onClick = { navController.navigate("dashboardAnalisis") },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text("Ver Análisis Detallado")
@@ -483,7 +478,7 @@ fun HomeScreen(
                                     // Botón condicional "Ver Resumen General"
                                     if (totalGastos > 1000) {
                                         Button(
-                                            onClick = { navController.navigate("dashboard_analisis") },
+                                            onClick = { navController.navigate("dashboardAnalisis") },
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Text("Ver Resumen General")

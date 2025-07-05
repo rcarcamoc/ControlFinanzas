@@ -36,6 +36,7 @@ val navItems = listOf(
     NavItem("importar_excel", "Importar", Icons.Default.Edit),
     NavItem("dashboardAnalisis", "Análisis", Icons.Default.Star),
     NavItem("aporte_proporcional", "Aporte", Icons.Default.Person),
+
     NavItem("configuracion", "Configuración", Icons.Default.Settings)
 )
 
@@ -53,132 +54,140 @@ fun AppShell(
     // Estado del sidebar
     var isSidebarExpanded by remember { mutableStateOf(!isSmallScreen) }
     
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Sidebar colapsible
-        if (isSidebarExpanded) {
-            Column(
-                modifier = Modifier
-                    .width(256.dp)
-                    .fillMaxHeight()
-                    .background(SidebarBackground)
-                    .padding(16.dp)
-            ) {
-                // Logo/Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+    // No mostrar sidebar en la pantalla de primer uso
+    val isFirstRunScreen = currentRoute == "first_run"
+    
+    if (isFirstRunScreen) {
+        // Mostrar solo el contenido sin sidebar para la pantalla de primer uso
+        content()
+    } else {
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Sidebar colapsible
+            if (isSidebarExpanded) {
+                Column(
+                    modifier = Modifier
+                        .width(256.dp)
+                        .fillMaxHeight()
+                        .background(SidebarBackground)
+                        .padding(16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    // Logo/Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "FinaVision",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = SidebarForeground
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Selector de período global
                     Text(
-                        text = "FinaVision",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = SidebarForeground
+                        text = "Período",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = SidebarForeground,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Selector de período global
-                Text(
-                    text = "Período",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = SidebarForeground,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                PeriodoSelectorGlobal(
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Navigation Items
-                Text(
-                    text = "Navegación",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = SidebarForeground,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                navItems.forEach { item ->
-                    val isActive = currentRoute == item.route
-                    NavigationItem(
-                        item = item,
-                        isActive = isActive,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+                    
+                    PeriodoSelectorGlobal(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Navigation Items
+                    Text(
+                        text = "Navegación",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = SidebarForeground,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    navItems.forEach { item ->
+                        val isActive = currentRoute == item.route
+                        NavigationItem(
+                            item = item,
+                            isActive = isActive,
+                            onClick = {
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
+                                // Cerrar sidebar en pantallas pequeñas después de navegar
+                                if (isSmallScreen) {
+                                    isSidebarExpanded = false
+                                }
                             }
-                            // Cerrar sidebar en pantallas pequeñas después de navegar
-                            if (isSmallScreen) {
-                                isSidebarExpanded = false
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
-        }
-        
-        // Main Content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
-        ) {
-            // Header con botón de menú
-            TopAppBar(
-                title = {
-                    Text(
-                        text = navItems.find { it.route == currentRoute }?.label ?: "FinaVision",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { isSidebarExpanded = !isSidebarExpanded }) {
-                        Icon(
-                            imageVector = if (isSidebarExpanded) Icons.Default.Close else Icons.Default.Menu,
-                            contentDescription = if (isSidebarExpanded) "Cerrar menú" else "Abrir menú"
-                        )
-                    }
-                },
-                actions = {
-                    // User menu placeholder
-                    IconButton(onClick = { /* TODO: User menu */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Usuario"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
             
-            // Content
-            Box(
+            // Main Content
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .weight(1f)
             ) {
-                content()
+                // Header con botón de menú
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = navItems.find { it.route == currentRoute }?.label ?: "FinaVision",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { isSidebarExpanded = !isSidebarExpanded }) {
+                            Icon(
+                                imageVector = if (isSidebarExpanded) Icons.Default.Close else Icons.Default.Menu,
+                                contentDescription = if (isSidebarExpanded) "Cerrar menú" else "Abrir menú"
+                            )
+                        }
+                    },
+                    actions = {
+                        // User menu placeholder
+                        IconButton(onClick = { /* TODO: User menu */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Usuario"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+                
+                // Content
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    content()
+                }
             }
         }
     }

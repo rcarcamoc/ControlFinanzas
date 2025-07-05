@@ -23,6 +23,8 @@ class ConfiguracionPreferences @Inject constructor(
         private const val KEY_PERIODO_GLOBAL = "periodo_global"
         private const val KEY_DATOS_CARGADOS = "datos_cargados"
         private const val KEY_CLASIFICACION_CARGADA = "clasificacion_cargada"
+        private const val KEY_IS_FIRST_RUN = "is_first_run"
+        private const val KEY_HISTORICAL_DATA_LOADED = "historical_data_loaded"
     }
 
     fun obtenerTema(): Flow<TemaApp> = context.configuracionDataStore.data.map { preferences: Preferences ->
@@ -37,6 +39,30 @@ class ConfiguracionPreferences @Inject constructor(
         context.configuracionDataStore.edit { preferences ->
             preferences[TEMA_KEY] = tema.name
         }
+    }
+
+    var periodoGlobal: String
+        get() = prefs.getString(KEY_PERIODO_GLOBAL, "2025-01") ?: "2025-01"
+        set(value) = prefs.edit().putString(KEY_PERIODO_GLOBAL, value).apply()
+
+    var isFirstRun: Boolean
+        get() = prefs.getBoolean(KEY_IS_FIRST_RUN, true)
+        set(value) = prefs.edit().putBoolean(KEY_IS_FIRST_RUN, value).apply()
+
+    var historicalDataLoaded: Boolean
+        get() = prefs.getBoolean(KEY_HISTORICAL_DATA_LOADED, false)
+        set(value) = prefs.edit().putBoolean(KEY_HISTORICAL_DATA_LOADED, value).apply()
+
+    fun markFirstRunComplete() {
+        isFirstRun = false
+    }
+
+    fun markHistoricalDataLoaded() {
+        historicalDataLoaded = true
+    }
+
+    fun markHistoricalDataNotLoaded() {
+        historicalDataLoaded = false
     }
 
     fun guardarPeriodoGlobal(periodo: String) {

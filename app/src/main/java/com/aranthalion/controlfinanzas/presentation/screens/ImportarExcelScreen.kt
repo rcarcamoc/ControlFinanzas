@@ -297,12 +297,12 @@ fun ImportarExcelScreen(
                 if (archivoUri != null) {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            val inputStream = context.contentResolver.openInputStream(archivoUri!!)
-                            val transacciones = when (tipoArchivo) {
-                                "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConClasificacion(inputStream!!, mesSeleccionado)
-                                "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConClasificacion(inputStream!!, mesSeleccionado)
-                                else -> emptyList()
-                            }
+                            context.contentResolver.openInputStream(archivoUri!!)?.use { inputStream ->
+                                val transacciones = when (tipoArchivo) {
+                                    "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConClasificacion(inputStream, mesSeleccionado)
+                                    "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConClasificacion(inputStream, mesSeleccionado)
+                                    else -> emptyList()
+                                }
                             
                             transaccionesConClasificacion = transacciones
                             
@@ -310,12 +310,16 @@ fun ImportarExcelScreen(
                                 it.descripcion.trim().uppercase() != "MONTO CANCELADO"
                             }.mapNotNull { t ->
                                 if (t.fecha == null) return@mapNotNull null
+                                // Todos los movimientos de tarjeta son gastos (incluyendo reversas)
+                                val tipo = "GASTO"
+                                // Mantener el monto original (negativo para reversas)
+                                val montoFinal = t.monto
                                 MovimientoEntity(
-                                    tipo = "GASTO",
-                                    monto = t.monto,
+                                    tipo = tipo,
+                                    monto = montoFinal,
                                     descripcion = t.descripcion,
                                     fecha = t.fecha,
-                                    periodoFacturacion = mesSeleccionado,
+                                    periodoFacturacion = t.periodoFacturacion ?: mesSeleccionado,
                                     categoriaId = t.categoriaId,
                                     tipoTarjeta = t.tipoTarjeta,
                                     idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
@@ -356,9 +360,10 @@ fun ImportarExcelScreen(
                                 pendientesClasificacion = pendientesClasificacion
                             )
                             exito = true
-                        } catch (e: Exception) {
-                            error = e.message
                         }
+                    } catch (e: Exception) {
+                        error = e.message
+                    }
                     }
                 }
             },
@@ -512,46 +517,48 @@ fun ImportarExcelScreen(
             }
         }
         
-        AnimatedVisibility(
-            visible = resumenImportacion != null,
-            enter = fadeIn(animationSpec = tween(300)) + scaleIn(
-                initialScale = 0.8f,
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ),
-            exit = fadeOut(animationSpec = tween(200)) + scaleOut(
-                targetScale = 0.8f,
-                animationSpec = tween(200, easing = FastOutLinearInEasing)
-            )
-        ) {
-            AlertDialog(
-                onDismissRequest = { resumenImportacion = null },
-                title = { 
-                    Text(
-                        "Resumen de Importación",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ResumenItem("Total procesadas", "${resumenImportacion!!.totalProcesadas}")
-                        ResumenItem("Nuevas importadas", "${resumenImportacion!!.nuevas}")
-                        ResumenItem("Duplicadas (omitidas)", "${resumenImportacion!!.duplicadas}")
-                        ResumenItem("Clasificadas automáticamente", "${resumenImportacion!!.clasificadasAutomaticamente}")
-                        ResumenItem("Pendientes de clasificación", "${resumenImportacion!!.pendientesClasificacion}")
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                        ResumenItem("Monto total importado", FormatUtils.formatMoneyCLP(resumenImportacion!!.montoTotal.toDouble()))
-                        ResumenItem("Periodo", resumenImportacion!!.periodo)
+        resumenImportacion?.let { resumen ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+                    initialScale = 0.8f,
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ),
+                exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+                    targetScale = 0.8f,
+                    animationSpec = tween(200, easing = FastOutLinearInEasing)
+                )
+            ) {
+                AlertDialog(
+                    onDismissRequest = { resumenImportacion = null },
+                    title = { 
+                        Text(
+                            "Resumen de Importación",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ResumenItem("Total procesadas", "${resumen.totalProcesadas}")
+                            ResumenItem("Nuevas importadas", "${resumen.nuevas}")
+                            ResumenItem("Duplicadas (omitidas)", "${resumen.duplicadas}")
+                            ResumenItem("Clasificadas automáticamente", "${resumen.clasificadasAutomaticamente}")
+                            ResumenItem("Pendientes de clasificación", "${resumen.pendientesClasificacion}")
+                            Divider(modifier = Modifier.padding(vertical = 8.dp))
+                            ResumenItem("Monto total importado", FormatUtils.formatMoneyCLP(resumen.montoTotal.toDouble()))
+                            ResumenItem("Periodo", resumen.periodo)
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = { resumenImportacion = null }) {
+                            Text("Aceptar")
+                        }
                     }
-                },
-                confirmButton = {
-                    Button(onClick = { resumenImportacion = null }) {
-                        Text("Aceptar")
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }

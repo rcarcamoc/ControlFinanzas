@@ -207,36 +207,11 @@ Este plan detalla la implementación de los cambios necesarios para alinear la a
 **Objetivo:** Optimizar para diferentes tamaños
 
 **Tareas:**
-- [ ] Implementar breakpoints para tablet y desktop
+
 - [ ] Ajustar grids y layouts según tamaño
 - [ ] Optimizar para orientación landscape
 
-## Cronograma de Implementación
 
-### Fase 1 (Semana 1): Fundación
-- [x] Sistema de colores y tipografía
-- [x] Componentes base (StatCard, botones, inputs)
-- [x] Layout principal (App Shell, navegación)
-
-### Fase 2 (Semana 2): Dashboard ✅ COMPLETADO
-- [x] ✅ Migrar HomeScreen a Dashboard completo
-- [x] ✅ Implementar gráficos mejorados
-- [x] ✅ Agregar interactividad
-
-### Fase 3 (Semana 3): Pantallas Secundarias
-- [ ] Rediseñar TransaccionesScreen
-- [ ] Rediseñar CategoriasScreen y PresupuestosScreen
-- [ ] Implementar diálogo de confirmación histórica
-
-### Fase 4 (Semana 4): Pulido
-- [ ] Rediseñar ClasificacionPendienteScreen
-- [ ] Mejorar gráficos y visualizaciones
-- [ ] Testing y refinamiento
-
-### Fase 5 (Opcional): Mejoras
-- [ ] Interacciones y animaciones
-- [ ] Responsive design
-- [ ] Optimización de performance
 
 ## Criterios de Éxito
 

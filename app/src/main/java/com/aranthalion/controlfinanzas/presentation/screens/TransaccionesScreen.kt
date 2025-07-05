@@ -628,17 +628,29 @@ fun TransaccionesScreen(
         )
     }
 
-    // Diálogo para editar transacción
-    movimientoAEditar?.let { movimiento ->
-        TransaccionEditDialog(
-            movimiento = movimiento,
-            categorias = (uiState as? MovimientosUiState.Success)?.categorias ?: emptyList(),
-            onDismiss = { movimientoAEditar = null },
-            onConfirm = { movimientoEditado ->
-                viewModel.actualizarMovimiento(movimientoEditado)
-                movimientoAEditar = null
-            }
+    // Diálogo para editar transacción con animación
+    AnimatedVisibility(
+        visible = movimientoAEditar != null,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
         )
+    ) {
+        movimientoAEditar?.let { movimiento ->
+            TransaccionEditDialog(
+                movimiento = movimiento,
+                categorias = (uiState as? MovimientosUiState.Success)?.categorias ?: emptyList(),
+                onDismiss = { movimientoAEditar = null },
+                onConfirm = { movimientoEditado ->
+                    viewModel.actualizarMovimiento(movimientoEditado)
+                    movimientoAEditar = null
+                }
+            )
+        }
     }
 }
 
@@ -772,6 +784,24 @@ private fun TransaccionItem(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        
+                        // Mostrar período de facturación
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Período: ${movimiento.periodoFacturacion}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     
                     // Monto mejorado
@@ -844,8 +874,18 @@ private fun TransaccionItem(
         }
     }
     
-    // Diálogo de confirmación de eliminación mejorado
-    if (showDeleteDialog) {
+    // Diálogo de confirmación de eliminación mejorado con animación
+    AnimatedVisibility(
+        visible = showDeleteDialog,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { 
@@ -1167,232 +1207,244 @@ private fun TransaccionEditDialog(
         "$year-$month"
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Editar Transacción",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                // Tipo de transacción mejorado
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    "Editar Transacción",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Text(
-                        text = "Tipo de transacción",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    // Tipo de transacción mejorado
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Text(
+                            text = "Tipo de transacción",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
                         Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { tipoSeleccionado = "GASTO" }
-                                .padding(12.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(
-                                    if (tipoSeleccionado == "GASTO") 
-                                        MaterialTheme.colorScheme.errorContainer 
-                                    else 
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            RadioButton(
-                                selected = tipoSeleccionado == "GASTO",
-                                onClick = { tipoSeleccionado = "GASTO" },
-                                colors = RadioButtonDefaults.colors(
-                                    selectedColor = MaterialTheme.colorScheme.error
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { tipoSeleccionado = "GASTO" }
+                                    .padding(12.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(
+                                        if (tipoSeleccionado == "GASTO") 
+                                            MaterialTheme.colorScheme.errorContainer 
+                                        else 
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = tipoSeleccionado == "GASTO",
+                                    onClick = { tipoSeleccionado = "GASTO" },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.error
+                                    )
                                 )
-                            )
-                            Text(
-                                "Gasto",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (tipoSeleccionado == "GASTO") 
-                                    MaterialTheme.colorScheme.onErrorContainer 
-                                else 
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { tipoSeleccionado = "INGRESO" }
-                                .padding(12.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(
-                                    if (tipoSeleccionado == "INGRESO") 
-                                        MaterialTheme.colorScheme.primaryContainer 
+                                Text(
+                                    "Gasto",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (tipoSeleccionado == "GASTO") 
+                                        MaterialTheme.colorScheme.onErrorContainer 
                                     else 
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = tipoSeleccionado == "INGRESO",
-                                onClick = { tipoSeleccionado = "INGRESO" },
-                                colors = RadioButtonDefaults.colors(
-                                    selectedColor = MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            )
-                            Text(
-                                "Ingreso",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (tipoSeleccionado == "INGRESO") 
-                                    MaterialTheme.colorScheme.onPrimaryContainer 
-                                else 
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { tipoSeleccionado = "INGRESO" }
+                                    .padding(12.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(
+                                        if (tipoSeleccionado == "INGRESO") 
+                                            MaterialTheme.colorScheme.primaryContainer 
+                                        else 
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = tipoSeleccionado == "INGRESO",
+                                    onClick = { tipoSeleccionado = "INGRESO" },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                Text(
+                                    "Ingreso",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (tipoSeleccionado == "INGRESO") 
+                                        MaterialTheme.colorScheme.onPrimaryContainer 
+                                    else 
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-                }
-                
-                // Monto mejorado
-                OutlinedTextField(
-                    value = monto,
-                    onValueChange = { monto = it },
-                    label = { Text("Monto") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                
-                // Descripción mejorada
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                
-                // Periodo de facturación mejorado
-                ExposedDropdownMenuBox(
-                    expanded = expandedPeriodo,
-                    onExpandedChange = { expandedPeriodo = !expandedPeriodo }
-                ) {
+                    
+                    // Monto mejorado
                     OutlinedTextField(
-                        value = periodoSeleccionado,
-                        onValueChange = {},
-                        label = { Text("Período de Facturación") },
-                        readOnly = true,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) },
+                        value = monto,
+                        onValueChange = { monto = it },
+                        label = { Text("Monto") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
                     )
-                    ExposedDropdownMenu(
-                        expanded = expandedPeriodo,
-                        onDismissRequest = { expandedPeriodo = false }
-                    ) {
-                        periodos.forEach { periodo ->
-                            DropdownMenuItem(
-                                text = { Text(periodo) },
-                                onClick = {
-                                    periodoSeleccionado = periodo
-                                    expandedPeriodo = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                // Categoría mejorada
-                if (categorias.isNotEmpty()) {
-                    var expandedCategoria by remember { mutableStateOf(false) }
+                    
+                    // Descripción mejorada
+                    OutlinedTextField(
+                        value = descripcion,
+                        onValueChange = { descripcion = it },
+                        label = { Text("Descripción") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                    
+                    // Periodo de facturación mejorado
                     ExposedDropdownMenuBox(
-                        expanded = expandedCategoria,
-                        onExpandedChange = { expandedCategoria = !expandedCategoria }
+                        expanded = expandedPeriodo,
+                        onExpandedChange = { expandedPeriodo = !expandedPeriodo }
                     ) {
                         OutlinedTextField(
-                            value = categoriaSeleccionada?.nombre ?: "Sin categoría",
+                            value = periodoSeleccionado,
                             onValueChange = {},
-                            label = { Text("Categoría") },
+                            label = { Text("Período de Facturación") },
                             readOnly = true,
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         ExposedDropdownMenu(
-                            expanded = expandedCategoria,
-                            onDismissRequest = { expandedCategoria = false }
+                            expanded = expandedPeriodo,
+                            onDismissRequest = { expandedPeriodo = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Sin categoría") },
-                                onClick = {
-                                    categoriaSeleccionada = null
-                                    expandedCategoria = false
-                                }
-                            )
-                            categorias.forEach { categoria ->
+                            periodos.forEach { periodo ->
                                 DropdownMenuItem(
-                                    text = { Text(categoria.nombre) },
+                                    text = { Text(periodo) },
                                     onClick = {
-                                        categoriaSeleccionada = categoria
-                                        expandedCategoria = false
+                                        periodoSeleccionado = periodo
+                                        expandedPeriodo = false
                                     }
                                 )
                             }
                         }
                     }
+                    
+                    // Categoría mejorada
+                    if (categorias.isNotEmpty()) {
+                        var expandedCategoria by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = expandedCategoria,
+                            onExpandedChange = { expandedCategoria = !expandedCategoria }
+                        ) {
+                            OutlinedTextField(
+                                value = categoriaSeleccionada?.nombre ?: "Sin categoría",
+                                onValueChange = {},
+                                label = { Text("Categoría") },
+                                readOnly = true,
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedCategoria,
+                                onDismissRequest = { expandedCategoria = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Sin categoría") },
+                                    onClick = {
+                                        categoriaSeleccionada = null
+                                        expandedCategoria = false
+                                    }
+                                )
+                                categorias.forEach { categoria ->
+                                    DropdownMenuItem(
+                                        text = { Text(categoria.nombre) },
+                                        onClick = {
+                                            categoriaSeleccionada = categoria
+                                            expandedCategoria = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val montoDouble = monto.toDoubleOrNull() ?: 0.0
+                        if (montoDouble > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
+                            val movimientoEditado = movimiento.copy(
+                                tipo = tipoSeleccionado,
+                                monto = montoDouble,
+                                descripcion = descripcion,
+                                periodoFacturacion = periodoSeleccionado,
+                                categoriaId = categoriaSeleccionada?.id
+                            )
+                            onConfirm(movimientoEditado)
+                        }
+                    },
+                    enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Cancelar")
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val montoDouble = monto.toDoubleOrNull() ?: 0.0
-                    if (montoDouble > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
-                        val movimientoEditado = movimiento.copy(
-                            tipo = tipoSeleccionado,
-                            monto = montoDouble,
-                            descripcion = descripcion,
-                            periodoFacturacion = periodoSeleccionado,
-                            categoriaId = categoriaSeleccionada?.id
-                        )
-                        onConfirm(movimientoEditado)
-                    }
-                },
-                enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)

@@ -16,6 +16,12 @@ import com.aranthalion.controlfinanzas.presentation.navigation.AppNavigation
 import com.aranthalion.controlfinanzas.ui.theme.ControlFinanzasTheme
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -30,6 +36,20 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    var isFirstRun by remember { mutableStateOf(true) }
+                    
+                    // Verificar si es la primera ejecución
+                    LaunchedEffect(Unit) {
+                        val configPrefs = ConfiguracionPreferences(this@MainActivity)
+                        isFirstRun = configPrefs.isFirstRun
+                        
+                        if (isFirstRun) {
+                            navController.navigate("first_run") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                    
                     AppNavigation(navController = navController)
                 }
             }

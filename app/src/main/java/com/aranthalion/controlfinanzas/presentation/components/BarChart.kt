@@ -19,6 +19,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class BarChartData(
     val label: String,
@@ -35,7 +39,43 @@ fun BarChart(
     showValues: Boolean = true,
     showBudget: Boolean = false
 ) {
-    if (data.isEmpty()) return
+    if (data.isEmpty()) {
+        // Mostrar mensaje cuando no hay datos
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 220.dp)
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+                
+                Text(
+                    text = "No hay datos para mostrar",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        return
+    }
     
     val maxValue = if (showBudget && data.any { it.budgetValue != null }) {
         data.maxOfOrNull { maxOf(it.value, it.budgetValue ?: 0f) } ?: 0f
@@ -179,6 +219,7 @@ fun BarChart(
                         )
                     }
                 }
+                
                 // Tooltips interactivos
                 if (tooltipIndex != null && tooltipIndex!! in data.indices) {
                     val barData = data[tooltipIndex!!]
@@ -198,10 +239,14 @@ fun BarChart(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(barData.label, style = MaterialTheme.typography.labelMedium)
-                            Text(barData.value.toString(), fontWeight = FontWeight.Bold)
+                            Text(
+                                FormatUtils.formatMoneyCLP(barData.value.toDouble()),
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
+                
                 // Overlay para detectar clicks
                 Row(
                     modifier = Modifier
@@ -225,72 +270,111 @@ fun BarChart(
                         ) {}
                     }
                 }
-            }
-            
-            // Valores encima de las barras
-            if (showValues) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 50.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    data.forEachIndexed { index, barData ->
-                        val percentage = if (showBudget && barData.budgetValue != null && barData.budgetValue > 0) {
-                            (barData.value / barData.budgetValue * 100).toInt()
-                        } else null
-                        
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            if (percentage != null) {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = when {
-                                            percentage > 100 -> MaterialTheme.colorScheme.errorContainer
-                                            percentage > 80 -> MaterialTheme.colorScheme.tertiaryContainer
-                                            else -> MaterialTheme.colorScheme.primaryContainer
-                                        }
-                                    ),
-                                    modifier = Modifier.padding(bottom = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "$percentage%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                    )
+                
+                // Valores encima de las barras
+                if (showValues) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 50.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        data.forEachIndexed { index, barData ->
+                            val percentage = if (showBudget && barData.budgetValue != null && barData.budgetValue > 0) {
+                                (barData.value / barData.budgetValue * 100).toInt()
+                            } else null
+                            
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (percentage != null) {
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = when {
+                                                percentage > 100 -> MaterialTheme.colorScheme.errorContainer
+                                                percentage > 80 -> MaterialTheme.colorScheme.tertiaryContainer
+                                                else -> MaterialTheme.colorScheme.primaryContainer
+                                            }
+                                        ),
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "$percentage%",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
                                 }
+                                Text(
+                                    text = FormatUtils.formatMoneyCLP(barData.value.toDouble()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                            Text(
-                                text = barData.value.toInt().toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
-            }
-            
-            // Etiquetas del eje X
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                data.forEach { barData ->
-                    Text(
-                        text = barData.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 2,
-                        textAlign = TextAlign.Center
-                    )
+                
+                // Etiquetas del eje X
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    data.forEach { barData ->
+                        Text(
+                            text = barData.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * Función para procesar movimientos y crear datos para el gráfico de barras
+ * Agrupa por período de facturación y muestra los últimos 6 meses
+ */
+fun procesarDatosParaGrafico(movimientos: List<MovimientoEntity>, primaryColor: Color): List<BarChartData> {
+    if (movimientos.isEmpty()) return emptyList()
+    
+    // Filtrar solo gastos (monto negativo)
+    val gastos = movimientos.filter { it.monto < 0 }
+    
+    if (gastos.isEmpty()) return emptyList()
+    
+    // Agrupar por período de facturación y sumar gastos
+    val gastosPorPeriodo = gastos.groupBy { it.periodoFacturacion }
+        .mapValues { (_, movimientos) -> 
+            movimientos.sumOf { -it.monto } // Convertir a positivo
+        }
+        .toList()
+        .sortedBy { it.first } // Ordenar por período
+    
+    // Tomar los últimos 6 meses (o menos si no hay suficientes)
+    val ultimosMeses = gastosPorPeriodo.takeLast(6)
+    
+    // Formatear etiquetas (mostrar solo mes y año)
+    val dateFormat = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+    val displayFormat = SimpleDateFormat("MMM yyyy", Locale("es", "CL"))
+    
+    return ultimosMeses.map { (periodo, total) ->
+        val fecha = dateFormat.parse(periodo) ?: Date()
+        val label = displayFormat.format(fecha)
+        
+        BarChartData(
+            label = label,
+            value = total.toFloat(),
+            color = primaryColor
+        )
     }
 } 

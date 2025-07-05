@@ -190,6 +190,35 @@ class MovimientoRepository @Inject constructor(
     }
 
     /**
+     * Limpia todos los datos históricos de la base de datos
+     * Útil para instalaciones completamente limpias
+     */
+    suspend fun limpiarTodosLosDatos() {
+        try {
+            println("🧹 Limpiando todos los datos históricos...")
+            
+            // Obtener todos los movimientos
+            val movimientosExistentes = movimientoDao.obtenerMovimientos()
+            
+            if (movimientosExistentes.isNotEmpty()) {
+                // Eliminar todos los movimientos
+                movimientosExistentes.forEach { movimiento ->
+                    movimientoDao.eliminarMovimiento(movimiento)
+                }
+                println("🗑️ Eliminados ${movimientosExistentes.size} movimientos de la base de datos")
+            } else {
+                println("ℹ️ No hay movimientos para eliminar")
+            }
+            
+            println("✅ Base de datos limpiada completamente")
+            
+        } catch (e: Exception) {
+            println("❌ Error al limpiar datos: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
      * Carga datos históricos hardcodeados (solo una vez)
      */
     suspend fun cargarDatosHistoricos() {

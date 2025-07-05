@@ -56,13 +56,20 @@ class MovimientosViewModel @Inject constructor(
                 val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
                 val categorias = gestionarMovimientosUseCase.obtenerCategorias()
                 
-                println("🔍 DEBUG: Movimientos obtenidos: ${movimientos.size}")
-                movimientos.take(5).forEach { movimiento ->
-                    println("  - ${movimiento.descripcion}: ${movimiento.fecha} (tipo: ${movimiento.tipo})")
+                // Filtrar movimientos por período si no es "Todos"
+                val movimientosFiltrados = if (periodo != "Todos") {
+                    movimientos.filter { it.periodoFacturacion == periodo }
+                } else {
+                    movimientos
+                }
+                
+                println("🔍 DEBUG: Movimientos obtenidos: ${movimientos.size}, filtrados: ${movimientosFiltrados.size}")
+                movimientosFiltrados.take(5).forEach { movimiento ->
+                    println("  - ${movimiento.descripcion}: ${movimiento.fecha} (período: ${movimiento.periodoFacturacion})")
                 }
                 
                 // Ordenar movimientos: primero los sin categoría, luego por fecha descendente
-                val movimientosOrdenados = movimientos.sortedWith(
+                val movimientosOrdenados = movimientosFiltrados.sortedWith(
                     compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
                     .thenByDescending { it.fecha }
                 )

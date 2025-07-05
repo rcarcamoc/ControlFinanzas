@@ -40,6 +40,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -669,8 +672,18 @@ fun PresupuestoItem(
         }
     }
     
-    // Diálogo de confirmación de eliminación
-    if (showDeleteDialog) {
+    // Diálogo de confirmación de eliminación con animación
+    AnimatedVisibility(
+        visible = showDeleteDialog,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { 
@@ -725,105 +738,117 @@ fun PresupuestoDialog(
     var monto by remember { mutableStateOf("") }
     var expandedCategoria by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Nuevo Presupuesto",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Selector de categoría
-                ExposedDropdownMenuBox(
-                    expanded = expandedCategoria,
-                    onExpandedChange = { expandedCategoria = !expandedCategoria }
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    "Nuevo Presupuesto",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Selector de categoría
+                    ExposedDropdownMenuBox(
+                        expanded = expandedCategoria,
+                        onExpandedChange = { expandedCategoria = !expandedCategoria }
+                    ) {
+                        OutlinedTextField(
+                            value = categoriaSeleccionada?.nombre ?: "",
+                            onValueChange = {},
+                            label = { Text("Categoría") },
+                            readOnly = true,
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedCategoria,
+                            onDismissRequest = { expandedCategoria = false }
+                        ) {
+                            categorias.forEach { categoria ->
+                                DropdownMenuItem(
+                                    text = { Text(categoria.nombre) },
+                                    onClick = {
+                                        categoriaSeleccionada = categoria
+                                        expandedCategoria = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Campo de monto
                     OutlinedTextField(
-                        value = categoriaSeleccionada?.nombre ?: "",
-                        onValueChange = {},
-                        label = { Text("Categoría") },
-                        readOnly = true,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                        value = formatNumberWithSeparators(monto),
+                        onValueChange = { 
+                            val cleaned = cleanNumberFormat(it)
+                            monto = cleaned
+                        },
+                        label = { Text("Monto") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
                     )
-                    ExposedDropdownMenu(
-                        expanded = expandedCategoria,
-                        onDismissRequest = { expandedCategoria = false }
-                    ) {
-                        categorias.forEach { categoria ->
-                            DropdownMenuItem(
-                                text = { Text(categoria.nombre) },
-                                onClick = {
-                                    categoriaSeleccionada = categoria
-                                    expandedCategoria = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                // Campo de monto
-                OutlinedTextField(
-                    value = formatNumberWithSeparators(monto),
-                    onValueChange = { 
-                        val cleaned = cleanNumberFormat(it)
-                        monto = cleaned
-                    },
-                    label = { Text("Monto") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    
+                    // Información del período
+                    Text(
+                        text = "Período: $periodoSeleccionado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                )
-                
-                // Información del período
-                Text(
-                    text = "Período: $periodoSeleccionado",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val montoDouble = monto.toDoubleOrNull()
+                        if (categoriaSeleccionada != null && montoDouble != null && montoDouble > 0) {
+                            onConfirm(categoriaSeleccionada!!.id, montoDouble)
+                        }
+                    },
+                    enabled = categoriaSeleccionada != null && monto.toDoubleOrNull() ?: 0.0 > 0,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Cancelar")
+                }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val montoDouble = monto.toDoubleOrNull()
-                    if (categoriaSeleccionada != null && montoDouble != null && montoDouble > 0) {
-                        onConfirm(categoriaSeleccionada!!.id, montoDouble)
-                    }
-                },
-                enabled = categoriaSeleccionada != null && monto.toDoubleOrNull() ?: 0.0 > 0,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -835,64 +860,76 @@ fun PresupuestoEditDialog(
 ) {
     var monto by remember { mutableStateOf(presupuesto.monto.toString()) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Editar Presupuesto",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = formatNumberWithSeparators(monto),
-                    onValueChange = { 
-                        val cleaned = cleanNumberFormat(it)
-                        monto = cleaned
-                    },
-                    label = { Text("Monto") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ),
+        exit = fadeOut(animationSpec = tween(200)) + scaleOut(
+            targetScale = 0.8f,
+            animationSpec = tween(200, easing = FastOutLinearInEasing)
+        )
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    "Editar Presupuesto",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = formatNumberWithSeparators(monto),
+                        onValueChange = { 
+                            val cleaned = cleanNumberFormat(it)
+                            monto = cleaned
+                        },
+                        label = { Text("Monto") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
                     )
-                )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val montoDouble = monto.toDoubleOrNull()
+                        if (montoDouble != null && montoDouble > 0) {
+                            onConfirm(montoDouble)
+                        }
+                    },
+                    enabled = monto.toDoubleOrNull() ?: 0.0 > 0,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Cancelar")
+                }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val montoDouble = monto.toDoubleOrNull()
-                    if (montoDouble != null && montoDouble > 0) {
-                        onConfirm(montoDouble)
-                    }
-                },
-                enabled = monto.toDoubleOrNull() ?: 0.0 > 0,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }
 
 @Composable
