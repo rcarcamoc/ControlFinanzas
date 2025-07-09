@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 @HiltViewModel
 class MovimientosViewModel @Inject constructor(
@@ -125,14 +126,16 @@ class MovimientosViewModel @Inject constructor(
             if (movimiento.tipo == "INGRESO") {
                 ingresos += movimiento.monto
             } else {
+                // Para gastos, sumamos todos los valores (positivos y negativos)
+                // Los negativos representan reversas y reducen el gasto total
                 gastos += movimiento.monto
             }
         }
 
         _totales.value = Totales(
             ingresos = ingresos,
-            gastos = gastos,
-            balance = ingresos - gastos
+            gastos = abs(gastos), // Mostramos el valor absoluto para el display
+            balance = ingresos - abs(gastos)
         )
     }
 

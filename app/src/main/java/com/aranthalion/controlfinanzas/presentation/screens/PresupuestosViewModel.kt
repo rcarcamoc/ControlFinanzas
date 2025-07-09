@@ -34,6 +34,9 @@ class PresupuestosViewModel @Inject constructor(
     private val _resumen = MutableStateFlow<ResumenPresupuestos?>(null)
     val resumen: StateFlow<ResumenPresupuestos?> = _resumen.asStateFlow()
 
+    private val _presupuestosCompletos = MutableStateFlow<List<PresupuestoCategoria>>(emptyList())
+    val presupuestosCompletos: StateFlow<List<PresupuestoCategoria>> = _presupuestosCompletos.asStateFlow()
+
     fun cargarPresupuestos(periodo: String) {
         viewModelScope.launch {
             try {
@@ -43,10 +46,12 @@ class PresupuestosViewModel @Inject constructor(
                 val presupuestos = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodo)
                 val presupuestosMap = presupuestos.associateBy { it.categoriaId }
                 val resumen = gestionarPresupuestosUseCase.obtenerResumenPresupuestos(periodo)
+                val presupuestosCompletos = gestionarPresupuestosUseCase.obtenerEstadoPresupuestos(periodo)
                 println("🔍 PRESUPUESTO: Resumen obtenido: totalPresupuestado=${resumen.totalPresupuestado}, totalGastado=${resumen.totalGastado}, porcentaje=${resumen.porcentajeGastado}")
                 _categorias.value = categoriasUnicas
                 _presupuestosPorCategoria.value = presupuestosMap
                 _resumen.value = resumen
+                _presupuestosCompletos.value = presupuestosCompletos
                 _uiState.value = PresupuestosUiState.Success
             } catch (e: Exception) {
                 println("❌ PRESUPUESTO: ${e.message}")

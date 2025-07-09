@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
+import kotlin.math.abs
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
@@ -347,15 +348,18 @@ fun BarChart(
 fun procesarDatosParaGrafico(movimientos: List<MovimientoEntity>, primaryColor: Color): List<BarChartData> {
     if (movimientos.isEmpty()) return emptyList()
     
-    // Filtrar solo gastos (monto negativo)
-    val gastos = movimientos.filter { it.monto < 0 }
+    // Filtrar solo gastos (tipo GASTO)
+    val gastos = movimientos.filter { it.tipo == "GASTO" }
     
     if (gastos.isEmpty()) return emptyList()
     
     // Agrupar por período de facturación y sumar gastos
     val gastosPorPeriodo = gastos.groupBy { it.periodoFacturacion }
         .mapValues { (_, movimientos) -> 
-            movimientos.sumOf { -it.monto } // Convertir a positivo
+            // Para gastos, sumamos todos los valores (positivos y negativos)
+            // Los negativos representan reversas y reducen el gasto total
+            val gastoTotal = movimientos.sumOf { it.monto }
+            abs(gastoTotal)
         }
         .toList()
         .sortedBy { it.first } // Ordenar por período

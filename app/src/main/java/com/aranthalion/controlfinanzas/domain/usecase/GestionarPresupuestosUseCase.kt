@@ -141,9 +141,11 @@ class GestionarPresupuestosUseCase @Inject constructor(
         movimientosCategoria.forEach { m ->
             println("🔍 GASTO: [Categoria] id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
         }
-        val gasto = movimientosCategoria.sumOf { abs(it.monto) }
+        // Para gastos, sumamos todos los valores (positivos y negativos)
+        // Los negativos representan reversas y reducen el gasto total
+        val gasto = movimientosCategoria.sumOf { it.monto }
         println("🔍 GASTO: Categoría $categoriaId, periodo $periodo, gasto calculado: $gasto")
-        return gasto
+        return abs(gasto) // Retornamos el valor absoluto para el cálculo del porcentaje
     }
     
     /**

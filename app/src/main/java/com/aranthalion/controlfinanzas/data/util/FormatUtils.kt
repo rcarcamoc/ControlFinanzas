@@ -87,7 +87,35 @@ object FormatUtils {
      */
     fun isValidAmount(amountString: String): Boolean {
         return try {
-            amountString.replace(",", "").toDouble() >= 0
+            amountString.replace(",", "").toDouble() != 0.0
+        } catch (e: NumberFormatException) {
+            false
+        }
+    }
+    
+    /**
+     * Valida si un string representa un monto válido para gastos (permite negativos para reversas)
+     * @param amountString El string a validar
+     * @return true si es válido, false en caso contrario
+     */
+    fun isValidAmountForGastos(amountString: String): Boolean {
+        return try {
+            val monto = amountString.replace(",", "").toDouble()
+            monto != 0.0
+        } catch (e: NumberFormatException) {
+            false
+        }
+    }
+    
+    /**
+     * Valida si un string representa un monto válido para ingresos (solo positivos)
+     * @param amountString El string a validar
+     * @return true si es válido, false en caso contrario
+     */
+    fun isValidAmountForIngresos(amountString: String): Boolean {
+        return try {
+            val monto = amountString.replace(",", "").toDouble()
+            monto > 0
         } catch (e: NumberFormatException) {
             false
         }

@@ -42,6 +42,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,8 +108,10 @@ fun HomeScreen(
                 val movimientos = (uiState as MovimientosUiState.Success).movimientos
                 val gastos = movimientos.filter { it.tipo == "GASTO" }
                 val ingresos = movimientos.filter { it.tipo == "INGRESO" }
+                // Para gastos, sumamos todos los valores (positivos y negativos)
+                // Los negativos representan reversas y reducen el gasto total
                 val totalGastos = FormatUtils.roundToTwoDecimals(
-                    gastos.sumOf { FormatUtils.normalizeAmount(it.monto) }
+                    abs(gastos.sumOf { FormatUtils.normalizeAmount(it.monto) })
                 )
                 val totalIngresos = FormatUtils.roundToTwoDecimals(
                     ingresos.sumOf { FormatUtils.normalizeAmount(it.monto) }

@@ -1044,19 +1044,30 @@ private fun TransaccionDialog(
                     }
                 }
                 
-                // Monto mejorado
-                OutlinedTextField(
-                    value = monto,
-                    onValueChange = { monto = it },
-                    label = { Text("Monto") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
+                                    // Monto mejorado
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = monto,
+                            onValueChange = { monto = it },
+                            label = { Text("Monto") },
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                        if (tipoSeleccionado == "GASTO") {
+                            Text(
+                                text = "💡 Para reversas o reembolsos, ingresa el monto como negativo (ej: -50000)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 
                 // Descripción mejorada
                 OutlinedTextField(
@@ -1147,28 +1158,41 @@ private fun TransaccionDialog(
                 }
             }
         },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val montoDouble = monto.toDoubleOrNull() ?: 0.0
-                    if (montoDouble > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
-                        onConfirm(
-                            tipoSeleccionado,
-                            montoDouble,
-                            descripcion,
-                            periodoSeleccionado,
-                            categoriaSeleccionada?.id
+                        confirmButton = {
+                    Button(
+                        onClick = {
+                            val montoDouble = monto.toDoubleOrNull() ?: 0.0
+                            val isValidAmount = when (tipoSeleccionado) {
+                                "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                                "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                                else -> false
+                            }
+                            if (isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
+                                onConfirm(
+                                    tipoSeleccionado,
+                                    montoDouble,
+                                    descripcion,
+                                    periodoSeleccionado,
+                                    categoriaSeleccionada?.id
+                                )
+                            }
+                        },
+                        enabled = {
+                            val montoDouble = monto.toDoubleOrNull() ?: 0.0
+                            val isValidAmount = when (tipoSeleccionado) {
+                                "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                                "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                                else -> false
+                            }
+                            isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
+                        }(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
                         )
+                    ) {
+                        Text("Guardar")
                     }
                 },
-                enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Guardar")
-            }
-        },
         dismissButton = {
             OutlinedButton(
                 onClick = onDismiss,
@@ -1307,7 +1331,10 @@ private fun TransaccionEditDialog(
                         }
                     }
                     
-                    // Monto mejorado
+                                    // Monto mejorado
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     OutlinedTextField(
                         value = monto,
                         onValueChange = { monto = it },
@@ -1320,6 +1347,14 @@ private fun TransaccionEditDialog(
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
                     )
+                    if (tipoSeleccionado == "GASTO") {
+                        Text(
+                            text = "💡 Para reversas o reembolsos, ingresa el monto como negativo (ej: -50000)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                     
                     // Descripción mejorada
                     OutlinedTextField(
@@ -1414,7 +1449,12 @@ private fun TransaccionEditDialog(
                 Button(
                     onClick = {
                         val montoDouble = monto.toDoubleOrNull() ?: 0.0
-                        if (montoDouble > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
+                        val isValidAmount = when (tipoSeleccionado) {
+                            "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                            "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                            else -> false
+                        }
+                        if (isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
                             val movimientoEditado = movimiento.copy(
                                 tipo = tipoSeleccionado,
                                 monto = montoDouble,
@@ -1425,7 +1465,15 @@ private fun TransaccionEditDialog(
                             onConfirm(movimientoEditado)
                         }
                     },
-                    enabled = monto.toDoubleOrNull() ?: 0.0 > 0 && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank(),
+                    enabled = {
+                        val montoDouble = monto.toDoubleOrNull() ?: 0.0
+                        val isValidAmount = when (tipoSeleccionado) {
+                            "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                            "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                            else -> false
+                        }
+                        isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
+                    }(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )

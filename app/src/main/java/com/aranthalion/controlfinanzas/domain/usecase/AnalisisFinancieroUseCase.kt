@@ -107,8 +107,10 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val movimientos = movimientoRepository.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
         
         val ingresos = movimientos.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
-        val gastos = movimientos.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { abs(it.monto) }
-        val balance = ingresos - gastos
+        // Para gastos, sumamos todos los valores (positivos y negativos)
+        // Los negativos representan reversas y reducen el gasto total
+        val gastos = movimientos.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
+        val balance = ingresos - abs(gastos)
         val cantidadTransacciones = movimientos.size
         val tasaAhorro = if (ingresos > 0) (balance / ingresos) * 100 else 0.0
         
@@ -402,14 +404,15 @@ class AnalisisFinancieroUseCase @Inject constructor(
             if (historialCategoria.isNotEmpty()) {
                 val promedio = historialCategoria.average()
                 val desviacion = calcularDesviacionEstandar(historialCategoria)
-                val zScore = if (desviacion > 0) (abs(gasto.monto) - promedio) / desviacion else 0.0
+                val montoAbsoluto = abs(gasto.monto)
+                val zScore = if (desviacion > 0) (montoAbsoluto - promedio) / desviacion else 0.0
                 
                 if (zScore > 2.0) { // Outlier si está más de 2 desviaciones estándar
                     gastosInusuales.add(
                         GastoInusual(
                             movimientoId = gasto.id,
                             descripcion = gasto.descripcion,
-                            monto = abs(gasto.monto),
+                            monto = montoAbsoluto,
                             categoria = categoria?.nombre ?: "Sin categoría",
                             fecha = gasto.fecha,
                             desviacion = zScore,
@@ -468,8 +471,10 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val movimientosDelPeriodo = movimientos.filter { it.periodoFacturacion == periodo }
         
         val ingresos = movimientosDelPeriodo.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
-        val gastos = movimientosDelPeriodo.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { abs(it.monto) }
-        val balance = ingresos - gastos
+        // Para gastos, sumamos todos los valores (positivos y negativos)
+        // Los negativos representan reversas y reducen el gasto total
+        val gastos = movimientosDelPeriodo.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
+        val balance = ingresos - abs(gastos)
         val cantidadTransacciones = movimientosDelPeriodo.size
         val tasaAhorro = if (ingresos > 0) (balance / ingresos) * 100 else 0.0
         
@@ -498,7 +503,10 @@ class AnalisisFinancieroUseCase @Inject constructor(
                 it.periodoFacturacion == periodo 
             }
             
-            historial.add(gastosCategoria.sumOf { abs(it.monto) })
+            // Para gastos, sumamos todos los valores (positivos y negativos)
+            // Los negativos representan reversas y reducen el gasto total
+            val gastoTotal = gastosCategoria.sumOf { it.monto }
+            historial.add(abs(gastoTotal))
         }
         
         return historial.reversed()
@@ -552,11 +560,15 @@ class AnalisisFinancieroUseCase @Inject constructor(
 
     private suspend fun obtenerGastoCategoriaPeriodo(categoriaId: Long, periodo: String): Double {
         val movimientos = movimientoRepository.obtenerMovimientos()
-        return movimientos.filter { 
+        val gastosCategoria = movimientos.filter { 
             it.categoriaId == categoriaId && 
             it.tipo == TipoMovimiento.GASTO.name && 
             it.periodoFacturacion == periodo 
-        }.sumOf { abs(it.monto) }
+        }
+        // Para gastos, sumamos todos los valores (positivos y negativos)
+        // Los negativos representan reversas y reducen el gasto total
+        val gastoTotal = gastosCategoria.sumOf { it.monto }
+        return abs(gastoTotal)
     }
 
     private fun calcularMovingAverage(valores: List<Double>, ventana: Int): List<Double> {
