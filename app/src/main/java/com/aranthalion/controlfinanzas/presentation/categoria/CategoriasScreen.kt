@@ -17,6 +17,9 @@ import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
 import kotlinx.coroutines.launch
 import java.util.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +48,7 @@ fun CategoriasScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is CategoriasUiState.Loading -> {

@@ -23,6 +23,9 @@ import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcional
 import com.aranthalion.controlfinanzas.domain.usecase.ResumenAporteProporcional
 import com.aranthalion.controlfinanzas.presentation.components.HistorialAportesCharts
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.DisposableEffect
@@ -87,6 +90,7 @@ fun AporteProporcionalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is AporteProporcionalUiState.Loading -> {

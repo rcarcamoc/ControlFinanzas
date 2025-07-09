@@ -81,14 +81,14 @@ fun PresupuestoCard(
             Spacer(modifier = Modifier.height(8.dp))
             
             // Estado del presupuesto
-            Text(
-                text = when (presupuesto.estado) {
-                    EstadoPresupuesto.NORMAL -> "Normal"
+                Text(
+                    text = when (presupuesto.estado) {
+                        EstadoPresupuesto.NORMAL -> "Normal"
                     EstadoPresupuesto.ADVERTENCIA -> "Advertencia"
                     EstadoPresupuesto.CRITICO -> "Crítico"
                     EstadoPresupuesto.EXCEDIDO -> "Excedido"
-                },
-                style = MaterialTheme.typography.bodySmall,
+                    },
+                    style = MaterialTheme.typography.bodySmall,
                 color = colorEstado,
                 fontWeight = FontWeight.Medium
             )
@@ -129,7 +129,7 @@ fun PresupuestoProgressBar(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+                ) {
             Text(
                 text = "0%",
                 style = MaterialTheme.typography.labelSmall,

@@ -4,11 +4,14 @@ import androidx.compose.animation.core.*
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +28,14 @@ import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasViewMode
 import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasUiState
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +62,7 @@ fun ClasificacionPendienteScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -66,55 +77,80 @@ fun ClasificacionPendienteScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is ClasificacionPendienteUiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Cargando transacciones...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 is ClasificacionPendienteUiState.Success -> {
                     val transacciones = (uiState as ClasificacionPendienteUiState.Success).transacciones
                     
                     if (transacciones.isEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(24.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                Card(
+                                    modifier = Modifier.size(120.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                                    ),
+                                    shape = MaterialTheme.shapes.extraLarge
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(80.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     Text(
                                         text = "¡Excelente!",
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = "Todas las transacciones están clasificadas",
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
@@ -123,28 +159,44 @@ fun ClasificacionPendienteScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                                    )
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(20.dp),
+                                            .padding(24.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Warning,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(32.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
+                                        Card(
+                                            modifier = Modifier.size(48.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                            ),
+                                            shape = MaterialTheme.shapes.medium
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Warning,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp),
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                        
                                         Spacer(modifier = Modifier.width(16.dp))
+                                        
                                         Column {
                                             Text(
                                                 text = "Clasificación Pendiente",
@@ -155,7 +207,7 @@ fun ClasificacionPendienteScreen(
                                             Text(
                                                 text = "${transacciones.size} transacciones requieren clasificación",
                                                 style = MaterialTheme.typography.bodyLarge,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                             )
                                         }
                                     }
@@ -175,11 +227,44 @@ fun ClasificacionPendienteScreen(
                     }
                 }
                 is ClasificacionPendienteUiState.Error -> {
-                    Text(
-                        text = (uiState as ClasificacionPendienteUiState.Error).mensaje,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Warning,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Error",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = (uiState as ClasificacionPendienteUiState.Error).mensaje,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -212,21 +297,21 @@ fun ClasificacionPendienteScreen(
             else -> emptyList()
         }
         
-        ClasificacionDialog(
-            transaccion = transaccionSeleccionada!!,
-            categorias = categorias,
-            onDismiss = { 
-                showClasificacionDialog = false
-                transaccionSeleccionada = null
-            },
-            onClasificar = { categoriaId ->
-                transaccionSeleccionada?.let { transaccion ->
+        transaccionSeleccionada?.let { transaccion ->
+            ClasificacionDialog(
+                transaccion = transaccion,
+                categorias = categorias,
+                onDismiss = { 
+                    showClasificacionDialog = false
+                    transaccionSeleccionada = null
+                },
+                onClasificar = { categoriaId ->
                     viewModel.clasificarTransaccion(transaccion, categoriaId)
+                    showClasificacionDialog = false
+                    transaccionSeleccionada = null
                 }
-                showClasificacionDialog = false
-                transaccionSeleccionada = null
-            }
-        )
+            )
+        }
     }
 }
 
@@ -244,21 +329,25 @@ private fun TransaccionPendienteItem(
             .fillMaxWidth()
             .clickable { onClasificar() },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de estado
+            // Icono de estado con mejor diseño
             Card(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(44.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
+                    containerColor = if (transaccion.tipo == "INGRESO") 
+                        MaterialTheme.colorScheme.primaryContainer 
+                    else 
+                        MaterialTheme.colorScheme.errorContainer
                 ),
                 shape = MaterialTheme.shapes.small
             ) {
@@ -267,10 +356,13 @@ private fun TransaccionPendienteItem(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Warning,
+                        imageVector = if (transaccion.tipo == "INGRESO") Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.error
+                        tint = if (transaccion.tipo == "INGRESO") 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -279,7 +371,8 @@ private fun TransaccionPendienteItem(
             
             // Información de la transacción
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = transaccion.descripcion,
@@ -288,7 +381,7 @@ private fun TransaccionPendienteItem(
                     maxLines = 2,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -333,7 +426,8 @@ private fun TransaccionPendienteItem(
             
             // Monto y botón de acción
             Column(
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = FormatUtils.formatMoneyCLP(transaccion.monto),
@@ -344,20 +438,25 @@ private fun TransaccionPendienteItem(
                     else 
                         MaterialTheme.colorScheme.error
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                
                 FilledTonalButton(
                     onClick = onClasificar,
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.height(36.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 ) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Clasificar",
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -375,6 +474,22 @@ private fun ClasificacionDialog(
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
     var expandedCategoria by remember { mutableStateOf(false) }
+    
+    // Logs para debugging
+    LaunchedEffect(categorias) {
+        android.util.Log.d("ClasificacionDialog", "🔍 Categorías disponibles: ${categorias.size}")
+        categorias.forEach { categoria ->
+            android.util.Log.d("ClasificacionDialog", "  - ${categoria.nombre} (ID: ${categoria.id})")
+        }
+    }
+    
+    LaunchedEffect(expandedCategoria) {
+        android.util.Log.d("ClasificacionDialog", "📋 Estado dropdown: $expandedCategoria")
+    }
+    
+    LaunchedEffect(categoriaSeleccionada) {
+        android.util.Log.d("ClasificacionDialog", "✅ Categoría seleccionada: ${categoriaSeleccionada?.nombre}")
+    }
     
     AnimatedVisibility(
         visible = true,
@@ -398,78 +513,150 @@ private fun ClasificacionDialog(
             },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    // Información de la transacción
+                    // Información de la transacción con mejor diseño
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        ),
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp)
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
                                 text = transaccion.descripcion,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium
                             )
-                            Text(
-                                text = FormatUtils.formatMoneyCLP(transaccion.monto),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (transaccion.tipo == "INGRESO") 
-                                    MaterialTheme.colorScheme.primary 
-                                else 
-                                    MaterialTheme.colorScheme.error
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (transaccion.tipo == "INGRESO") Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (transaccion.tipo == "INGRESO") 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = FormatUtils.formatMoneyCLP(transaccion.monto),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (transaccion.tipo == "INGRESO") 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                     
-                    // Selector de categoría
-                    ExposedDropdownMenuBox(
-                        expanded = expandedCategoria,
-                        onExpandedChange = { expandedCategoria = !expandedCategoria }
+                    // Selector de categoría mejorado
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedTextField(
-                            value = categoriaSeleccionada?.nombre ?: "Seleccionar categoría",
-                            onValueChange = {},
-                            label = { Text("Categoría") },
-                            readOnly = true,
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) }
+                        Text(
+                            text = "Seleccionar categoría",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        ExposedDropdownMenu(
-                            expanded = expandedCategoria,
-                            onDismissRequest = { expandedCategoria = false }
-                        ) {
-                            categorias.forEach { categoria ->
-                                DropdownMenuItem(
-                                    text = { Text(categoria.nombre) },
-                                    onClick = {
-                                        categoriaSeleccionada = categoria
-                                        expandedCategoria = false
+                        
+                        Box {
+                            OutlinedTextField(
+                                value = categoriaSeleccionada?.nombre ?: "Seleccionar categoría",
+                                onValueChange = {},
+                                label = { Text("Categoría") },
+                                readOnly = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                ),
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            android.util.Log.d("ClasificacionDialog", "🖱️ Click en icono - expandiendo dropdown")
+                                            expandedCategoria = !expandedCategoria
+                                        }
+                                    ) {
+                                        Icon(
+                                            if (expandedCategoria) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            contentDescription = if (expandedCategoria) "Cerrar" else "Abrir",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                )
+                                }
+                            )
+                            
+                            DropdownMenu(
+                                expanded = expandedCategoria,
+                                onDismissRequest = { 
+                                    android.util.Log.d("ClasificacionDialog", "❌ Dismiss del dropdown")
+                                    expandedCategoria = false 
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                categorias.forEach { categoria ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                categoria.nombre,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            ) 
+                                        },
+                                        onClick = {
+                                            android.util.Log.d("ClasificacionDialog", "🎯 Seleccionando categoría: ${categoria.nombre}")
+                                            categoriaSeleccionada = categoria
+                                            expandedCategoria = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
+                        android.util.Log.d("ClasificacionDialog", "🚀 Botón Clasificar presionado")
                         categoriaSeleccionada?.let { categoria ->
+                            android.util.Log.d("ClasificacionDialog", "✅ Ejecutando clasificación para: ${categoria.nombre}")
                             onClasificar(categoria.id)
+                        } ?: run {
+                            android.util.Log.w("ClasificacionDialog", "⚠️ No hay categoría seleccionada")
                         }
                     },
-                    enabled = categoriaSeleccionada != null
+                    enabled = categoriaSeleccionada != null,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
-                    Text("Clasificar")
+                    Text(
+                        "Clasificar",
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
+                TextButton(
+                    onClick = {
+                        android.util.Log.d("ClasificacionDialog", "❌ Botón Cancelar presionado")
+                        onDismiss()
+                    }
+                ) {
+                    Text(
+                        "Cancelar",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         )

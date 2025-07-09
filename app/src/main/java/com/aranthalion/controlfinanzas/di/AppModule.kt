@@ -22,6 +22,7 @@ import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
 import com.aranthalion.controlfinanzas.domain.movimiento.MovimientoManualRepository
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
+import com.aranthalion.controlfinanzas.domain.usecase.AnalisisGastoPorCategoriaUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcionalUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarMovimientosUseCase
@@ -177,6 +178,16 @@ abstract class AppModule {
             movimientoRepository: MovimientoRepository
         ): GestionarMovimientosUseCase {
             return GestionarMovimientosUseCase(movimientoRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideAnalisisGastoPorCategoriaUseCase(
+            movimientoRepository: MovimientoRepository,
+            presupuestoRepository: PresupuestoCategoriaRepository,
+            categoriaRepository: CategoriaRepository
+        ): AnalisisGastoPorCategoriaUseCase {
+            return AnalisisGastoPorCategoriaUseCase(movimientoRepository, presupuestoRepository, categoriaRepository)
         }
 
 

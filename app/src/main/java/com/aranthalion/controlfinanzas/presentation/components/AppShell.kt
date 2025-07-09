@@ -20,6 +20,9 @@ import com.aranthalion.controlfinanzas.ui.theme.SidebarBackground
 import com.aranthalion.controlfinanzas.ui.theme.SidebarForeground
 import com.aranthalion.controlfinanzas.ui.theme.SidebarAccent
 import com.aranthalion.controlfinanzas.ui.theme.SidebarAccentForeground
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
 
 data class NavItem(
     val route: String,
@@ -36,6 +39,7 @@ val navItems = listOf(
     NavItem("importar_excel", "Importar", Icons.Default.Edit),
     NavItem("dashboardAnalisis", "Análisis", Icons.Default.Star),
     NavItem("aporte_proporcional", "Aporte", Icons.Default.Person),
+    NavItem("analisis_gasto_categoria", "Análisis Gastos", Icons.Default.Info),
 
     NavItem("configuracion", "Configuración", Icons.Default.Settings)
 )
@@ -70,6 +74,7 @@ fun AppShell(
                         .fillMaxHeight()
                         .background(SidebarBackground)
                         .padding(16.dp)
+                        .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 ) {
                     // Logo/Header
                     Row(
@@ -177,14 +182,15 @@ fun AppShell(
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                         navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    )
+                    ),
+                    modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 )
                 
                 // Content
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     content()
                 }

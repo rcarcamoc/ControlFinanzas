@@ -12,6 +12,7 @@ import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendienteScreen
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
+import com.aranthalion.controlfinanzas.presentation.screens.AnalisisGastoPorCategoriaScreen
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.FirstRunScreen
 
@@ -53,6 +54,9 @@ fun AppNavigation(navController: NavHostController) {
             }
             composable("presupuestos") {
                 PresupuestosScreen(navController = navController)
+            }
+            composable("analisis_gasto_categoria") {
+                AnalisisGastoPorCategoriaScreen(navController = navController)
             }
 
         }

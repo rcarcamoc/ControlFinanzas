@@ -59,6 +59,30 @@ class AporteProporcionalUseCase @Inject constructor(
                 porcentajeAporte = porcentajeAporte,
                 montoAporte = montoAporte
             )
+        }.toMutableList()
+
+        // Calcular total de gastos "Tarjeta titular"
+        val movimientos = movimientoRepository.obtenerMovimientos()
+        val categorias = movimientoRepository.obtenerCategorias()
+        val categoriaTarjetaTitular = categorias.find { 
+            it.nombre.equals("Tarjeta titular", ignoreCase = true) 
+        }
+        val totalTarjetaTitular = movimientos.filter { movimiento ->
+            movimiento.tipo == "GASTO" &&
+            movimiento.periodoFacturacion == periodo &&
+            movimiento.categoriaId == categoriaTarjetaTitular?.id
+        }.sumOf { abs(it.monto) }
+
+        // Si hay gastos de tarjeta titular, agregar fila extra para Papá
+        if (totalTarjetaTitular > 0) {
+            aportes.add(
+                AporteProporcional(
+                    nombrePersona = "Papá + Tarjeta Titular",
+                    sueldo = 0.0,
+                    porcentajeAporte = 0.0,
+                    montoAporte = totalTarjetaTitular
+                )
+            )
         }
 
         return ResumenAporteProporcional(
