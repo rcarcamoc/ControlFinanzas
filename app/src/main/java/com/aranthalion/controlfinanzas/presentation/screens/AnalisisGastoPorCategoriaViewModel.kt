@@ -6,6 +6,8 @@ import com.aranthalion.controlfinanzas.domain.usecase.AnalisisGastoPorCategoriaU
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisGastoCategoria
 import com.aranthalion.controlfinanzas.domain.usecase.ResumenAnalisisGasto
 import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+import com.aranthalion.controlfinanzas.domain.usecase.GestionarMovimientosUseCase
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +26,8 @@ data class AnalisisGastoPorCategoriaUiState(
 @HiltViewModel
 class AnalisisGastoPorCategoriaViewModel @Inject constructor(
     private val analisisGastoUseCase: AnalisisGastoPorCategoriaUseCase,
-    private val configuracionPreferences: ConfiguracionPreferences
+    private val configuracionPreferences: ConfiguracionPreferences,
+    private val gestionarMovimientosUseCase: GestionarMovimientosUseCase
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AnalisisGastoPorCategoriaUiState())
@@ -78,5 +81,14 @@ class AnalisisGastoPorCategoriaViewModel @Inject constructor(
     private fun obtenerPeriodoActual(): String {
         val dateFormat = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.getDefault())
         return dateFormat.format(java.util.Date())
+    }
+
+    suspend fun obtenerMovimientosPorCategoriaYPeriodo(categoriaId: Long, periodo: String): List<MovimientoEntity> {
+        val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
+        return movimientos.filter {
+            (if (categoriaId == -1L) it.categoriaId == null else it.categoriaId == categoriaId) &&
+            it.periodoFacturacion == periodo &&
+            it.tipo != "OMITIR"
+        }
     }
 } 

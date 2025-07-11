@@ -25,6 +25,7 @@ import kotlin.math.abs
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -201,6 +202,7 @@ private fun AnalisisGastoTable(
     analisis: List<AnalisisGastoCategoria>,
     periodoActual: String
 ) {
+    var categoriaSeleccionada by remember { mutableStateOf<AnalisisGastoCategoria?>(null) }
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -213,7 +215,6 @@ private fun AnalisisGastoTable(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
-            
             // Header de la tabla
             Row(
                 modifier = Modifier
@@ -224,49 +225,47 @@ private fun AnalisisGastoTable(
             ) {
                 Text(
                     text = "Categoría",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(2f)
                 )
                 Text(
                     text = "Gasto Actual",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = "% Gasto",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Proyección",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = "Desviación",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
             }
-            
             Spacer(modifier = Modifier.height(8.dp))
-            
             // Filas de datos
             LazyColumn(
                 modifier = Modifier.heightIn(max = 400.dp)
             ) {
                 items(analisis) { item ->
-                    AnalisisGastoRow(item = item)
+                    Box(modifier = Modifier.clickable { categoriaSeleccionada = item }) {
+                        AnalisisGastoRow(item = item)
+                    }
                 }
+            }
+            // Tabla de movimientos si hay categoría seleccionada
+            categoriaSeleccionada?.let { catSel ->
+                Spacer(modifier = Modifier.height(24.dp))
+                DetalleMovimientosCategoria(categoria = catSel.categoria, periodo = periodoActual, onClose = { categoriaSeleccionada = null })
             }
         }
     }
@@ -300,7 +299,7 @@ private fun AnalisisGastoRow(item: AnalisisGastoCategoria) {
         ) {
             Text(
                 text = item.categoria.nombre,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 color = textColor
             )
@@ -316,7 +315,7 @@ private fun AnalisisGastoRow(item: AnalisisGastoCategoria) {
         // Gasto Actual
         Text(
             text = FormatUtils.formatMoney(item.gastoActual),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center,
             color = textColor
@@ -325,17 +324,8 @@ private fun AnalisisGastoRow(item: AnalisisGastoCategoria) {
         // Porcentaje de Gasto
         Text(
             text = "${String.format("%.1f", item.porcentajeGastado)}%",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            color = textColor
-        )
-        
-        // Proyección
-        Text(
-            text = "${String.format("%.1f", item.porcentajeProyeccion)}%",
-            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center,
             color = textColor
@@ -367,7 +357,7 @@ private fun AnalisisGastoRow(item: AnalisisGastoCategoria) {
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "${String.format("%.1f", abs(item.desviacion))}%",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 color = desviacionColor
             )
@@ -375,6 +365,93 @@ private fun AnalisisGastoRow(item: AnalisisGastoCategoria) {
     }
     
     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+}
+
+@Composable
+private fun DetalleMovimientosCategoria(
+    categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria,
+    periodo: String,
+    onClose: () -> Unit
+) {
+    val viewModel: AnalisisGastoPorCategoriaViewModel = hiltViewModel()
+    var movimientos by remember { mutableStateOf<List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(categoria.id, periodo) {
+        isLoading = true
+        movimientos = viewModel.obtenerMovimientosPorCategoriaYPeriodo(categoria.id, periodo)
+        isLoading = false
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Movimientos de la categoría: ${categoria.nombre}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        if (isLoading) {
+            CircularProgressIndicator()
+        } else if (movimientos.isEmpty()) {
+            Text("No hay movimientos para esta categoría en el período seleccionado.", style = MaterialTheme.typography.bodyMedium)
+        } else {
+            DetalleMovimientosTable(movimientos)
+        }
+    }
+}
+
+@Composable
+private fun DetalleMovimientosTable(movimientos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Fecha", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+            Text("Descripción", modifier = Modifier.weight(2f), fontWeight = FontWeight.Bold)
+            Text("Monto", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 320.dp) // Altura máxima visible, luego scroll
+        ) {
+            items(movimientos) { mov ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = java.text.SimpleDateFormat("dd/MM/yyyy").format(mov.fecha),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = mov.descripcion,
+                        modifier = Modifier.weight(2f)
+                    )
+                    Text(
+                        text = com.aranthalion.controlfinanzas.data.util.FormatUtils.formatMoney(mov.monto),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

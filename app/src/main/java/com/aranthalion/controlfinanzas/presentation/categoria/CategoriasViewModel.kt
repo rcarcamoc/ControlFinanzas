@@ -77,4 +77,15 @@ class CategoriasViewModel @Inject constructor(
             }
         }
     }
+
+    fun actualizarCategoria(categoria: Categoria) {
+        viewModelScope.launch {
+            try {
+                gestionarCategoriasUseCase.actualizarCategoria(categoria)
+                cargarCategorias()
+            } catch (e: Exception) {
+                _uiState.value = CategoriasUiState.Error(e.message ?: "Error al actualizar categoría")
+            }
+        }
+    }
 } 

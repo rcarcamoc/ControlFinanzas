@@ -33,4 +33,8 @@ class GestionarCategoriasUseCase @Inject constructor(
     suspend fun limpiarYEliminarDuplicados() {
         categoriaRepository.limpiarYEliminarDuplicados()
     }
+
+    suspend fun actualizarCategoria(categoria: Categoria) {
+        categoriaRepository.updateCategoria(categoria)
+    }
 } 

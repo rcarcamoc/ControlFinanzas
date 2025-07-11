@@ -51,25 +51,24 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
         val categorias = categoriaRepository.obtenerCategorias()
         val presupuestos = presupuestoRepository.obtenerPresupuestosPorPeriodo(periodoActual)
         val periodoAnterior = obtenerPeriodoAnterior(periodoActual)
-        
-        return categorias.mapNotNull { categoria ->
+        val movimientos = movimientoRepository.obtenerMovimientos()
+
+        val lista = categorias.mapNotNull { categoria ->
             val presupuesto = presupuestos.find { it.categoriaId == categoria.id }?.monto ?: 0.0
-            val gastoActual = calcularGastoCategoria(categoria.id, periodoActual)
-            
-            // Filtrar categorías sin gasto
+            val gastoActual = movimientos.filter {
+                it.categoriaId == categoria.id &&
+                it.periodoFacturacion == periodoActual &&
+                it.tipo == TipoMovimiento.GASTO.name &&
+                it.tipo != TipoMovimiento.OMITIR.name
+            }.sumOf { it.monto }
             if (gastoActual <= 0) return@mapNotNull null
-            
             val gastoAnterior = calcularGastoCategoria(categoria.id, periodoAnterior)
-            
             val porcentajeGastado = if (presupuesto > 0) (gastoActual / presupuesto) * 100 else 0.0
             val porcentajeGastoAnterior = if (presupuesto > 0) (gastoAnterior / presupuesto) * 100 else 0.0
-            
             val desviacion = porcentajeGastado - porcentajeGastoAnterior
             val proyeccionCierreMes = calcularProyeccionCierreMes(gastoActual, periodoActual)
             val porcentajeProyeccion = if (presupuesto > 0) (proyeccionCierreMes / presupuesto) * 100 else 0.0
-            
             val estado = determinarEstadoAnalisis(porcentajeGastado, desviacion, porcentajeProyeccion)
-            
             AnalisisGastoCategoria(
                 categoria = categoria,
                 gastoActual = gastoActual,
@@ -82,7 +81,39 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
                 porcentajeProyeccion = porcentajeProyeccion,
                 estado = estado
             )
-        }.sortedByDescending { it.porcentajeGastado }
+        }.toMutableList()
+
+        // Agregar fila especial para movimientos sin categoría
+        val sinCategoriaGastos = movimientos.filter {
+            it.categoriaId == null &&
+            it.periodoFacturacion == periodoActual &&
+            it.tipo == TipoMovimiento.GASTO.name &&
+            it.tipo != TipoMovimiento.OMITIR.name
+        }
+        val totalSinCategoria = sinCategoriaGastos.sumOf { it.monto }
+        if (totalSinCategoria > 0) {
+            val categoriaSin = Categoria(
+                id = -1,
+                nombre = "Sin Categoría",
+                descripcion = "Movimientos no clasificados",
+                tipo = "Gasto"
+            )
+            lista.add(
+                AnalisisGastoCategoria(
+                    categoria = categoriaSin,
+                    gastoActual = totalSinCategoria,
+                    presupuesto = 0.0,
+                    porcentajeGastado = 0.0,
+                    gastoPeriodoAnterior = 0.0,
+                    porcentajeGastoAnterior = 0.0,
+                    desviacion = 0.0,
+                    proyeccionCierreMes = 0.0,
+                    porcentajeProyeccion = 0.0,
+                    estado = EstadoAnalisis.NORMAL
+                )
+            )
+        }
+        return lista.sortedByDescending { it.porcentajeGastado }
     }
     
     /**

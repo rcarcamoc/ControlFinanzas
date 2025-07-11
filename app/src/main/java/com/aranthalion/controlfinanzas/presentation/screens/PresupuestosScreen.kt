@@ -405,14 +405,11 @@ fun PresupuestosScreen(
     }
 
     // Diálogo para agregar presupuesto con animación
-    AnimatedVisibility(
-        visible = showAddDialog,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut()
-    ) {
+    if (showAddDialog) {
         PresupuestoDialog(
             categorias = categorias,
             periodoSeleccionado = periodoSeleccionado,
+            categoriaPreseleccionada = null,
             onDismiss = { showAddDialog = false },
             onConfirm = { categoriaId, monto ->
                 viewModel.guardarPresupuesto(categoriaId, monto, periodoSeleccionado)
@@ -1114,10 +1111,11 @@ fun PresupuestoItemCompleto(
 fun PresupuestoDialog(
     categorias: List<Categoria>,
     periodoSeleccionado: String,
+    categoriaPreseleccionada: Categoria? = null,
     onDismiss: () -> Unit,
     onConfirm: (Long, Double) -> Unit
 ) {
-    var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
+    var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(categoriaPreseleccionada) }
     var monto by remember { mutableStateOf("") } // Asegura que el campo esté vacío por defecto
     var expandedCategoria by remember { mutableStateOf(false) }
 
@@ -1148,32 +1146,35 @@ fun PresupuestoDialog(
                     // Selector de categoría
                     ExposedDropdownMenuBox(
                         expanded = expandedCategoria,
-                        onExpandedChange = { expandedCategoria = !expandedCategoria }
+                        onExpandedChange = { if (categoriaPreseleccionada == null) expandedCategoria = !expandedCategoria }
                     ) {
                         OutlinedTextField(
                             value = categoriaSeleccionada?.nombre ?: "",
                             onValueChange = {},
                             label = { Text("Categoría") },
                             readOnly = true,
+                            enabled = categoriaPreseleccionada == null,
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                            trailingIcon = { if (categoriaPreseleccionada == null) ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
-                        ExposedDropdownMenu(
-                            expanded = expandedCategoria,
-                            onDismissRequest = { expandedCategoria = false }
-                        ) {
-                            categorias.forEach { categoria ->
-                                DropdownMenuItem(
-                                    text = { Text(categoria.nombre) },
-                                    onClick = {
-                                        categoriaSeleccionada = categoria
-                                        expandedCategoria = false
-                                    }
-                                )
+                        if (categoriaPreseleccionada == null) {
+                            ExposedDropdownMenu(
+                                expanded = expandedCategoria,
+                                onDismissRequest = { expandedCategoria = false }
+                            ) {
+                                categorias.forEach { categoria ->
+                                    DropdownMenuItem(
+                                        text = { Text(categoria.nombre) },
+                                        onClick = {
+                                            categoriaSeleccionada = categoria
+                                            expandedCategoria = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

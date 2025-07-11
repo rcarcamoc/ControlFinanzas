@@ -98,6 +98,31 @@ data class MetricasRendimiento(
     val scoreFinanciero: Int // 0-100
 )
 
+// Nuevo modelo para análisis histórico
+data class ResumenHistoricoCategoria(
+    val categoriaId: Long,
+    val nombreCategoria: String,
+    val gastoPromedioMensual: Double,
+    val desviacionEstandar: Double,
+    val gastoMaximo: Double,
+    val gastoMinimo: Double,
+    val mesesAnalizados: Int,
+    val tendencia: String // "AUMENTO", "DISMINUCION", "ESTABLE"
+)
+
+// Modelo para presupuesto con análisis de brecha
+data class PresupuestoConBrecha(
+    val categoriaId: Long,
+    val nombreCategoria: String,
+    val presupuesto: Double,
+    val gastoActual: Double,
+    val porcentajeGastado: Double,
+    val brechaPresupuesto: Double, // Diferencia vs presupuesto
+    val ritmoHistorico: Double, // % vs promedio histórico
+    val diasRestantes: Int, // Días restantes en el mes
+    val proyeccionMensual: Double // Proyección basada en ritmo actual
+)
+
 class AnalisisFinancieroUseCase @Inject constructor(
     private val movimientoRepository: MovimientoRepository,
     private val presupuestoRepository: PresupuestoCategoriaRepository
@@ -487,6 +512,126 @@ class AnalisisFinancieroUseCase @Inject constructor(
         return ResumenFinanciero(ingresos, gastos, balance, cantidadTransacciones, tasaAhorro)
     }
 
+    /**
+     * Obtiene histórico de gastos por categoría para análisis de tendencias
+     */
+    suspend fun obtenerHistoricoGasto(
+        periodoActual: String,
+        mesesHistorico: Int = 6
+    ): List<ResumenHistoricoCategoria> {
+        val movimientos = movimientoRepository.obtenerMovimientos()
+        val categorias = movimientoRepository.obtenerCategorias()
+        
+        val historico = mutableListOf<ResumenHistoricoCategoria>()
+        
+        for (categoria in categorias) {
+            val gastosCategoria = mutableListOf<Double>()
+            val periodosAnalizados = mutableSetOf<String>()
+            
+            // Obtener gastos de los últimos N meses
+            for (i in 0 until mesesHistorico) {
+                val periodo = calcularPeriodoAnterior(periodoActual, i)
+                val gastosDelPeriodo = movimientos.filter { 
+                    it.periodoFacturacion == periodo &&
+                    it.categoriaId == categoria.id &&
+                    it.tipo == TipoMovimiento.GASTO.name &&
+                    it.tipo != TipoMovimiento.OMITIR.name
+                }
+                
+                val totalGasto = abs(gastosDelPeriodo.sumOf { it.monto })
+                if (totalGasto > 0) {
+                    gastosCategoria.add(totalGasto)
+                    periodosAnalizados.add(periodo)
+                }
+            }
+            
+            if (gastosCategoria.isNotEmpty()) {
+                val promedio = gastosCategoria.average()
+                val desviacion = calcularDesviacionEstandar(gastosCategoria)
+                val maximo = gastosCategoria.maxOrNull() ?: 0.0
+                val minimo = gastosCategoria.minOrNull() ?: 0.0
+                val tendencia = calcularTendenciaHistorica(gastosCategoria)
+                
+                historico.add(
+                    ResumenHistoricoCategoria(
+                        categoriaId = categoria.id,
+                        nombreCategoria = categoria.nombre,
+                        gastoPromedioMensual = promedio,
+                        desviacionEstandar = desviacion,
+                        gastoMaximo = maximo,
+                        gastoMinimo = minimo,
+                        mesesAnalizados = periodosAnalizados.size,
+                        tendencia = tendencia
+                    )
+                )
+            }
+        }
+        
+        return historico.sortedByDescending { it.gastoPromedioMensual }
+    }
+
+    /**
+     * Obtiene presupuestos con análisis de brecha vs gasto actual
+     */
+    suspend fun obtenerPresupuestosConBrecha(periodo: String): List<PresupuestoConBrecha> {
+        val presupuestos = presupuestoRepository.obtenerPresupuestosPorPeriodo(periodo)
+        val categorias = movimientoRepository.obtenerCategorias()
+        val movimientos = movimientoRepository.obtenerMovimientos()
+        val historico = obtenerHistoricoGasto(periodo)
+        
+        val presupuestosConBrecha = mutableListOf<PresupuestoConBrecha>()
+        
+        for (presupuesto in presupuestos) {
+            val categoria = categorias.find { it.id == presupuesto.categoriaId }
+            if (categoria != null) {
+                // Calcular gasto actual
+                val gastosActuales = movimientos.filter { 
+                    it.periodoFacturacion == periodo &&
+                    it.categoriaId == presupuesto.categoriaId &&
+                    it.tipo == TipoMovimiento.GASTO.name &&
+                    it.tipo != TipoMovimiento.OMITIR.name
+                }
+                val gastoActual = abs(gastosActuales.sumOf { it.monto })
+                
+                // Calcular porcentaje gastado
+                val porcentajeGastado = if (presupuesto.monto > 0) (gastoActual / presupuesto.monto) * 100 else 0.0
+                
+                // Calcular brecha vs presupuesto
+                val brechaPresupuesto = presupuesto.monto - gastoActual
+                
+                // Calcular ritmo histórico
+                val historicoCategoria = historico.find { it.categoriaId == presupuesto.categoriaId }
+                val ritmoHistorico = if (historicoCategoria != null && historicoCategoria.gastoPromedioMensual > 0) {
+                    (gastoActual / historicoCategoria.gastoPromedioMensual) * 100
+                } else 100.0
+                
+                // Calcular días restantes y proyección
+                val diasRestantes = calcularDiasRestantes(periodo)
+                val diasTranscurridos = 30 - diasRestantes
+                val proyeccionMensual = if (diasTranscurridos > 0) {
+                    (gastoActual / diasTranscurridos) * 30
+                } else gastoActual
+                
+                presupuestosConBrecha.add(
+                    PresupuestoConBrecha(
+                        categoriaId = presupuesto.categoriaId,
+                        nombreCategoria = categoria.nombre,
+                        presupuesto = presupuesto.monto,
+                        gastoActual = gastoActual,
+                        porcentajeGastado = porcentajeGastado,
+                        brechaPresupuesto = brechaPresupuesto,
+                        ritmoHistorico = ritmoHistorico,
+                        diasRestantes = diasRestantes,
+                        proyeccionMensual = proyeccionMensual
+                    )
+                )
+            }
+        }
+        
+        return presupuestosConBrecha.sortedByDescending { it.porcentajeGastado }
+    }
+
+    // Métodos auxiliares privados
     private suspend fun calcularTendenciaCategoria(categoriaId: Long?, periodo: String): String {
         // Implementación simplificada - en producción usar análisis estadístico
         return "ESTABLE"
@@ -678,5 +823,39 @@ class AnalisisFinancieroUseCase @Inject constructor(
         score += (indiceEstabilidad * 25).toInt()
         
         return score.coerceIn(0, 100)
+    }
+
+    private fun calcularPeriodoAnterior(periodoActual: String, mesesAtras: Int): String {
+        val formato = java.text.SimpleDateFormat("yyyy-MM")
+        val fecha = formato.parse(periodoActual)
+        val calendar = java.util.Calendar.getInstance()
+        calendar.time = fecha
+        calendar.add(java.util.Calendar.MONTH, -mesesAtras)
+        return formato.format(calendar.time)
+    }
+
+    private fun calcularTendenciaHistorica(gastos: List<Double>): String {
+        if (gastos.size < 2) return "ESTABLE"
+        
+        val promedioPrimeraMitad = gastos.take(gastos.size / 2).average()
+        val promedioSegundaMitad = gastos.takeLast(gastos.size / 2).average()
+        
+        val diferencia = ((promedioSegundaMitad - promedioPrimeraMitad) / promedioPrimeraMitad) * 100
+        
+        return when {
+            diferencia > 10 -> "AUMENTO"
+            diferencia < -10 -> "DISMINUCION"
+            else -> "ESTABLE"
+        }
+    }
+
+    private fun calcularDiasRestantes(periodo: String): Int {
+        val formato = java.text.SimpleDateFormat("yyyy-MM")
+        val fecha = formato.parse(periodo)
+        val calendar = java.util.Calendar.getInstance()
+        calendar.time = fecha
+        val ultimoDia = calendar.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val diaActual = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
+        return maxOf(0, ultimoDia - diaActual)
     }
 }

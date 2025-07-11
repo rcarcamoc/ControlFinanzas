@@ -46,6 +46,7 @@ import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificaci
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +86,10 @@ fun TransaccionesScreen(
         viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
     }
 
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val isSmallScreen = screenWidth < 600.dp
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -119,47 +124,90 @@ fun TransaccionesScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Botón de filtros mejorado
-                    OutlinedButton(
-                        onClick = { showFiltroDialog = true },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                if (isSmallScreen) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f, false)
                     ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = "Filtrar",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Filtros")
+                        OutlinedButton(
+                            onClick = { showFiltroDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = "Filtrar",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Filtros")
+                        }
+                        Button(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Agregar transacción",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Nueva Transacción",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
-                    
-                    // Botón de agregar mejorado
-                    Button(
-                        onClick = { showAddDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 4.dp
-                        ),
-                        modifier = Modifier.width(200.dp) // Ancho fijo más compacto
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f, false)
                     ) {
-                        Icon(
-                            Icons.Default.Add, 
-                            contentDescription = "Agregar transacción",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "Nueva Transacción",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
+                        OutlinedButton(
+                            onClick = { showFiltroDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = "Filtrar",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Filtros")
+                        }
+                        Button(
+                            onClick = { showAddDialog = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp
+                            ),
+                            modifier = Modifier.width(200.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Agregar transacción",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Nueva Transacción",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }

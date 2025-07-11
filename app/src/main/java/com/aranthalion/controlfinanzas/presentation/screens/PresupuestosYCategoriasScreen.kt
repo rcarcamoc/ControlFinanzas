@@ -91,6 +91,7 @@ fun PresupuestosYCategoriasScreen(
     var showConfirmacionHistorica by remember { mutableStateOf(false) }
     var categoriaPendienteConfirmacion by remember { mutableStateOf<Categoria?>(null) }
     var aplicarAHistorico by remember { mutableStateOf(false) }
+    var categoriaParaPresupuesto by remember { mutableStateOf<Categoria?>(null) }
     
     // Cuando cambie el período seleccionado, aplicar lazy copy si es necesario antes de cargar los presupuestos
     LaunchedEffect(periodoSeleccionado) {
@@ -329,7 +330,10 @@ fun PresupuestosYCategoriasScreen(
                                 onEditPresupuesto = { presupuesto ->
                                     presupuestoToEdit = presupuesto
                                 },
-                                onAddPresupuesto = { showAddPresupuestoDialog = true }
+                                onAddPresupuesto = { 
+                                    categoriaParaPresupuesto = categoria
+                                    showAddPresupuestoDialog = true
+                                }
                             )
                         }
                     }
@@ -355,11 +359,16 @@ fun PresupuestosYCategoriasScreen(
         PresupuestoDialog(
             categorias = categorias,
             periodoSeleccionado = periodoSeleccionado,
-            onDismiss = { showAddPresupuestoDialog = false },
+            categoriaPreseleccionada = categoriaParaPresupuesto,
+            onDismiss = {
+                showAddPresupuestoDialog = false
+                categoriaParaPresupuesto = null
+            },
             onConfirm = { categoriaId, monto ->
                 scope.launch {
                     presupuestosViewModel.guardarPresupuesto(categoriaId, monto, periodoSeleccionado)
                     showAddPresupuestoDialog = false
+                    categoriaParaPresupuesto = null
                 }
             }
         )
@@ -421,8 +430,11 @@ fun PresupuestosYCategoriasScreen(
                 scope.launch {
                     categoriaToEdit?.let { categoria ->
                         val categoriaActualizada = categoria.copy(nombre = nombre, tipo = tipo)
-                        categoriasViewModel.eliminarCategoria(categoria)
-                        categoriasViewModel.agregarCategoria(nombre, tipo)
+                        categoriasViewModel.actualizarCategoria(categoriaActualizada)
+                        // Si se activa presupuesto, actualizar o crear presupuesto
+                        if (activarPresupuesto && presupuesto > 0) {
+                            presupuestosViewModel.guardarPresupuesto(categoriaActualizada.id, presupuesto, periodoSeleccionado)
+                        }
                     }
                     categoriaToEdit = null
                 }

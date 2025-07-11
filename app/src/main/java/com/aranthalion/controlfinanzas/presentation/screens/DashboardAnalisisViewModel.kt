@@ -1,8 +1,12 @@
 package com.aranthalion.controlfinanzas.presentation.screens
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.abs
 
 // Datos de prueba para desarrollo
 data class CategoriaPrueba(
@@ -39,7 +44,9 @@ sealed class DashboardAnalisisUiState {
         val comparacionPeriodo: ComparacionPeriodo?,
         val gastosInusuales: List<GastoInusual>,
         val metricasRendimiento: MetricasRendimiento?,
-        val resumenFinanciero: ResumenFinanciero?
+        val resumenFinanciero: ResumenFinanciero?,
+        val historicoCategorias: List<ResumenHistoricoCategoria>,
+        val presupuestosConBrecha: List<PresupuestoConBrecha>
     ) : DashboardAnalisisUiState()
     data class Error(val mensaje: String, val onRetry: () -> Unit) : DashboardAnalisisUiState()
 }
@@ -75,6 +82,8 @@ class DashboardAnalisisViewModel @Inject constructor(
                 val gastosInusuales = analisisFinancieroUseCase.obtenerGastosInusuales(periodo)
                 val metricasRendimiento = analisisFinancieroUseCase.obtenerMetricasRendimiento(periodo)
                 val resumenFinanciero = analisisFinancieroUseCase.obtenerResumenFinancieroPorPeriodo(periodo)
+                val historicoCategorias = analisisFinancieroUseCase.obtenerHistoricoGasto(periodo)
+                val presupuestosConBrecha = analisisFinancieroUseCase.obtenerPresupuestosConBrecha(periodo)
 
                 val success = DashboardAnalisisUiState.Success(
                     kpis = kpis,
@@ -86,7 +95,9 @@ class DashboardAnalisisViewModel @Inject constructor(
                     comparacionPeriodo = comparacionPeriodo,
                     gastosInusuales = gastosInusuales,
                     metricasRendimiento = metricasRendimiento,
-                    resumenFinanciero = resumenFinanciero
+                    resumenFinanciero = resumenFinanciero,
+                    historicoCategorias = historicoCategorias,
+                    presupuestosConBrecha = presupuestosConBrecha
                 )
                 lastSuccessState = success
                 _uiState.value = success
@@ -124,7 +135,53 @@ class DashboardAnalisisViewModel @Inject constructor(
 
         val insights = mutableListOf<String>()
 
-        // Insight sobre tasa de ahorro
+        // 1. INSIGHTS DE BRECHA VS PRESUPUESTO (PRIORIDAD ALTA)
+        currentState.presupuestosConBrecha.forEach { presupuesto ->
+            val diffPct = (presupuesto.gastoActual - presupuesto.presupuesto) / presupuesto.presupuesto * 100
+            when {
+                diffPct > 0 -> {
+                    val montoFaltante = presupuesto.presupuesto - presupuesto.gastoActual
+                    insights.add(
+                        "Estás gastando un ${"%.1f".format(diffPct)}% sobre el presupuesto en '${presupuesto.nombreCategoria}'. " +
+                        "Necesitas recortar ${"%.0f".format(abs(montoFaltante))} para no pasarte."
+                    )
+                }
+                diffPct < -20 -> {
+                    val excedente = abs(presupuesto.brechaPresupuesto)
+                    insights.add(
+                        "Llevas un ${"%.1f".format(-diffPct)}% por debajo del presupuesto en '${presupuesto.nombreCategoria}'. " +
+                        "Tienes ${"%.0f".format(excedente)} disponibles para invertir o reasignar."
+                    )
+                }
+            }
+        }
+
+        // 2. INSIGHTS DE RITMO HISTÓRICO
+        currentState.historicoCategorias.forEach { historico ->
+            val presupuestoActual = currentState.presupuestosConBrecha.find { it.categoriaId == historico.categoriaId }
+            if (presupuestoActual != null) {
+                val ritmo = presupuestoActual.ritmoHistorico
+                if (ritmo > 110) {
+                    insights.add(
+                        "Este mes tu gasto en '${historico.nombreCategoria}' va un ${"%.1f".format(ritmo)}% " +
+                        "sobre el promedio de los últimos ${historico.mesesAnalizados} meses. Revisa si hay compras excepcionales."
+                    )
+                }
+            }
+        }
+
+        // 3. INSIGHTS DE PROYECCIÓN MENSUAL
+        currentState.presupuestosConBrecha.forEach { presupuesto ->
+            if (presupuesto.proyeccionMensual > presupuesto.presupuesto * 1.1) {
+                val exceso = presupuesto.proyeccionMensual - presupuesto.presupuesto
+                insights.add(
+                    "Proyección: '${presupuesto.nombreCategoria}' se pasará ${"%.0f".format(exceso)} " +
+                    "del presupuesto si mantienes el ritmo actual. Ajusta tus gastos."
+                )
+            }
+        }
+
+        // 4. INSIGHTS DE TASA DE AHORRO (mantener los buenos)
         currentState.resumenFinanciero?.let { resumen ->
             when {
                 resumen.tasaAhorro > 20 -> insights.add("¡Excelente! Tu tasa de ahorro del ${resumen.tasaAhorro.toInt()}% está por encima del objetivo recomendado.")
@@ -133,37 +190,13 @@ class DashboardAnalisisViewModel @Inject constructor(
             }
         }
 
-        // Insight sobre gastos inusuales
+        // 5. INSIGHTS DE GASTOS INUSUALES (mantener)
         if (currentState.gastosInusuales.isNotEmpty()) {
             val gastoMasInusual = currentState.gastosInusuales.first()
             insights.add("Detectamos un gasto inusual: ${gastoMasInusual.descripcion} por ${gastoMasInusual.monto.toInt()}. Revisa si fue necesario.")
         }
 
-        // Insight sobre volatilidad
-        val categoriasVolatiles = currentState.analisisVolatilidad.filter { it.nivelVolatilidad == "ALTA" }
-        if (categoriasVolatiles.isNotEmpty()) {
-            val categoriaMasVolatil = categoriasVolatiles.first()
-            insights.add("La categoría '${categoriaMasVolatil.nombreCategoria}' muestra alta volatilidad. Considera establecer un presupuesto fijo.")
-        }
-
-        // Insight sobre comparación con período anterior
-        currentState.comparacionPeriodo?.let { comparacion ->
-            when {
-                comparacion.cambioBalance > 10 -> insights.add("¡Excelente progreso! Tu balance mejoró ${comparacion.cambioBalance.toInt()}% respecto al período anterior.")
-                comparacion.cambioBalance < -10 -> insights.add("Tu balance disminuyó ${comparacion.cambioBalance.toInt()}%. Revisa tus gastos y considera ajustar tu presupuesto.")
-            }
-        }
-
-        // Insight sobre score financiero
-        currentState.metricasRendimiento?.let { metricas ->
-            when {
-                metricas.scoreFinanciero >= 80 -> insights.add("¡Tu salud financiera es excelente! Score: ${metricas.scoreFinanciero}/100")
-                metricas.scoreFinanciero >= 60 -> insights.add("Tu salud financiera es buena. Score: ${metricas.scoreFinanciero}/100. Hay espacio para mejorar.")
-                else -> insights.add("Tu salud financiera necesita atención. Score: ${metricas.scoreFinanciero}/100. Considera revisar tus hábitos financieros.")
-            }
-        }
-
-        return insights.take(5) // Máximo 5 insights
+        return insights.take(5) // Máximo 5 insights, priorizando presupuesto > riesgo > ahorro
     }
 
     fun obtenerRecomendaciones(): List<String> {
@@ -172,37 +205,73 @@ class DashboardAnalisisViewModel @Inject constructor(
 
         val recomendaciones = mutableListOf<String>()
 
-        // Recomendación basada en tasa de ahorro
-        currentState.resumenFinanciero?.let { resumen ->
-            if (resumen.tasaAhorro < 15) {
-                recomendaciones.add("Aumenta tu tasa de ahorro estableciendo transferencias automáticas al inicio del mes.")
+        // 1. RECOMENDACIONES BASADAS EN BRECHA DE PRESUPUESTO
+        currentState.presupuestosConBrecha.forEach { presupuesto ->
+            val diffPct = (presupuesto.gastoActual - presupuesto.presupuesto) / presupuesto.presupuesto * 100
+            when {
+                diffPct > 10 -> {
+                    val montoFaltante = presupuesto.presupuesto - presupuesto.gastoActual
+                    recomendaciones.add(
+                        "Reduce un ${"%.1f".format(diffPct)}% las compras de '${presupuesto.nombreCategoria}' " +
+                        "esta quincena o agrupa gastos en menos días para no pasarte del presupuesto mensual."
+                    )
+                }
+                diffPct < -30 -> {
+                    val excedente = abs(presupuesto.brechaPresupuesto)
+                    recomendaciones.add(
+                        "Tienes margen para destinar hasta ${"%.0f".format(excedente)} en '${presupuesto.nombreCategoria}'. " +
+                        "¿Quizás invertir en formación o en un fondo de emergencia?"
+                    )
+                }
             }
         }
 
-        // Recomendación basada en gastos inusuales
-        if (currentState.gastosInusuales.size > 2) {
-            recomendaciones.add("Tienes varios gastos inusuales. Revisa si puedes reducir gastos no esenciales.")
+        // 2. RECOMENDACIONES BASADAS EN RITMO HISTÓRICO
+        currentState.historicoCategorias.forEach { historico ->
+            val presupuestoActual = currentState.presupuestosConBrecha.find { it.categoriaId == historico.categoriaId }
+            if (presupuestoActual != null && presupuestoActual.ritmoHistorico > 120) {
+                recomendaciones.add(
+                    "Tu gasto en '${historico.nombreCategoria}' está ${"%.1f".format(presupuestoActual.ritmoHistorico)}% " +
+                    "sobre tu promedio histórico. Considera revisar suscripciones o gastos recurrentes."
+                )
+            }
         }
 
-        // Recomendación basada en volatilidad
+        // 3. RECOMENDACIONES BASADAS EN PROYECCIÓN MENSUAL
+        currentState.presupuestosConBrecha.forEach { presupuesto ->
+            if (presupuesto.proyeccionMensual > presupuesto.presupuesto * 1.2) {
+                val exceso = presupuesto.proyeccionMensual - presupuesto.presupuesto
+                recomendaciones.add(
+                    "Si mantienes el ritmo actual, '${presupuesto.nombreCategoria}' se pasará ${"%.0f".format(exceso)}. " +
+                    "Programa un recordatorio para revisar gastos a mitad de mes."
+                )
+            }
+        }
+
+        // 4. RECOMENDACIONES BASADAS EN TASA DE AHORRO
+        currentState.resumenFinanciero?.let { resumen ->
+            when {
+                resumen.tasaAhorro < 10 -> {
+                    recomendaciones.add("Aumenta tu tasa de ahorro estableciendo transferencias automáticas al inicio del mes.")
+                }
+                resumen.tasaAhorro > 25 -> {
+                    recomendaciones.add("Excelente tasa de ahorro. Considera diversificar en inversiones o crear un fondo de emergencia.")
+                }
+            }
+        }
+
+        // 5. RECOMENDACIONES BASADAS EN GASTOS INUSUALES
+        if (currentState.gastosInusuales.size > 2) {
+            recomendaciones.add("Tienes varios gastos inusuales. Revisa si puedes reducir gastos no esenciales o agrupar compras.")
+        }
+
+        // 6. RECOMENDACIONES BASADAS EN VOLATILIDAD
         val categoriasVolatiles = currentState.analisisVolatilidad.filter { it.nivelVolatilidad == "ALTA" }
         if (categoriasVolatiles.isNotEmpty()) {
-            recomendaciones.add("Establece presupuestos fijos para categorías con alta volatilidad para mejor control.")
+            val categoriaMasVolatil = categoriasVolatiles.first()
+            recomendaciones.add("Establece presupuestos fijos para '${categoriaMasVolatil.nombreCategoria}' para mejor control.")
         }
 
-        // Recomendación basada en predicciones
-        val prediccionesAltas = currentState.predicciones.filter { it.prediccion > 100000 }
-        if (prediccionesAltas.isNotEmpty()) {
-            recomendaciones.add("Las predicciones indican gastos altos en algunas categorías. Planifica con anticipación.")
-        }
-
-        // Recomendación basada en score financiero
-        currentState.metricasRendimiento?.let { metricas ->
-            if (metricas.scoreFinanciero < 70) {
-                recomendaciones.add("Mejora tu score financiero diversificando gastos y aumentando ahorros.")
-            }
-        }
-
-        return recomendaciones.take(3) // Máximo 3 recomendaciones
+        return recomendaciones.take(4) // Máximo 4 recomendaciones más específicas
     }
 } 
