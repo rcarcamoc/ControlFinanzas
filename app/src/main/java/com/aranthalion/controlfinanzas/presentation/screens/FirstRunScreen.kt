@@ -70,7 +70,7 @@ fun FirstRunScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(WindowInsets.systemBars.asPaddingValues())
+                
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center

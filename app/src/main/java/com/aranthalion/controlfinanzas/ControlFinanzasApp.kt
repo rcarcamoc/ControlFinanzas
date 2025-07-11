@@ -31,38 +31,37 @@ class ControlFinanzasApp : Application() {
         super.onCreate()
         Log.d("ControlFinanzasApp", "🚀 Iniciando aplicación ControlFinanzas")
         
-        // Solo cargar datos históricos si no es la primera ejecución y se han cargado datos históricos
+        // Inicialización segura que NO borra datos del usuario
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // Verificar si es la primera ejecución
                 if (!configuracionPreferences.isFirstRun) {
                     Log.d("ControlFinanzasApp", "📚 Inicializando sistema de clasificación automática...")
                     
-                    // Solo cargar categorías por defecto si no existen
+                    // Solo cargar categorías por defecto si no existen (NO sobrescribir)
                     Log.d("ControlFinanzasApp", "📋 Verificando categorías por defecto...")
                     categoriasUseCase.insertDefaultCategorias()
                     
-                    // Solo cargar datos históricos si se han marcado como cargados
-                    if (configuracionPreferences.historicalDataLoaded) {
-                        Log.d("ControlFinanzasApp", "📊 Cargando datos históricos del CSV...")
+                    // SOLO cargar datos históricos si es la primera vez y el usuario lo ha solicitado
+                    // NO limpiar ni recargar automáticamente
+                    if (configuracionPreferences.historicalDataLoaded && !configuracionPreferences.obtenerDatosCargados()) {
+                        Log.d("ControlFinanzasApp", "📊 Cargando datos históricos del CSV (solo primera vez)...")
                         movimientoRepository.cargarDatosHistoricos()
+                        configuracionPreferences.guardarDatosCargados(true)
                         Log.d("ControlFinanzasApp", "✅ Datos históricos cargados correctamente")
-                        
-                        // Diagnosticar estado actual de datos históricos
-                        Log.d("ControlFinanzasApp", "🔍 Diagnosticando datos históricos...")
-                        movimientoRepository.diagnosticarDatosHistoricos()
-                        
-                        // Limpiar y recargar datos históricos con nuevas descripciones
-                        Log.d("ControlFinanzasApp", "🔄 Limpiando y recargando datos históricos...")
-                        movimientoRepository.limpiarYRecargarDatosHistoricos()
-                        Log.d("ControlFinanzasApp", "✅ Datos históricos actualizados correctamente")
                     } else {
-                        Log.d("ControlFinanzasApp", "ℹ️ No se cargan datos históricos (instalación limpia)")
+                        Log.d("ControlFinanzasApp", "ℹ️ Datos históricos ya cargados o no solicitados - preservando datos del usuario")
                     }
                     
-                    // Cargar sistema de clasificación automática
-                    clasificacionUseCase.cargarDatosHistoricos()
-                    Log.d("ControlFinanzasApp", "✅ Sistema de clasificación automática inicializado correctamente")
+                    // Cargar sistema de clasificación automática (solo patrones predefinidos, NO sobrescribir)
+                    if (!configuracionPreferences.obtenerClasificacionCargada()) {
+                        Log.d("ControlFinanzasApp", "🤖 Cargando patrones de clasificación predefinidos...")
+                        clasificacionUseCase.cargarDatosHistoricos()
+                        configuracionPreferences.guardarClasificacionCargada(true)
+                        Log.d("ControlFinanzasApp", "✅ Sistema de clasificación automática inicializado correctamente")
+                    } else {
+                        Log.d("ControlFinanzasApp", "ℹ️ Patrones de clasificación ya cargados - preservando patrones del usuario")
+                    }
                 } else {
                     Log.d("ControlFinanzasApp", "🆕 Primera ejecución detectada - esperando configuración del usuario")
                 }

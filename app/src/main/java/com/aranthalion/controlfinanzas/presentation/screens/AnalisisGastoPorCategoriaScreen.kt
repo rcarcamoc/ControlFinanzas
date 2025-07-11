@@ -41,7 +41,7 @@ fun AnalisisGastoPorCategoriaScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
+            
             .padding(16.dp)
     ) {
         // Header
@@ -65,6 +65,30 @@ fun AnalisisGastoPorCategoriaScreen(
         // Resumen
         uiState.resumen?.let { resumen ->
             ResumenAnalisisCard(resumen = resumen)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        // Botón de Re-analizar
+        if (!uiState.isLoading && uiState.error == null) {
+            Button(
+                onClick = { viewModel.cargarAnalisis() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Re-analizar Datos",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
         }
         
@@ -250,18 +274,16 @@ private fun AnalisisGastoTable(
 
 @Composable
 private fun AnalisisGastoRow(item: AnalisisGastoCategoria) {
-    val backgroundColor = when (item.estado) {
-        EstadoAnalisis.EXCELENTE -> Color(0xFFE8F5E8) // Verde claro
-        EstadoAnalisis.NORMAL -> Color.Transparent
-        EstadoAnalisis.ADVERTENCIA -> Color(0xFFFFF3E0) // Naranja claro
-        EstadoAnalisis.CRITICO -> Color(0xFFFFEBEE) // Rojo claro
+    val backgroundColor = when {
+        item.porcentajeGastado < 90 -> Color(0xFFE8F5E8) // Verde claro
+        item.porcentajeGastado <= 100 -> Color(0xFFFFF3E0) // Amarillo claro
+        else -> Color(0xFFFFEBEE) // Rojo claro
     }
     
-    val textColor = when (item.estado) {
-        EstadoAnalisis.EXCELENTE -> Color(0xFF2E7D32) // Verde oscuro
-        EstadoAnalisis.NORMAL -> MaterialTheme.colorScheme.onSurface
-        EstadoAnalisis.ADVERTENCIA -> Color(0xFFE65100) // Naranja oscuro
-        EstadoAnalisis.CRITICO -> Color(0xFFC62828) // Rojo oscuro
+    val textColor = when {
+        item.porcentajeGastado < 90 -> Color(0xFF2E7D32) // Verde oscuro
+        item.porcentajeGastado <= 100 -> Color(0xFFE65100) // Amarillo oscuro
+        else -> Color(0xFFC62828) // Rojo oscuro
     }
     
     Row(

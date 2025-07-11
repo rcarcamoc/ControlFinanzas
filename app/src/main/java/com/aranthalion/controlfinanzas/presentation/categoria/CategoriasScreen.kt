@@ -48,7 +48,7 @@ fun CategoriasScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(WindowInsets.systemBars.asPaddingValues())
+                
         ) {
             when (uiState) {
                 is CategoriasUiState.Loading -> {

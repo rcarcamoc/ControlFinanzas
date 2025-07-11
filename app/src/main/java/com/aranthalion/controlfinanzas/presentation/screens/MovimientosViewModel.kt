@@ -6,6 +6,7 @@ import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarMovimientosUseCase
 import com.aranthalion.controlfinanzas.domain.categoria.GestionarCategoriasUseCase
+import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,11 +14,13 @@ import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import android.util.Log
 
 @HiltViewModel
 class MovimientosViewModel @Inject constructor(
     private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
-    private val gestionarCategoriasUseCase: GestionarCategoriasUseCase
+    private val gestionarCategoriasUseCase: GestionarCategoriasUseCase,
+    private val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MovimientosUiState>(MovimientosUiState.Loading)
@@ -89,6 +92,13 @@ class MovimientosViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 gestionarMovimientosUseCase.agregarMovimiento(movimiento)
+                
+                // Aprender del patrón si se asignó una categoría manualmente
+                if (movimiento.categoriaId != null) {
+                    Log.d("MovimientosViewModel", "🧠 Aprendiendo patrón de clasificación manual: '${movimiento.descripcion}' -> Categoría ID: ${movimiento.categoriaId}")
+                    clasificacionUseCase.aprenderPatron(movimiento.descripcion, movimiento.categoriaId)
+                }
+                
                 cargarMovimientos()
             } catch (e: Exception) {
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al agregar movimiento")
@@ -99,7 +109,19 @@ class MovimientosViewModel @Inject constructor(
     fun actualizarMovimiento(movimiento: MovimientoEntity) {
         viewModelScope.launch {
             try {
+                // Obtener el movimiento anterior para comparar
+                val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
+                val movimientoAnterior = movimientos.find { it.id == movimiento.id }
+                
                 gestionarMovimientosUseCase.actualizarMovimiento(movimiento)
+                
+                // Aprender del patrón si se asignó una categoría manualmente (nueva o cambiada)
+                if (movimiento.categoriaId != null && 
+                    (movimientoAnterior?.categoriaId == null || movimientoAnterior.categoriaId != movimiento.categoriaId)) {
+                    Log.d("MovimientosViewModel", "🧠 Aprendiendo patrón de clasificación manual actualizada: '${movimiento.descripcion}' -> Categoría ID: ${movimiento.categoriaId}")
+                    clasificacionUseCase.aprenderPatron(movimiento.descripcion, movimiento.categoriaId)
+                }
+                
                 cargarMovimientos()
             } catch (e: Exception) {
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al actualizar movimiento")

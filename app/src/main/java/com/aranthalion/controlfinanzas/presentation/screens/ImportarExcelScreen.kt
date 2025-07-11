@@ -50,12 +50,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
-
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-interface ClasificacionUseCaseEntryPoint {
-    fun clasificacionUseCase(): GestionarClasificacionAutomaticaUseCase
-}
+import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +62,7 @@ fun ImportarExcelScreen(
         context.applicationContext,
         ClasificacionUseCaseEntryPoint::class.java
     )
-    val clasificacionUseCase = entryPoint.clasificacionUseCase()
+    val clasificacionUseCase = entryPoint.gestionarClasificacionAutomaticaUseCase()
     
     var archivoUri by remember { mutableStateOf<Uri?>(null) }
     var archivoNombre by remember { mutableStateOf("") }
@@ -120,7 +115,7 @@ fun ImportarExcelScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
+            
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally

@@ -106,12 +106,15 @@ class AnalisisFinancieroUseCase @Inject constructor(
     suspend fun obtenerResumenFinanciero(fechaInicio: Date, fechaFin: Date): ResumenFinanciero {
         val movimientos = movimientoRepository.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
         
-        val ingresos = movimientos.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
+        // Excluir transacciones de tipo OMITIR de todos los cálculos
+        val movimientosFiltrados = movimientos.filter { it.tipo != TipoMovimiento.OMITIR.name }
+        
+        val ingresos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
         // Para gastos, sumamos todos los valores (positivos y negativos)
         // Los negativos representan reversas y reducen el gasto total
-        val gastos = movimientos.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
+        val gastos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
         val balance = ingresos - abs(gastos)
-        val cantidadTransacciones = movimientos.size
+        val cantidadTransacciones = movimientosFiltrados.size
         val tasaAhorro = if (ingresos > 0) (balance / ingresos) * 100 else 0.0
         
         return ResumenFinanciero(
@@ -470,12 +473,15 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val movimientos = movimientoRepository.obtenerMovimientos()
         val movimientosDelPeriodo = movimientos.filter { it.periodoFacturacion == periodo }
         
-        val ingresos = movimientosDelPeriodo.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
+        // Excluir transacciones de tipo OMITIR de todos los cálculos
+        val movimientosFiltrados = movimientosDelPeriodo.filter { it.tipo != TipoMovimiento.OMITIR.name }
+        
+        val ingresos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
         // Para gastos, sumamos todos los valores (positivos y negativos)
         // Los negativos representan reversas y reducen el gasto total
-        val gastos = movimientosDelPeriodo.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
+        val gastos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
         val balance = ingresos - abs(gastos)
-        val cantidadTransacciones = movimientosDelPeriodo.size
+        val cantidadTransacciones = movimientosFiltrados.size
         val tasaAhorro = if (ingresos > 0) (balance / ingresos) * 100 else 0.0
         
         return ResumenFinanciero(ingresos, gastos, balance, cantidadTransacciones, tasaAhorro)
@@ -503,9 +509,12 @@ class AnalisisFinancieroUseCase @Inject constructor(
                 it.periodoFacturacion == periodo 
             }
             
+            // Excluir transacciones de tipo OMITIR de todos los cálculos
+            val gastosCategoriaFiltrados = gastosCategoria.filter { it.tipo != TipoMovimiento.OMITIR.name }
+            
             // Para gastos, sumamos todos los valores (positivos y negativos)
             // Los negativos representan reversas y reducen el gasto total
-            val gastoTotal = gastosCategoria.sumOf { it.monto }
+            val gastoTotal = gastosCategoriaFiltrados.sumOf { it.monto }
             historial.add(abs(gastoTotal))
         }
         
@@ -565,9 +574,13 @@ class AnalisisFinancieroUseCase @Inject constructor(
             it.tipo == TipoMovimiento.GASTO.name && 
             it.periodoFacturacion == periodo 
         }
+        
+        // Excluir transacciones de tipo OMITIR de todos los cálculos
+        val gastosCategoriaFiltrados = gastosCategoria.filter { it.tipo != TipoMovimiento.OMITIR.name }
+        
         // Para gastos, sumamos todos los valores (positivos y negativos)
         // Los negativos representan reversas y reducen el gasto total
-        val gastoTotal = gastosCategoria.sumOf { it.monto }
+        val gastoTotal = gastosCategoriaFiltrados.sumOf { it.monto }
         return abs(gastoTotal)
     }
 

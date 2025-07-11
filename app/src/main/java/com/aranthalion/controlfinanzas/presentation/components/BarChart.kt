@@ -348,8 +348,11 @@ fun BarChart(
 fun procesarDatosParaGrafico(movimientos: List<MovimientoEntity>, primaryColor: Color): List<BarChartData> {
     if (movimientos.isEmpty()) return emptyList()
     
-    // Filtrar solo gastos (tipo GASTO)
-    val gastos = movimientos.filter { it.tipo == "GASTO" }
+    // Filtrar solo gastos (tipo GASTO) y excluir transacciones omitidas
+    val gastos = movimientos.filter { 
+        it.tipo == "GASTO" && 
+        it.tipo != "OMITIR" // Excluir transacciones omitidas
+    }
     
     if (gastos.isEmpty()) return emptyList()
     

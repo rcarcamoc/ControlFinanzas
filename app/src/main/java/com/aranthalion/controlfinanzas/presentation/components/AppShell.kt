@@ -33,14 +33,14 @@ data class NavItem(
 val navItems = listOf(
     NavItem("home", "Dashboard", Icons.Default.Home),
     NavItem("transacciones", "Transacciones", Icons.Default.List),
-    NavItem("presupuestos", "Presupuestos", Icons.Default.Star),
-    NavItem("categorias", "Categorías", Icons.Default.List),
-    NavItem("clasificacion_pendiente", "Clasificar", Icons.Default.Edit),
-    NavItem("importar_excel", "Importar", Icons.Default.Edit),
+    NavItem("presupuestos", "Presupuestos y Categorías", Icons.Default.Star),
+    NavItem("usuarios", "Usuarios", Icons.Default.Person),
+    NavItem("cuentas_por_cobrar", "Cuentas por Cobrar", Icons.Default.Star),
+
+    NavItem("importar_excel", "Importar", Icons.Default.Info),
     NavItem("dashboardAnalisis", "Análisis", Icons.Default.Star),
     NavItem("aporte_proporcional", "Aporte", Icons.Default.Person),
     NavItem("analisis_gasto_categoria", "Análisis Gastos", Icons.Default.Info),
-
     NavItem("configuracion", "Configuración", Icons.Default.Settings)
 )
 
@@ -74,7 +74,6 @@ fun AppShell(
                         .fillMaxHeight()
                         .background(SidebarBackground)
                         .padding(16.dp)
-                        .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 ) {
                     // Logo/Header
                     Row(
@@ -182,15 +181,14 @@ fun AppShell(
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                         navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    ),
-                    modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                    )
                 )
                 
                 // Content
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     content()
                 }

@@ -4,7 +4,8 @@ import java.util.Date
 
 enum class TipoMovimiento {
     GASTO,
-    INGRESO
+    INGRESO,
+    OMITIR
 }
 
 data class MovimientoManual(

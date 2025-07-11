@@ -100,14 +100,14 @@ fun EvolucionGastosChart(historial: List<ResumenAporteProporcional>) {
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = FormatUtils.formatMoneyCLP(resumen.totalGastosDistribuibles),
+                        text = FormatUtils.formatMoneyCLP(resumen.totalADistribuir),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 // Barra visual simple
-                val maxGastos = historial.maxOfOrNull { it.totalGastosDistribuibles } ?: 1.0
-                val progress = if (maxGastos > 0) (resumen.totalGastosDistribuibles / maxGastos).toFloat() else 0f
+                val maxGastos = historial.maxOfOrNull { it.totalADistribuir } ?: 1.0
+                val progress = if (maxGastos > 0) (resumen.totalADistribuir / maxGastos).toFloat() else 0f
                 LinearProgressIndicator(
                     progress = progress,
                     modifier = Modifier
@@ -279,7 +279,7 @@ fun TablaResumenHistorica(
                         Spacer(modifier = Modifier.height(4.dp))
                         
                         Text(
-                            text = "Gastos: ${FormatUtils.formatMoneyCLP(resumen.totalGastosDistribuibles)}",
+                            text = "Gastos: ${FormatUtils.formatMoneyCLP(resumen.totalADistribuir)}",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
@@ -288,7 +288,7 @@ fun TablaResumenHistorica(
                         )
                         if (resumen.totalSueldos > 0) {
                             Text(
-                                text = "Porcentaje: ${String.format("%.1f", (resumen.totalGastosDistribuibles / resumen.totalSueldos) * 100)}%",
+                                text = "Porcentaje: ${String.format("%.1f", (resumen.totalADistribuir / resumen.totalSueldos) * 100)}%",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )

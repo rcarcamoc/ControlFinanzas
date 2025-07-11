@@ -9,6 +9,8 @@ import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoManualDao
 import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
+import com.aranthalion.controlfinanzas.data.local.dao.UsuarioDao
+import com.aranthalion.controlfinanzas.data.local.dao.CuentaPorCobrarDao
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.ClasificacionAutomaticaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
@@ -17,15 +19,24 @@ import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepos
 import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.SueldoRepository
 import com.aranthalion.controlfinanzas.data.repository.SueldoRepositoryImpl
+import com.aranthalion.controlfinanzas.data.repository.UsuarioRepositoryImpl
+import com.aranthalion.controlfinanzas.data.repository.CuentaPorCobrarRepositoryImpl
 import com.aranthalion.controlfinanzas.data.util.MovimientoManualMapper
 import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
 import com.aranthalion.controlfinanzas.domain.movimiento.MovimientoManualRepository
+import com.aranthalion.controlfinanzas.domain.usuario.UsuarioRepository
+import com.aranthalion.controlfinanzas.domain.cuenta.CuentaPorCobrarRepository
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisFinancieroUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.AnalisisGastoPorCategoriaUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcionalUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarMovimientosUseCase
+import com.aranthalion.controlfinanzas.domain.usecase.GestionarUsuariosUseCase
+import com.aranthalion.controlfinanzas.domain.usecase.GestionarCuentasPorCobrarUseCase
+import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
+import com.aranthalion.controlfinanzas.domain.movimiento.GestionarMovimientosManualesUseCase
+import com.aranthalion.controlfinanzas.domain.categoria.GestionarCategoriasUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -61,6 +72,18 @@ abstract class AppModule {
     abstract fun bindSueldoRepository(
         sueldoRepository: SueldoRepositoryImpl
     ): SueldoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUsuarioRepository(
+        usuarioRepository: UsuarioRepositoryImpl
+    ): UsuarioRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCuentaPorCobrarRepository(
+        cuentaPorCobrarRepository: CuentaPorCobrarRepositoryImpl
+    ): CuentaPorCobrarRepository
 
     companion object {
         @Provides
@@ -99,6 +122,18 @@ abstract class AppModule {
         @Singleton
         fun provideSueldoDao(database: AppDatabase): SueldoDao {
             return database.sueldoDao()
+        }
+
+        @Provides
+        @Singleton
+        fun provideUsuarioDao(database: AppDatabase): UsuarioDao {
+            return database.usuarioDao()
+        }
+
+        @Provides
+        @Singleton
+        fun provideCuentaPorCobrarDao(database: AppDatabase): CuentaPorCobrarDao {
+            return database.cuentaPorCobrarDao()
         }
 
         @Provides
@@ -146,6 +181,23 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideUsuarioRepository(
+            usuarioDao: UsuarioDao
+        ): UsuarioRepositoryImpl {
+            return UsuarioRepositoryImpl(usuarioDao)
+        }
+
+        @Provides
+        @Singleton
+        fun provideCuentaPorCobrarRepository(
+            cuentaPorCobrarDao: CuentaPorCobrarDao,
+            usuarioDao: UsuarioDao
+        ): CuentaPorCobrarRepositoryImpl {
+            return CuentaPorCobrarRepositoryImpl(cuentaPorCobrarDao, usuarioDao)
+        }
+
+        @Provides
+        @Singleton
         fun provideAnalisisFinancieroUseCase(
             movimientoRepository: MovimientoRepository,
             presupuestoRepository: PresupuestoCategoriaRepository
@@ -182,6 +234,23 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideGestionarUsuariosUseCase(
+            usuarioRepository: UsuarioRepository
+        ): GestionarUsuariosUseCase {
+            return GestionarUsuariosUseCase(usuarioRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideGestionarCuentasPorCobrarUseCase(
+            cuentaPorCobrarRepository: CuentaPorCobrarRepository,
+            usuarioRepository: UsuarioRepository
+        ): GestionarCuentasPorCobrarUseCase {
+            return GestionarCuentasPorCobrarUseCase(cuentaPorCobrarRepository, usuarioRepository)
+        }
+
+        @Provides
+        @Singleton
         fun provideAnalisisGastoPorCategoriaUseCase(
             movimientoRepository: MovimientoRepository,
             presupuestoRepository: PresupuestoCategoriaRepository,
@@ -189,8 +258,6 @@ abstract class AppModule {
         ): AnalisisGastoPorCategoriaUseCase {
             return AnalisisGastoPorCategoriaUseCase(movimientoRepository, presupuestoRepository, categoriaRepository)
         }
-
-
 
         @Provides
         @Singleton
@@ -208,6 +275,30 @@ abstract class AppModule {
         @Singleton
         fun providePresupuestoCategoriaDao(database: AppDatabase): PresupuestoCategoriaDao {
             return database.presupuestoCategoriaDao()
+        }
+
+        @Provides
+        @Singleton
+        fun provideGestionarClasificacionAutomaticaUseCase(
+            clasificacionRepository: ClasificacionAutomaticaRepository
+        ): GestionarClasificacionAutomaticaUseCase {
+            return GestionarClasificacionAutomaticaUseCase(clasificacionRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideGestionarMovimientosManualesUseCase(
+            movimientoManualRepository: MovimientoManualRepository
+        ): GestionarMovimientosManualesUseCase {
+            return GestionarMovimientosManualesUseCase(movimientoManualRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideGestionarCategoriasUseCase(
+            categoriaRepository: CategoriaRepository
+        ): GestionarCategoriasUseCase {
+            return GestionarCategoriasUseCase(categoriaRepository)
         }
     }
 } 

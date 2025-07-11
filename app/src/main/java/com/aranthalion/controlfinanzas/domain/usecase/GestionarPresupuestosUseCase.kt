@@ -134,8 +134,12 @@ class GestionarPresupuestosUseCase @Inject constructor(
             println("🔍 GASTO: [Periodo] id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
         }
         
+        // Obtener movimientos de la categoría para el período
         val movimientosCategoria = movimientosDelPeriodo.filter {
-            it.categoriaId == categoriaId && it.tipo == TipoMovimiento.GASTO.name
+            it.categoriaId == categoriaId && 
+            it.tipo == TipoMovimiento.GASTO.name &&
+            it.periodoFacturacion == periodo &&
+            it.tipo != TipoMovimiento.OMITIR.name // Excluir transacciones omitidas
         }
         println("🔍 GASTO: Movimientos de la categoría $categoriaId y tipo GASTO: ${movimientosCategoria.size}")
         movimientosCategoria.forEach { m ->

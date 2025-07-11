@@ -113,8 +113,16 @@ class MovimientoRepository @Inject constructor(
     /**
      * Limpia todos los movimientos históricos y los recarga con las nuevas descripciones
      * Útil cuando se desinstala y reinstala la app pero la base de datos persiste
+     * 
+     * ⚠️ DESHABILITADO: Esta función puede borrar datos del usuario
+     * Solo usar manualmente si el usuario lo solicita explícitamente
      */
     suspend fun limpiarYRecargarDatosHistoricos() {
+        // DESHABILITADO: No borrar datos automáticamente
+        println("⚠️ Función limpiarYRecargarDatosHistoricos deshabilitada para preservar datos del usuario")
+        println("ℹ️ Si necesitas limpiar datos históricos, hazlo manualmente desde la configuración")
+        
+        /*
         try {
             println("🧹 Limpiando movimientos históricos existentes...")
             
@@ -142,6 +150,7 @@ class MovimientoRepository @Inject constructor(
             println("❌ Error al limpiar y recargar datos históricos: ${e.message}")
             e.printStackTrace()
         }
+        */
     }
 
     /**

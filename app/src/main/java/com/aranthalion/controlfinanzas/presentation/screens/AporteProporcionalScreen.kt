@@ -22,6 +22,7 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.domain.usecase.AporteProporcional
 import com.aranthalion.controlfinanzas.domain.usecase.ResumenAporteProporcional
 import com.aranthalion.controlfinanzas.presentation.components.HistorialAportesCharts
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorDialog
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
@@ -90,7 +91,6 @@ fun AporteProporcionalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is AporteProporcionalUiState.Loading -> {
@@ -140,6 +140,37 @@ fun AporteProporcionalScreen(
                             }
                         }
 
+                        // Botones de diagnóstico y corrección
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { viewModel.diagnosticarMovimientosSueldo() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.1f)
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Info, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Diagnosticar")
+                                }
+                                OutlinedButton(
+                                    onClick = { viewModel.corregirMovimientosSueldoSinCategoria() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Build, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Corregir")
+                                }
+                            }
+                        }
+
                         // Resumen del período
                         item {
                             Card(
@@ -158,7 +189,15 @@ fun AporteProporcionalScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Total Gastos Distribuibles: ${FormatUtils.formatMoneyCLP(resumen.totalGastosDistribuibles)}",
+                                        text = "Total Gastos: ${FormatUtils.formatMoneyCLP(resumen.totalGastos)}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "Total Tarjeta Titular: ${FormatUtils.formatMoneyCLP(resumen.totalTarjetaTitular)}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "Total Gastos Distribuibles: ${FormatUtils.formatMoneyCLP(resumen.totalADistribuir)}",
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                     Text(
@@ -167,7 +206,7 @@ fun AporteProporcionalScreen(
                                     )
                                     if (resumen.totalSueldos > 0) {
                                         Text(
-                                            text = "Porcentaje de gastos vs sueldos: ${String.format("%.1f", (resumen.totalGastosDistribuibles / resumen.totalSueldos) * 100)}%",
+                                            text = "Porcentaje de gastos vs sueldos: ${String.format("%.1f", (resumen.totalADistribuir / resumen.totalSueldos) * 100)}%",
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -207,6 +246,33 @@ fun AporteProporcionalScreen(
                             
                             items(resumen.aportes) { aporte ->
                                 AporteItem(aporte = aporte)
+                            }
+                        }
+
+                        // Separador y Papá + Tarjeta Titular
+                        if (resumen.aportePapaConTarjetaTitular != null) {
+                            item {
+                                Divider(modifier = Modifier.padding(vertical = 16.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                                    )
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(
+                                            text = "Papá + Tarjeta Titular",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Total a pagar: ${FormatUtils.formatMoneyCLP(resumen.aportePapaConTarjetaTitular)}",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -274,6 +340,66 @@ fun AporteProporcionalScreen(
                         }
                     }
                 }
+                is AporteProporcionalUiState.Diagnostico -> {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Diagnóstico de Movimientos",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = (uiState as AporteProporcionalUiState.Diagnostico).diagnostico,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { viewModel.corregirMovimientosSueldoSinCategoria() },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.Build, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Corregir")
+                                }
+                                Button(
+                                    onClick = { viewModel.calcularAporteProporcional(periodoSeleccionado) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Actualizar")
+                                }
+                            }
+                        }
+                    }
+                }
                 else -> {}
             }
         }
@@ -328,10 +454,11 @@ fun AporteProporcionalScreen(
             )
         ) {
             PeriodoSelectorDialog(
-                periodos = periodosDisponibles,
-                periodoSeleccionado = periodoSeleccionado,
+                isVisible = true,
                 onDismiss = { showPeriodoSelector = false },
-                onPeriodoSelected = { periodo ->
+                onConfirm = { startDate, endDate ->
+                    // Convertir fechas a formato de período YYYY-MM
+                    val periodo = startDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"))
                     periodoSeleccionado = periodo
                 }
             )
@@ -598,8 +725,11 @@ fun AgregarSueldoDialog(
                 
                 // Campo de sueldo
                 OutlinedTextField(
-                    value = sueldoValue,
-                    onValueChange = { sueldoValue = it },
+                    value = if (sueldoValue.isNotEmpty()) FormatUtils.formatMoneyCLP(sueldoValue.replace(".", "").replace("$", "").toDoubleOrNull() ?: 0.0) else "",
+                    onValueChange = {
+                        val cleaned = it.replace("[^\\d]".toRegex(), "")
+                        sueldoValue = cleaned
+                    },
                     label = { Text("Sueldo") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = KeyboardType.Number
@@ -629,41 +759,7 @@ fun AgregarSueldoDialog(
     )
 }
 
-@Composable
-fun PeriodoSelectorDialog(
-    periodos: List<String>,
-    periodoSeleccionado: String,
-    onDismiss: () -> Unit,
-    onPeriodoSelected: (String) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Seleccionar Período") },
-        text = {
-            Column {
-                periodos.forEach { periodo ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = periodoSeleccionado == periodo,
-                            onClick = { onPeriodoSelected(periodo) }
-                        )
-                        Text(periodo)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cerrar")
-            }
-        }
-    )
-}
+
 
 @Composable
 fun HistorialAportesDialog(

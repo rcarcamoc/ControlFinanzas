@@ -89,7 +89,6 @@ fun PresupuestosScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
@@ -1119,7 +1118,7 @@ fun PresupuestoDialog(
     onConfirm: (Long, Double) -> Unit
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
-    var monto by remember { mutableStateOf("") }
+    var monto by remember { mutableStateOf("") } // Asegura que el campo esté vacío por defecto
     var expandedCategoria by remember { mutableStateOf(false) }
 
     AnimatedVisibility(

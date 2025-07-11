@@ -142,20 +142,19 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
                 val patronesAntes = clasificacionDao.obtenerCantidadPatrones()
                 Log.d("ClasificacionRepo", "📊 Patrones antes de la carga: $patronesAntes")
                 
-                // Limpiar patrones existentes y recargar los correctos
-                if (patronesAntes > 0) {
-                    Log.d("ClasificacionRepo", "🧹 Limpiando patrones existentes...")
-                    clasificacionDao.eliminarTodosLosPatrones()
+                // NO limpiar patrones existentes - preservar datos del usuario
+                // Solo cargar patrones predefinidos si no existen
+                if (patronesAntes == 0) {
+                    Log.d("ClasificacionRepo", "📖 Cargando patrones predefinidos (base de datos vacía)...")
+                    cargarPatronesPredefinidos()
+                } else {
+                    Log.d("ClasificacionRepo", "ℹ️ Patrones existentes detectados - preservando datos del usuario")
                 }
-                
-                // Cargar patrones predefinidos
-                cargarPatronesPredefinidos()
                 
                 // Verificar cantidad final de patrones
                 val patronesDespues = clasificacionDao.obtenerCantidadPatrones()
-                val nuevosPatrones = patronesDespues - patronesAntes
-                Log.d("ClasificacionRepo", "📊 Patrones después de la carga: $patronesDespues (nuevos: $nuevosPatrones)")
-                Log.i("ClasificacionRepo", "✅ Datos históricos cargados exitosamente")
+                Log.d("ClasificacionRepo", "📊 Patrones después de la carga: $patronesDespues")
+                Log.i("ClasificacionRepo", "✅ Datos históricos cargados exitosamente (preservando datos del usuario)")
             } catch (e: Exception) {
                 Log.e("ClasificacionRepo", "❌ Error al cargar datos históricos: ${e.message}")
             }

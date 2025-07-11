@@ -52,9 +52,13 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
         val presupuestos = presupuestoRepository.obtenerPresupuestosPorPeriodo(periodoActual)
         val periodoAnterior = obtenerPeriodoAnterior(periodoActual)
         
-        return categorias.map { categoria ->
+        return categorias.mapNotNull { categoria ->
             val presupuesto = presupuestos.find { it.categoriaId == categoria.id }?.monto ?: 0.0
             val gastoActual = calcularGastoCategoria(categoria.id, periodoActual)
+            
+            // Filtrar categorías sin gasto
+            if (gastoActual <= 0) return@mapNotNull null
+            
             val gastoAnterior = calcularGastoCategoria(categoria.id, periodoAnterior)
             
             val porcentajeGastado = if (presupuesto > 0) (gastoActual / presupuesto) * 100 else 0.0
@@ -115,12 +119,14 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
      */
     private suspend fun calcularGastoCategoria(categoriaId: Long, periodo: String): Double {
         val movimientos = movimientoRepository.obtenerMovimientos()
-        val movimientosCategoria = movimientos.filter {
-            it.categoriaId == categoriaId && 
-            it.tipo == TipoMovimiento.GASTO.name &&
-            it.periodoFacturacion == periodo
-        }
-        return abs(movimientosCategoria.sumOf { it.monto })
+        return movimientos
+            .filter { 
+                it.categoriaId == categoriaId && 
+                it.periodoFacturacion == periodo &&
+                it.tipo == TipoMovimiento.GASTO.name &&
+                it.tipo != TipoMovimiento.OMITIR.name // Excluir transacciones omitidas
+            }
+            .sumOf { it.monto }
     }
     
     /**
@@ -155,7 +161,8 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
     }
     
     /**
-     * Determina el estado del análisis basado en múltiples factores
+     * Determina el estado del análisis basado en el porcentaje de gasto
+     * Verde: < 90%, Amarillo: 90-100%, Rojo: > 100%
      */
     private fun determinarEstadoAnalisis(
         porcentajeGastado: Double,
@@ -163,10 +170,9 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
         porcentajeProyeccion: Double
     ): EstadoAnalisis {
         return when {
-            porcentajeProyeccion <= 70 && desviacion <= 0 -> EstadoAnalisis.EXCELENTE
-            porcentajeProyeccion <= 100 && desviacion <= 10 -> EstadoAnalisis.NORMAL
-            porcentajeProyeccion > 100 || desviacion > 10 -> EstadoAnalisis.CRITICO
-            else -> EstadoAnalisis.ADVERTENCIA
+            porcentajeGastado < 90 -> EstadoAnalisis.EXCELENTE  // Verde
+            porcentajeGastado <= 100 -> EstadoAnalisis.ADVERTENCIA  // Amarillo
+            else -> EstadoAnalisis.CRITICO  // Rojo
         }
     }
 } 

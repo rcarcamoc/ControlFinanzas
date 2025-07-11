@@ -157,6 +157,39 @@ class AporteProporcionalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Corrige los movimientos de sueldo existentes que no tienen la categoría "Salario" asignada
+     */
+    fun corregirMovimientosSueldoSinCategoria() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = AporteProporcionalUiState.Loading
+                aporteProporcionalUseCase.corregirMovimientosSueldoSinCategoria()
+                
+                // Recargar datos después de la corrección
+                recargarDatos()
+                
+            } catch (e: Exception) {
+                _uiState.value = AporteProporcionalUiState.Error(e.message ?: "Error al corregir movimientos de sueldo")
+            }
+        }
+    }
+
+    /**
+     * Diagnostica el estado de los movimientos de sueldo
+     */
+    fun diagnosticarMovimientosSueldo() {
+        viewModelScope.launch {
+            try {
+                val diagnostico = aporteProporcionalUseCase.diagnosticarMovimientosSueldo()
+                _uiState.value = AporteProporcionalUiState.Diagnostico(diagnostico)
+                
+            } catch (e: Exception) {
+                _uiState.value = AporteProporcionalUiState.Error(e.message ?: "Error al diagnosticar movimientos de sueldo")
+            }
+        }
+    }
+
     private fun obtenerPeriodoActual(): String {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -170,4 +203,5 @@ sealed class AporteProporcionalUiState {
     data class Success(val resumen: ResumenAporteProporcional) : AporteProporcionalUiState()
     data class HistorialSuccess(val historial: List<ResumenAporteProporcional>) : AporteProporcionalUiState()
     data class Error(val mensaje: String) : AporteProporcionalUiState()
+    data class Diagnostico(val diagnostico: String) : AporteProporcionalUiState()
 } 

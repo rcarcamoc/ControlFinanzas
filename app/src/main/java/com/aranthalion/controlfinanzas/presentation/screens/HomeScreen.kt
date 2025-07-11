@@ -102,7 +102,6 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
@@ -110,8 +109,16 @@ fun HomeScreen(
         when (uiState) {
             is MovimientosUiState.Success -> {
                 val movimientos = (uiState as MovimientosUiState.Success).movimientos
-                val gastos = movimientos.filter { it.tipo == "GASTO" }
-                val ingresos = movimientos.filter { it.tipo == "INGRESO" }
+                val periodoActual = obtenerPeriodoActual()
+                
+                // Filtrar movimientos por período y excluir transacciones omitidas
+                val movimientosFiltrados = movimientos.filter { 
+                    it.periodoFacturacion == periodoActual &&
+                    it.tipo != "OMITIR" // Excluir transacciones omitidas
+                }
+                
+                val gastos = movimientosFiltrados.filter { it.tipo == "GASTO" }
+                val ingresos = movimientosFiltrados.filter { it.tipo == "INGRESO" }
                 // Para gastos, sumamos todos los valores (positivos y negativos)
                 // Los negativos representan reversas y reducen el gasto total
                 val totalGastos = FormatUtils.roundToTwoDecimals(

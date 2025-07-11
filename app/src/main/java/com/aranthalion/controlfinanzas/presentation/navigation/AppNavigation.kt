@@ -9,12 +9,15 @@ import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesScreen
 import com.aranthalion.controlfinanzas.presentation.screens.HomeScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
-import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionPendienteScreen
+
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AnalisisGastoPorCategoriaScreen
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosScreen
+import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosYCategoriasScreen
 import com.aranthalion.controlfinanzas.presentation.screens.FirstRunScreen
+import com.aranthalion.controlfinanzas.presentation.screens.UsuariosScreen
+import com.aranthalion.controlfinanzas.presentation.screens.CuentasPorCobrarScreen
 
 import com.aranthalion.controlfinanzas.presentation.components.AppShell
 
@@ -32,7 +35,7 @@ fun AppNavigation(navController: NavHostController) {
                 HomeScreen(navController = navController)
             }
             composable("categorias") {
-                CategoriasScreen(navController = navController)
+                PresupuestosYCategoriasScreen(navController = navController)
             }
             composable("transacciones") {
                 TransaccionesScreen(navController = navController)
@@ -43,9 +46,7 @@ fun AppNavigation(navController: NavHostController) {
             composable("configuracion") {
                 ConfiguracionScreen(navController = navController)
             }
-            composable("clasificacion_pendiente") {
-                ClasificacionPendienteScreen(navController = navController)
-            }
+
             composable("dashboardAnalisis") {
                 DashboardAnalisisScreen(navController = navController)
             }
@@ -53,12 +54,17 @@ fun AppNavigation(navController: NavHostController) {
                 AporteProporcionalScreen(navController = navController)
             }
             composable("presupuestos") {
-                PresupuestosScreen(navController = navController)
+                PresupuestosYCategoriasScreen(navController = navController)
             }
             composable("analisis_gasto_categoria") {
                 AnalisisGastoPorCategoriaScreen(navController = navController)
             }
-
+            composable("usuarios") {
+                UsuariosScreen(navController = navController)
+            }
+            composable("cuentas_por_cobrar") {
+                CuentasPorCobrarScreen(navController = navController)
+            }
         }
     }
 } 
