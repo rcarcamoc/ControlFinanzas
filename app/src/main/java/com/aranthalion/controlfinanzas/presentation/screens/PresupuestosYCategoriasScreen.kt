@@ -3,6 +3,9 @@ package com.aranthalion.controlfinanzas.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -23,6 +26,7 @@ import com.aranthalion.controlfinanzas.presentation.components.PresupuestoCard
 import com.aranthalion.controlfinanzas.presentation.components.PresupuestoProgressBar
 import com.aranthalion.controlfinanzas.presentation.components.ResumenPresupuestosCard
 import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorDialog
+import com.aranthalion.controlfinanzas.presentation.components.CustomIcons
 import java.text.SimpleDateFormat
 import java.util.*
 import com.aranthalion.controlfinanzas.domain.categoria.Categoria
@@ -53,6 +57,13 @@ import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasViewMode
 import com.aranthalion.controlfinanzas.presentation.categoria.CategoriasUiState
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosViewModel
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosUiState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +83,6 @@ fun PresupuestosYCategoriasScreen(
     val resumen by presupuestosViewModel.resumen.collectAsState()
     val scope = rememberCoroutineScope()
     
-    var selectedTab by remember { mutableStateOf(0) }
     var showAddPresupuestoDialog by remember { mutableStateOf(false) }
     var showAddCategoriaDialog by remember { mutableStateOf(false) }
     var presupuestoToEdit by remember { mutableStateOf<PresupuestoCategoria?>(null) }
@@ -103,9 +113,9 @@ fun PresupuestosYCategoriasScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header mejorado con diseño consistente
+        // Header unificado
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -116,417 +126,226 @@ fun PresupuestosYCategoriasScreen(
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            "Presupuestos y Categorías",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Gestiona presupuestos y categorías en una sola vista",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Text(
+                    "Presupuestos y Categorías",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "Gestiona todo en una sola vista",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                // Botones de acción responsive
+                val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                val screenWidth = configuration.screenWidthDp.dp
+                val isSmallScreen = screenWidth < 600.dp
+                
+                if (isSmallScreen) {
+                    // En pantallas pequeñas, apilar verticalmente
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
                             onClick = { showPeriodoSelector = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = "Seleccionar período",
-                                modifier = Modifier.size(18.dp)
+                                CustomIcons.DateRange,
+                                contentDescription = "Período",
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Período")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Período", style = MaterialTheme.typography.bodySmall)
                         }
                         Button(
-                            onClick = { 
-                                if (selectedTab == 0) {
-                                    showAddPresupuestoDialog = true
-                                } else {
-                                    showAddCategoriaDialog = true
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
+                            onClick = { showAddCategoriaDialog = true },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(
-                                Icons.Default.Add, 
-                                contentDescription = "Agregar",
-                                modifier = Modifier.size(18.dp)
+                                CustomIcons.Add,
+                                contentDescription = "Nueva categoría",
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (selectedTab == 0) "Nuevo Presupuesto" else "Nueva Categoría")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Categoría", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                } else {
+                    // En pantallas grandes, alinear horizontalmente
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showPeriodoSelector = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                CustomIcons.DateRange,
+                                contentDescription = "Período",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Período", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Button(
+                            onClick = { showAddCategoriaDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                CustomIcons.Add,
+                                contentDescription = "Nueva categoría",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Categoría", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Pestañas
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    modifier = Modifier.fillMaxWidth()
+            }
+        }
+
+        // Resumen de presupuestos
+        if (resumen != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Presupuestos") },
-                        icon = { Icon(Icons.Default.Star, contentDescription = null) }
+                    Text(
+                        "Resumen del Período",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Categorías") },
-                        icon = { Icon(Icons.Default.List, contentDescription = null) }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Grid de métricas
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item {
+                            MetricCard(
+                                title = "Presupuesto",
+                                value = FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        item {
+                            MetricCard(
+                                title = "Gastado",
+                                value = FormatUtils.formatMoneyCLP(resumen!!.totalGastado),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        item {
+                            MetricCard(
+                                title = "Restante",
+                                value = FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado - resumen!!.totalGastado),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PresupuestoProgressBar(
+                        porcentaje = if (resumen!!.totalPresupuestado > 0) 
+                            (resumen!!.totalGastado / resumen!!.totalPresupuestado) * 100 
+                        else 0.0,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
         }
 
-        // Contenido según la pestaña seleccionada
-        when (selectedTab) {
-            0 -> {
-                // Pestaña de Presupuestos
-                when (presupuestosUiState) {
-                    is PresupuestosUiState.Loading -> {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
+        // Contenido principal - Grid de categorías con presupuestos
+        when {
+            presupuestosUiState is PresupuestosUiState.Loading || categoriasUiState is CategoriasUiState.Loading -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(40.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        "Cargando presupuestos...",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    is PresupuestosUiState.Success -> {
-                        // Resumen de presupuestos mejorado
-                        if (resumen != null) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp)
-                                ) {
-                                    Text(
-                                        "Resumen del Período",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column {
-                                            Text(
-                                                "Presupuesto Total",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                            Text(
-                                                FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                        }
-                                        Column {
-                                            Text(
-                                                "Gastado",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                            Text(
-                                                FormatUtils.formatMoneyCLP(resumen!!.totalGastado),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                        }
-                                        Column {
-                                            Text(
-                                                "Restante",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                            Text(
-                                                FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado - resumen!!.totalGastado),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    PresupuestoProgressBar(
-                                        porcentaje = if (resumen!!.totalPresupuestado > 0) 
-                                            (resumen!!.totalGastado / resumen!!.totalPresupuestado) * 100 
-                                        else 0.0,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // Lista de presupuestos
-                        if (presupuestosCompletos.isNotEmpty()) {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(presupuestosCompletos) { presupuesto ->
-                                    PresupuestoCard(
-                                        presupuesto = presupuesto,
-                                        onEditPresupuesto = { categoriaId, presupuestoValue -> 
-                                            presupuestoToEdit = presupuesto
-                                        }
-                                    )
-                                }
-                            }
-                        } else {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(40.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(48.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        "No hay presupuestos",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        "Crea tu primer presupuesto para controlar tus gastos",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Button(
-                                        onClick = { showAddPresupuestoDialog = true },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        Text("Crear Presupuesto")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    is PresupuestosUiState.Error -> {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
                             )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp)
-                            ) {
-                                Text(
-                                    "Error al cargar presupuestos",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Text(
-                                    (presupuestosUiState as PresupuestosUiState.Error).mensaje,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
+                            Text(
+                                "Cargando...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
-            1 -> {
-                // Pestaña de Categorías
-                when (categoriasUiState) {
-                    is CategoriasUiState.Loading -> {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(40.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        "Cargando categorías...",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    is CategoriasUiState.Success -> {
-                        val categoriasList = (categoriasUiState as CategoriasUiState.Success).categorias
-                        
-                        if (categoriasList.isEmpty()) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(40.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.List,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(48.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        "No hay categorías",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        "Crea tu primera categoría para organizar tus gastos",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Button(
-                                        onClick = { showAddCategoriaDialog = true },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        Text("Crear Categoría")
+            presupuestosUiState is PresupuestosUiState.Success && categoriasUiState is CategoriasUiState.Success -> {
+                val categoriasList = (categoriasUiState as CategoriasUiState.Success).categorias
+                
+                if (categoriasList.isEmpty()) {
+                    EmptyStateCard(
+                        icon = Icons.Default.List,
+                        title = "No hay categorías",
+                        description = "Crea tu primera categoría para organizar tus gastos",
+                        actionText = "Crear Categoría",
+                        onAction = { showAddCategoriaDialog = true }
+                    )
+                } else {
+                    // Grid de categorías con presupuestos
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 280.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(categoriasList) { categoria ->
+                            CategoriaPresupuestoCard(
+                                categoria = categoria,
+                                presupuesto = presupuestosCompletos.find { it.categoria.id == categoria.id },
+                                onEditCategoria = { categoriaToEdit = categoria },
+                                onDeleteCategoria = { 
+                                    scope.launch {
+                                        categoriasViewModel.eliminarCategoria(categoria)
                                     }
-                                }
-                            }
-                        } else {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp)
-                                ) {
-                                    Text(
-                                        text = "Categorías (${categoriasList.size})",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    
-                                    LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        items(categoriasList) { categoria ->
-                                            CategoriaRow(
-                                                categoria = categoria,
-                                                onEdit = { categoriaToEdit = categoria },
-                                                onDelete = { 
-                                                    scope.launch {
-                                                        categoriasViewModel.eliminarCategoria(categoria)
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    is CategoriasUiState.Error -> {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                },
+                                onEditPresupuesto = { presupuesto ->
+                                    presupuestoToEdit = presupuesto
+                                },
+                                onAddPresupuesto = { showAddPresupuestoDialog = true }
                             )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp)
-                            ) {
-                                Text(
-                                    "Error al cargar categorías",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Text(
-                                    (categoriasUiState as CategoriasUiState.Error).mensaje,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
                         }
                     }
                 }
+            }
+            presupuestosUiState is PresupuestosUiState.Error -> {
+                ErrorCard(
+                    title = "Error al cargar presupuestos",
+                    message = (presupuestosUiState as PresupuestosUiState.Error).mensaje
+                )
+            }
+            categoriasUiState is CategoriasUiState.Error -> {
+                ErrorCard(
+                    title = "Error al cargar categorías",
+                    message = (categoriasUiState as CategoriasUiState.Error).mensaje
+                )
             }
         }
     }
@@ -551,7 +370,23 @@ fun PresupuestosYCategoriasScreen(
             onDismiss = { showAddCategoriaDialog = false },
             onConfirm = { nombre, tipo, presupuesto, activarPresupuesto ->
                 scope.launch {
+                    // Crear la categoría
                     categoriasViewModel.agregarCategoria(nombre, tipo)
+                    
+                    // Si se activó asignar presupuesto, crear automáticamente el presupuesto para esta categoría
+                    if (activarPresupuesto && presupuesto > 0) {
+                        // Esperar un poco para que la categoría se cree antes de asignar el presupuesto
+                        kotlinx.coroutines.delay(200)
+                        
+                        // Buscar la categoría recién creada para obtener su ID
+                        val categoriasActuales = (categoriasUiState as? CategoriasUiState.Success)?.categorias ?: emptyList()
+                        val categoriaCreada = categoriasActuales.find { it.nombre == nombre.trim().lowercase() }
+                        
+                        categoriaCreada?.let { categoria ->
+                            presupuestosViewModel.guardarPresupuesto(categoria.id, presupuesto, periodoSeleccionado)
+                        }
+                    }
+                    
                     showAddCategoriaDialog = false
                 }
             }
@@ -600,12 +435,10 @@ fun PresupuestosYCategoriasScreen(
             isVisible = true,
             onDismiss = { showPeriodoSelector = false },
             onConfirm = { startDate, endDate ->
-                // Convertir fechas a formato de período YYYY-MM
-                val nuevoPeriodo = startDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"))
-                scope.launch {
-                    periodoGlobalViewModel.cambiarPeriodo(nuevoPeriodo)
-                    showPeriodoSelector = false
-                }
+                // Convertir las fechas a formato de período (YYYY-MM)
+                val periodo = "${startDate.year}-${startDate.monthValue.toString().padStart(2, '0')}"
+                periodoGlobalViewModel.cambiarPeriodo(periodo)
+                showPeriodoSelector = false
             }
         )
     }
@@ -772,6 +605,296 @@ fun CategoriaDialog(
             }
         }
     )
+}
+
+@Composable
+fun MetricCard(
+    title: String,
+    value: String,
+    color: androidx.compose.ui.graphics.Color
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = color,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun EmptyStateCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    actionText: String,
+    onAction: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(actionText)
+            }
+        }
+    }
+}
+
+@Composable
+fun ErrorCard(
+    title: String,
+    message: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategoriaPresupuestoCard(
+    categoria: Categoria,
+    presupuesto: PresupuestoCategoria?,
+    onEditCategoria: () -> Unit,
+    onDeleteCategoria: () -> Unit,
+    onEditPresupuesto: (PresupuestoCategoria) -> Unit,
+    onAddPresupuesto: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header de la categoría
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = categoria.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (categoria.descripcion.isNotEmpty()) {
+                        Text(
+                            text = categoria.descripcion,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                
+                // Botones de acción de categoría
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = onEditCategoria,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            CustomIcons.Edit,
+                            contentDescription = "Editar categoría",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(
+                        onClick = onDeleteCategoria,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            CustomIcons.Delete,
+                            contentDescription = "Eliminar categoría",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+            
+            // Información del presupuesto
+            if (presupuesto != null) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "Presupuesto",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                FormatUtils.formatMoneyCLP(presupuesto.presupuesto),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        
+                        IconButton(
+                            onClick = { onEditPresupuesto(presupuesto) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                CustomIcons.Edit,
+                                contentDescription = "Editar presupuesto",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Barra de progreso del presupuesto
+                    LinearProgressIndicator(
+                        progress = if (presupuesto.presupuesto > 0) {
+                            (presupuesto.gastoActual / presupuesto.presupuesto).toFloat().coerceIn(0f, 1f)
+                        } else 0f,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = when {
+                            presupuesto.gastoActual <= presupuesto.presupuesto * 0.8 -> MaterialTheme.colorScheme.primary
+                            presupuesto.gastoActual <= presupuesto.presupuesto * 0.9 -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.error
+                        },
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        "Gastado: ${FormatUtils.formatMoneyCLP(presupuesto.gastoActual)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Sin presupuesto asignado
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Button(
+                        onClick = onAddPresupuesto,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            CustomIcons.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Asignar Presupuesto")
+                    }
+                }
+            }
+        }
+    }
 }
 
  

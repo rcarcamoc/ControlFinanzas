@@ -27,6 +27,7 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosUiState
 import com.aranthalion.controlfinanzas.domain.usecase.EstadoPresupuesto
+import com.aranthalion.controlfinanzas.presentation.components.CustomIcons
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.getValue
@@ -156,7 +157,7 @@ fun HomeScreen(
                         StatCard(
                             title = "Gasto Total",
                             value = totalGastos.toString(),
-                            icon = Icons.Default.KeyboardArrowDown,
+                            icon = CustomIcons.KeyboardArrowDown,
                             description = "Este mes",
                             trend = null,
                             isMonetary = true,
@@ -167,7 +168,7 @@ fun HomeScreen(
                         StatCard(
                             title = "Cumplimiento Presupuesto",
                             value = "${resumenPresupuestos?.porcentajeGastado?.toInt() ?: 0}%",
-                            icon = Icons.Default.Star,
+                            icon = CustomIcons.Star,
                             description = "Basado en presupuestos",
                             trend = null,
                             isMonetary = false,
@@ -179,7 +180,7 @@ fun HomeScreen(
                         StatCard(
                             title = "Balance",
                             value = balance.toString(),
-                            icon = Icons.Default.Add,
+                            icon = CustomIcons.Add,
                             description = "Este mes",
                             trend = null,
                             isMonetary = true,
@@ -190,7 +191,7 @@ fun HomeScreen(
                         StatCard(
                             title = "Categorías Activas",
                             value = categoriasActivas.toString(),
-                            icon = Icons.Default.Person,
+                            icon = CustomIcons.Person,
                             description = "En uso",
                             trend = null,
                             isMonetary = false,
@@ -229,7 +230,7 @@ fun HomeScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.KeyboardArrowUp,
+                                        imageVector = CustomIcons.KeyboardArrowUp,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -273,7 +274,7 @@ fun HomeScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.Star,
+                                        imageVector = CustomIcons.Star,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -370,7 +371,7 @@ fun HomeScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.Star,
+                                        imageVector = CustomIcons.Star,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -447,7 +448,7 @@ fun HomeScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.KeyboardArrowUp,
+                                        imageVector = CustomIcons.KeyboardArrowUp,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -569,7 +570,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = CustomIcons.Info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)

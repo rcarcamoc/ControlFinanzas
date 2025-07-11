@@ -167,7 +167,7 @@ fun StatCardGastoPreview() {
         StatCard(
             title = "Gasto Total (Este Mes)",
             value = "$1,850.75",
-            icon = Icons.Default.KeyboardArrowDown,
+            icon = CustomIcons.KeyboardArrowDown,
             description = "Este mes",
             trend = "+20.1%",
             isMonetary = false
@@ -186,7 +186,7 @@ fun StatCardPresupuestoCumplimientoPreview() {
         StatCard(
             title = "Cumplimiento Presupuesto",
             value = "75%",
-            icon = Icons.Default.Star,
+            icon = CustomIcons.Star,
             description = "Basado en presupuestos actuales",
             isMonetary = false,
             presupuestoInfo = PresupuestoInfo(

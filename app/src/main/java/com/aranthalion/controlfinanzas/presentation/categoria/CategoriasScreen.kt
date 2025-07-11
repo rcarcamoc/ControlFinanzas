@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
+import com.aranthalion.controlfinanzas.presentation.components.CustomIcons
 import kotlinx.coroutines.launch
 import java.util.*
 import androidx.compose.foundation.layout.WindowInsets
@@ -38,7 +39,7 @@ fun CategoriasScreen(
                 title = { Text("Categorías") },
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Agregar categoría")
+                        Icon(CustomIcons.Add, contentDescription = "Agregar categoría")
                     }
                 }
             )
@@ -163,10 +164,10 @@ fun CategoriaItem(
             }
             Row {
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                    Icon(CustomIcons.Edit, contentDescription = "Editar")
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                    Icon(CustomIcons.Delete, contentDescription = "Eliminar")
                 }
             }
         }

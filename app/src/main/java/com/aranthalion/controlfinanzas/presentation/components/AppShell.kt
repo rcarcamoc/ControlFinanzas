@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.aranthalion.controlfinanzas.presentation.components.CustomIcons
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,17 +32,17 @@ data class NavItem(
 )
 
 val navItems = listOf(
-    NavItem("home", "Dashboard", Icons.Default.Home),
-    NavItem("transacciones", "Transacciones", Icons.Default.List),
-    NavItem("presupuestos", "Presupuestos y Categorías", Icons.Default.Star),
-    NavItem("usuarios", "Usuarios", Icons.Default.Person),
-    NavItem("cuentas_por_cobrar", "Cuentas por Cobrar", Icons.Default.Star),
+    NavItem("home", "Dashboard", CustomIcons.Home),
+    NavItem("transacciones", "Transacciones", CustomIcons.List),
+    NavItem("presupuestos", "Presupuestos y Categorías", CustomIcons.Star),
+    NavItem("usuarios", "Usuarios", CustomIcons.Person),
+    NavItem("cuentas_por_cobrar", "Cuentas por Cobrar", CustomIcons.Star),
 
-    NavItem("importar_excel", "Importar", Icons.Default.Info),
-    NavItem("dashboardAnalisis", "Análisis", Icons.Default.Star),
-    NavItem("aporte_proporcional", "Aporte", Icons.Default.Person),
-    NavItem("analisis_gasto_categoria", "Análisis Gastos", Icons.Default.Info),
-    NavItem("configuracion", "Configuración", Icons.Default.Settings)
+    NavItem("importar_excel", "Importar", CustomIcons.Info),
+    NavItem("dashboardAnalisis", "Análisis", CustomIcons.Star),
+    NavItem("aporte_proporcional", "Aporte", CustomIcons.Person),
+    NavItem("analisis_gasto_categoria", "Análisis Gastos", CustomIcons.Info),
+    NavItem("configuracion", "Configuración", CustomIcons.Settings)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +82,7 @@ fun AppShell(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Home,
+                            imageVector = CustomIcons.Home,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(32.dp)
@@ -162,7 +163,7 @@ fun AppShell(
                     navigationIcon = {
                         IconButton(onClick = { isSidebarExpanded = !isSidebarExpanded }) {
                             Icon(
-                                imageVector = if (isSidebarExpanded) Icons.Default.Close else Icons.Default.Menu,
+                                imageVector = if (isSidebarExpanded) CustomIcons.Close else CustomIcons.Menu,
                                 contentDescription = if (isSidebarExpanded) "Cerrar menú" else "Abrir menú"
                             )
                         }
@@ -171,7 +172,7 @@ fun AppShell(
                         // User menu placeholder
                         IconButton(onClick = { /* TODO: User menu */ }) {
                             Icon(
-                                imageVector = Icons.Default.Person,
+                                imageVector = CustomIcons.Person,
                                 contentDescription = "Usuario"
                             )
                         }

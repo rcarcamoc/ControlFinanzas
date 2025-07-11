@@ -1356,6 +1356,38 @@ private fun TransaccionEditDialog(
                                 )
                             }
                         }
+                        
+                        // Fila adicional para el tipo "Omitir"
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { tipoSeleccionado = "OMITIR" }
+                                .padding(12.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (tipoSeleccionado == "OMITIR") 
+                                        MaterialTheme.colorScheme.tertiaryContainer 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tipoSeleccionado == "OMITIR",
+                                onClick = { tipoSeleccionado = "OMITIR" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.tertiary
+                                )
+                            )
+                            Text(
+                                "Omitir (no afecta cálculos)",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (tipoSeleccionado == "OMITIR") 
+                                    MaterialTheme.colorScheme.onTertiaryContainer 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     
                                     // Monto mejorado
