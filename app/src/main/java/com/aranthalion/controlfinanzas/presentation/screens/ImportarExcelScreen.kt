@@ -52,6 +52,8 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
+import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionScreen
+import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,6 +99,10 @@ fun ImportarExcelScreen(
     var exito by remember { mutableStateOf(false) }
     var resumenImportacion by remember { mutableStateOf<ResumenImportacion?>(null) }
     var transaccionesConClasificacion by remember { mutableStateOf<List<ExcelTransaction>?>(null) }
+    var mostrarTinder by remember { mutableStateOf(false) }
+    
+    // ViewModel del Tinder de clasificación
+    val tinderViewModel: TinderClasificacionViewModel = hiltViewModel()
     
     // Configurar el ExcelProcessor con el caso de uso de clasificación
     LaunchedEffect(clasificacionUseCase) {
@@ -367,6 +373,14 @@ fun ImportarExcelScreen(
                                 clasificadasAutomaticamente = clasificadasAutomaticamente,
                                 pendientesClasificacion = pendientesClasificacion
                             )
+                            
+                            // Procesar transacciones para el Tinder de clasificación
+                            val transaccionesSinClasificar = transacciones.filter { it.categoriaId == null }
+                            if (transaccionesSinClasificar.isNotEmpty()) {
+                                tinderViewModel.procesarTransaccionesParaTinder(transaccionesSinClasificar)
+                                mostrarTinder = true
+                            }
+                            
                             exito = true
                         }
                     } catch (e: Exception) {
@@ -567,6 +581,15 @@ fun ImportarExcelScreen(
                     }
                 )
             }
+        }
+        
+        // Tinder de clasificación
+        if (mostrarTinder) {
+            TinderClasificacionScreen(
+                onDismiss = {
+                    mostrarTinder = false
+                }
+            )
         }
     }
 }

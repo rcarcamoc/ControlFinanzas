@@ -97,7 +97,8 @@ class AnalisisFinancieroUseCaseTest {
             monto = monto,
             descripcion = "Test",
             fecha = Date(),
-            periodoFacturacion = periodo
+            periodoFacturacion = periodo,
+            idUnico = "test_$id"
         )
     private fun mockCategoria(id: Long, nombre: String) =
         com.aranthalion.controlfinanzas.data.local.entity.Categoria(

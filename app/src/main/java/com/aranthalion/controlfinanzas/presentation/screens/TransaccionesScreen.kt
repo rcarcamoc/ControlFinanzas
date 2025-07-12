@@ -47,6 +47,11 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
 import androidx.compose.ui.platform.LocalConfiguration
+import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionScreen
+import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionViewModel
+import com.aranthalion.controlfinanzas.data.util.ExcelTransaction
+import com.aranthalion.controlfinanzas.presentation.components.ClasificacionStatsCard
+import com.aranthalion.controlfinanzas.presentation.components.ClasificacionStats
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +75,10 @@ fun TransaccionesScreen(
     var expandedPeriodo by remember { mutableStateOf(false) }
     var expandedTipo by remember { mutableStateOf(false) }
     var expandedCategoria by remember { mutableStateOf(false) }
+    var mostrarTinderClasificacion by remember { mutableStateOf(false) }
+    
+    // ViewModel del Tinder de clasificación
+    val tinderViewModel: TinderClasificacionViewModel = hiltViewModel()
     val tipos = listOf("Todos", "Ingresos", "Gastos", "Omitir")
     val calendar = Calendar.getInstance()
     calendar.add(Calendar.MONTH, 2)
@@ -85,25 +94,52 @@ fun TransaccionesScreen(
     LaunchedEffect(periodoGlobal) {
         viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
     }
+    
+    // Función para procesar transacciones sin categoría para el Tinder
+    fun procesarTransaccionesSinCategoria() {
+        if (uiState is MovimientosUiState.Success) {
+            val movimientos = (uiState as MovimientosUiState.Success).movimientos
+            val transaccionesSinCategoria = movimientos.filter { it.categoriaId == null }
+            if (transaccionesSinCategoria.isNotEmpty()) {
+                val excelTransactions = transaccionesSinCategoria.map { movimiento ->
+                    ExcelTransaction(
+                        fecha = movimiento.fecha,
+                        codigoReferencia = null,
+                        ciudad = null,
+                        descripcion = movimiento.descripcion,
+                        tipoTarjeta = movimiento.tipoTarjeta,
+                        monto = movimiento.monto,
+                        periodoFacturacion = movimiento.periodoFacturacion,
+                        categoria = null,
+                        categoriaId = null,
+                        nivelConfianza = null
+                    )
+                }
+                tinderViewModel.procesarTransaccionesParaTinder(excelTransactions)
+                mostrarTinderClasificacion = true
+            }
+        }
+    }
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val isSmallScreen = screenWidth < 600.dp
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         // Header mejorado con diseño consistente
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,15 +249,43 @@ fun TransaccionesScreen(
             }
         }
 
+        // Estadísticas y botón para Tinder de clasificación
+        if (uiState is MovimientosUiState.Success) {
+            item {
+                val movimientos = (uiState as MovimientosUiState.Success).movimientos
+                val transaccionesSinCategoria = movimientos.filter { it.categoriaId == null }
+                val transaccionesClasificadas = movimientos.filter { it.categoriaId != null }
+                val porcentajeClasificadas = if (movimientos.isNotEmpty()) {
+                    transaccionesClasificadas.size.toFloat() / movimientos.size
+                } else 0f
+                
+                val stats = ClasificacionStats(
+                    totalTransacciones = movimientos.size,
+                    clasificadas = transaccionesClasificadas.size,
+                    sinClasificar = transaccionesSinCategoria.size,
+                    porcentajeClasificadas = porcentajeClasificadas
+                )
+                
+                ClasificacionStatsCard(
+                    stats = stats,
+                    onClasificarClick = { procesarTransaccionesSinCategoria() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // El botón de clasificación ya está integrado en ClasificacionStatsCard
+            }
+        }
+
         // Campo de búsqueda
         if (uiState is MovimientosUiState.Success) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
                 OutlinedTextField(
                     value = busquedaTexto,
                     onValueChange = { busquedaTexto = it },
@@ -260,12 +324,13 @@ fun TransaccionesScreen(
 
         when (uiState) {
             is MovimientosUiState.Loading -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -289,8 +354,9 @@ fun TransaccionesScreen(
                 }
             }
             is MovimientosUiState.Success -> {
-                val movimientos = (uiState as MovimientosUiState.Success).movimientos
-                val categorias = (uiState as MovimientosUiState.Success).categorias
+                item {
+                    val movimientos = (uiState as MovimientosUiState.Success).movimientos
+                    val categorias = (uiState as MovimientosUiState.Success).categorias
                 
                 // Aplicar filtros
                 val movimientosFiltrados = movimientos.filter { movimiento ->
@@ -385,10 +451,10 @@ fun TransaccionesScreen(
                                 }
                             }
                         } else {
-                            LazyColumn(
+                            Column(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(movimientosFiltrados) { movimiento ->
+                                movimientosFiltrados.forEach { movimiento ->
                                     TransaccionItem(
                                         movimiento = movimiento,
                                         categorias = categorias,
@@ -400,15 +466,17 @@ fun TransaccionesScreen(
                         }
                     }
                 }
+                }
             }
             is MovimientosUiState.Error -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
                     Row(
                         modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -436,6 +504,17 @@ fun TransaccionesScreen(
                     }
                 }
             }
+        }
+        
+        // Tinder de clasificación
+        if (mostrarTinderClasificacion) {
+            TinderClasificacionScreen(
+                onDismiss = {
+                    mostrarTinderClasificacion = false
+                    // Recargar transacciones después del Tinder
+                    viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
+                }
+            )
         }
     }
 
@@ -671,14 +750,24 @@ fun TransaccionesScreen(
         )
     ) {
         movimientoAEditar?.let { movimiento ->
-            TransaccionEditDialog(
+            val context = LocalContext.current
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                ClasificacionUseCaseEntryPoint::class.java
+            )
+            val clasificacionUseCase = entryPoint.gestionarClasificacionAutomaticaUseCase()
+            val snackbarHostState = remember { SnackbarHostState() }
+            val scope = rememberCoroutineScope()
+            EditarMovimientoDialogConSugerencia(
                 movimiento = movimiento,
                 categorias = (uiState as? MovimientosUiState.Success)?.categorias ?: emptyList(),
                 onDismiss = { movimientoAEditar = null },
                 onConfirm = { movimientoEditado ->
                     viewModel.actualizarMovimiento(movimientoEditado)
                     movimientoAEditar = null
-                }
+                },
+                clasificacionUseCase = clasificacionUseCase,
+                snackbarHostState = snackbarHostState
             )
         }
     }
@@ -1511,6 +1600,9 @@ private fun TransaccionEditDialog(
                     // Categoría mejorada
                     if (categorias.isNotEmpty()) {
                         var expandedCategoria by remember { mutableStateOf(false) }
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                         ExposedDropdownMenuBox(
                             expanded = expandedCategoria,
                             onExpandedChange = { expandedCategoria = !expandedCategoria }
@@ -1546,6 +1638,29 @@ private fun TransaccionEditDialog(
                                             expandedCategoria = false
                                         }
                                     )
+                                    }
+                                }
+                            }
+                            
+                            // Botón para sugerencia automática si no hay categoría
+                            if (categoriaSeleccionada == null) {
+                                OutlinedButton(
+                                    onClick = {
+                                        // TODO: Implementar sugerencia automática
+                                        // Por ahora solo muestra un mensaje
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = "Sugerir categoría",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Sugerir categoría automáticamente")
                                 }
                             }
                         }
@@ -1638,25 +1753,8 @@ fun EditarMovimientoDialogConSugerencia(
     // Consultar sugerencia solo si no hay categoría
     LaunchedEffect(movimiento.id) {
         if (movimiento.categoriaId == null) {
-            val sugerencia = clasificacionUseCase.sugerirCategoria(movimiento.descripcion)
-            if (sugerencia != null) {
-                val categoriaSugerida = categorias.find { it.id == sugerencia.categoriaId }
-                if (categoriaSugerida != null) {
-                    sugerenciaCategoria = categoriaSugerida
-                    mostrarSugerencia = true
-                    scope.launch {
-                        val result = snackbarHostState.showSnackbar(
-                            message = "¿Asignar la categoría sugerida: ${categoriaSugerida.nombre}?",
-                            actionLabel = "Aceptar",
-                            withDismissAction = true
-                        )
-                        if (result == SnackbarResult.ActionPerformed) {
-                            categoriaSeleccionada = categoriaSugerida
-                        }
-                        mostrarSugerencia = false
-                    }
-                }
-            }
+            // TODO: Implementar sugerencia automática
+            // Por ahora no se hace nada
         }
     }
 

@@ -39,79 +39,87 @@ fun AnalisisGastoPorCategoriaScreen(
         viewModel.cargarAnalisis()
     }
     
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Análisis de Gasto por Categoría",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            IconButton(onClick = { viewModel.cargarAnalisis() }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Análisis de Gasto por Categoría",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = { viewModel.cargarAnalisis() }) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
+                }
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
-        
         // Resumen
         uiState.resumen?.let { resumen ->
-            ResumenAnalisisCard(resumen = resumen)
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                ResumenAnalisisCard(resumen = resumen)
+            }
         }
         
         // Botón de Re-analizar
         if (!uiState.isLoading && uiState.error == null) {
-            Button(
-                onClick = { viewModel.cargarAnalisis() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Re-analizar Datos",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
+            item {
+                Button(
+                    onClick = { viewModel.cargarAnalisis() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Re-analizar Datos",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
         
         // Estado de carga
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
         } else if (uiState.error != null) {
-            ErrorCard(
-                error = uiState.error!!,
-                onDismiss = { viewModel.limpiarError() }
-            )
+            item {
+                ErrorCard(
+                    error = uiState.error!!,
+                    onDismiss = { viewModel.limpiarError() }
+                )
+            }
         } else {
             // Tabla de análisis
-            AnalisisGastoTable(
-                analisis = uiState.analisis,
-                periodoActual = uiState.periodoActual
-            )
+            item {
+                AnalisisGastoTable(
+                    analisis = uiState.analisis,
+                    periodoActual = uiState.periodoActual
+                )
+            }
         }
     }
 }
@@ -203,6 +211,7 @@ private fun AnalisisGastoTable(
     periodoActual: String
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<AnalisisGastoCategoria?>(null) }
+    
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -215,6 +224,7 @@ private fun AnalisisGastoTable(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
+            
             // Header de la tabla
             Row(
                 modifier = Modifier
@@ -252,20 +262,26 @@ private fun AnalisisGastoTable(
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            // Filas de datos
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 400.dp)
-            ) {
-                items(analisis) { item ->
-                    Box(modifier = Modifier.clickable { categoriaSeleccionada = item }) {
+            
+            // Filas de datos - ahora como items en lugar de LazyColumn fijo
+            analisis.forEach { item ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { categoriaSeleccionada = item }
+                ) {
                     AnalisisGastoRow(item = item)
-                    }
                 }
             }
+            
             // Tabla de movimientos si hay categoría seleccionada
             categoriaSeleccionada?.let { catSel ->
                 Spacer(modifier = Modifier.height(24.dp))
-                DetalleMovimientosCategoria(categoria = catSel.categoria, periodo = periodoActual, onClose = { categoriaSeleccionada = null })
+                DetalleMovimientosCategoria(
+                    categoria = catSel.categoria, 
+                    periodo = periodoActual, 
+                    onClose = { categoriaSeleccionada = null }
+                )
             }
         }
     }
@@ -376,35 +392,53 @@ private fun DetalleMovimientosCategoria(
     val viewModel: AnalisisGastoPorCategoriaViewModel = hiltViewModel()
     var movimientos by remember { mutableStateOf<List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    
     LaunchedEffect(categoria.id, periodo) {
         isLoading = true
         movimientos = viewModel.obtenerMovimientosPorCategoriaYPeriodo(categoria.id, periodo)
         isLoading = false
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(16.dp)
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Movimientos de la categoría: ${categoria.nombre}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onClose) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar")
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Movimientos de la categoría: ${categoria.nombre}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        if (isLoading) {
-            CircularProgressIndicator()
-        } else if (movimientos.isEmpty()) {
-            Text("No hay movimientos para esta categoría en el período seleccionado.", style = MaterialTheme.typography.bodyMedium)
-        } else {
-            DetalleMovimientosTable(movimientos)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (movimientos.isEmpty()) {
+                Text(
+                    "No hay movimientos para esta categoría en el período seleccionado.", 
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                DetalleMovimientosTable(movimientos)
+            }
         }
     }
 }
@@ -412,6 +446,7 @@ private fun DetalleMovimientosCategoria(
 @Composable
 private fun DetalleMovimientosTable(movimientos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>) {
     Column(modifier = Modifier.fillMaxWidth()) {
+        // Header de la tabla de movimientos
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -419,16 +454,29 @@ private fun DetalleMovimientosTable(movimientos: List<com.aranthalion.controlfin
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Fecha", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-            Text("Descripción", modifier = Modifier.weight(2f), fontWeight = FontWeight.Bold)
-            Text("Monto", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+            Text(
+                "Fecha", 
+                modifier = Modifier.weight(1f), 
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Descripción", 
+                modifier = Modifier.weight(2f), 
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Monto", 
+                modifier = Modifier.weight(1f), 
+                fontWeight = FontWeight.Bold, 
+                textAlign = TextAlign.End
+            )
         }
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 320.dp) // Altura máxima visible, luego scroll
+        
+        // Filas de movimientos - ahora como Column en lugar de LazyColumn fijo
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            items(movimientos) { mov ->
+            movimientos.forEach { mov ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -449,6 +497,7 @@ private fun DetalleMovimientosTable(movimientos: List<com.aranthalion.controlfin
                         textAlign = TextAlign.End
                     )
                 }
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
             }
         }
     }

@@ -23,6 +23,7 @@ import com.aranthalion.controlfinanzas.data.repository.SueldoRepository
 import com.aranthalion.controlfinanzas.data.repository.SueldoRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.UsuarioRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.CuentaPorCobrarRepositoryImpl
+import com.aranthalion.controlfinanzas.data.repository.TinderClasificacionService
 import com.aranthalion.controlfinanzas.data.util.MovimientoManualMapper
 import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
@@ -327,6 +328,24 @@ abstract class AppModule {
             categoriaRepository: CategoriaRepository
         ): GestionarCategoriasUseCase {
             return GestionarCategoriasUseCase(categoriaRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideCategoriaRepositoryImpl(
+            categoriaDao: CategoriaDao,
+            auditoriaService: AuditoriaService
+        ): CategoriaRepositoryImpl {
+            return CategoriaRepositoryImpl(categoriaDao, auditoriaService)
+        }
+
+        @Provides
+        @Singleton
+        fun provideTinderClasificacionService(
+            movimientoDao: MovimientoDao,
+            clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
+        ): TinderClasificacionService {
+            return TinderClasificacionService(movimientoDao, clasificacionUseCase)
         }
     }
 } 
