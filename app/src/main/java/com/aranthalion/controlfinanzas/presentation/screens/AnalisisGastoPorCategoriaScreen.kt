@@ -258,7 +258,7 @@ private fun AnalisisGastoTable(
             ) {
                 items(analisis) { item ->
                     Box(modifier = Modifier.clickable { categoriaSeleccionada = item }) {
-                        AnalisisGastoRow(item = item)
+                    AnalisisGastoRow(item = item)
                     }
                 }
             }

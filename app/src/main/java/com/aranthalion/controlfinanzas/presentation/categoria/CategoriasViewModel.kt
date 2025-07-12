@@ -21,8 +21,9 @@ class CategoriasViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            gestionarCategoriasUseCase.limpiarYEliminarDuplicados()
-        cargarCategorias()
+            // Comentado para evitar borrado automático de datos
+            // gestionarCategoriasUseCase.limpiarYEliminarDuplicados()
+            cargarCategorias()
         }
     }
 

@@ -11,6 +11,7 @@ data class MovimientoManualEntity(
     val id: Long = 0,
     val fecha: Date,
     val descripcion: String,
+    val descripcionLimpia: String = "", // Nuevo campo para la descripción normalizada
     val monto: Double,
     val tipo: TipoMovimiento,
     val categoriaId: Long? = null,

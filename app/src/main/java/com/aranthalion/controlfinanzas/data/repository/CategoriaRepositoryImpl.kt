@@ -7,9 +7,11 @@ import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
 
 class CategoriaRepositoryImpl @Inject constructor(
-    private val categoriaDao: CategoriaDao
+    private val categoriaDao: CategoriaDao,
+    private val auditoriaService: AuditoriaService
 ) : CategoriaRepository {
 
     private fun toEntity(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria): CategoriaEntity {
@@ -45,15 +47,51 @@ class CategoriaRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
+        println("📝 CATEGORIA_AUDITORIA: Insertando categoría - Nombre: ${categoria.nombre}")
         categoriaDao.agregarCategoria(toEntity(categoria))
+        
+        // Registrar auditoría
+        auditoriaService.registrarOperacion(
+            tabla = "categorias",
+            operacion = "INSERT",
+            entidadId = categoria.id,
+            detalles = "Categoría insertada - Nombre: ${categoria.nombre}, Tipo: ${categoria.tipo}",
+            daoResponsable = "CategoriaDao"
+        )
+        
+        println("✅ CATEGORIA_AUDITORIA: Categoría insertada exitosamente")
     }
 
     override suspend fun updateCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
+        println("📝 CATEGORIA_AUDITORIA: Actualizando categoría - ID: ${categoria.id}, Nombre: ${categoria.nombre}")
         categoriaDao.actualizarCategoria(toEntity(categoria))
+        
+        // Registrar auditoría
+        auditoriaService.registrarOperacion(
+            tabla = "categorias",
+            operacion = "UPDATE",
+            entidadId = categoria.id,
+            detalles = "Categoría actualizada - ID: ${categoria.id}, Nombre: ${categoria.nombre}, Tipo: ${categoria.tipo}",
+            daoResponsable = "CategoriaDao"
+        )
+        
+        println("✅ CATEGORIA_AUDITORIA: Categoría actualizada exitosamente")
     }
 
     override suspend fun deleteCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
+        println("📝 CATEGORIA_AUDITORIA: Eliminando categoría - ID: ${categoria.id}, Nombre: ${categoria.nombre}")
+        
+        // Registrar auditoría antes de eliminar
+        auditoriaService.registrarOperacion(
+            tabla = "categorias",
+            operacion = "DELETE",
+            entidadId = categoria.id,
+            detalles = "Categoría eliminada - ID: ${categoria.id}, Nombre: ${categoria.nombre}, Tipo: ${categoria.tipo}",
+            daoResponsable = "CategoriaDao"
+        )
+        
         categoriaDao.eliminarCategoria(toEntity(categoria))
+        println("✅ CATEGORIA_AUDITORIA: Categoría eliminada exitosamente")
     }
 
     override suspend fun insertDefaultCategorias() {

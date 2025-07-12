@@ -74,15 +74,29 @@ fun PresupuestosScreen(
         viewModel.cargarPresupuestos(periodoSeleccionado)
     }
     
-    // Cuando cambien las categorías, aplicar lazy copy
+    // Cuando cambien las categorías, aplicar lazy copy solo si es necesario
     LaunchedEffect(categorias) {
+        println("🔍 LAUNCHED_EFFECT: Categorías cambiaron - Total: ${categorias.size}")
         if (categorias.isNotEmpty()) {
-            categorias.forEach { categoria ->
-                viewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
+            // Solo aplicar lazy copy si no hay presupuestos para el período actual
+            val presupuestosActuales = presupuestosPorCategoria.values.toList()
+            println("🔍 LAUNCHED_EFFECT: Presupuestos actuales en memoria: ${presupuestosActuales.size}")
+            
+            if (presupuestosActuales.isEmpty()) {
+                println("🔍 LAUNCHED_EFFECT: Aplicando lazy copy para ${categorias.size} categorías")
+                categorias.forEach { categoria ->
+                    println("🔍 LAUNCHED_EFFECT: Procesando categoría: ${categoria.nombre} (ID: ${categoria.id})")
+                    viewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
+                }
+                // Recargar presupuestos después de aplicar lazy copy
+                kotlinx.coroutines.delay(200)
+                println("🔍 LAUNCHED_EFFECT: Recargando presupuestos después de lazy copy")
+                viewModel.cargarPresupuestos(periodoSeleccionado)
+            } else {
+                println("🔍 LAUNCHED_EFFECT: Ya existen presupuestos para el período, saltando lazy copy")
             }
-            // Recargar presupuestos después de aplicar lazy copy
-            kotlinx.coroutines.delay(200)
-            viewModel.cargarPresupuestos(periodoSeleccionado)
+        } else {
+            println("🔍 LAUNCHED_EFFECT: No hay categorías disponibles")
         }
     }
 
@@ -1162,18 +1176,18 @@ fun PresupuestoDialog(
                             )
                         )
                         if (categoriaPreseleccionada == null) {
-                            ExposedDropdownMenu(
-                                expanded = expandedCategoria,
-                                onDismissRequest = { expandedCategoria = false }
-                            ) {
-                                categorias.forEach { categoria ->
-                                    DropdownMenuItem(
-                                        text = { Text(categoria.nombre) },
-                                        onClick = {
-                                            categoriaSeleccionada = categoria
-                                            expandedCategoria = false
-                                        }
-                                    )
+                        ExposedDropdownMenu(
+                            expanded = expandedCategoria,
+                            onDismissRequest = { expandedCategoria = false }
+                        ) {
+                            categorias.forEach { categoria ->
+                                DropdownMenuItem(
+                                    text = { Text(categoria.nombre) },
+                                    onClick = {
+                                        categoriaSeleccionada = categoria
+                                        expandedCategoria = false
+                                    }
+                                )
                                 }
                             }
                         }

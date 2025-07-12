@@ -98,15 +98,31 @@ fun PresupuestosYCategoriasScreen(
         presupuestosViewModel.cargarPresupuestos(periodoSeleccionado)
     }
     
-    // Cuando cambien las categorías, aplicar lazy copy
-    LaunchedEffect(categorias) {
+    // Cuando cambien las categorías, aplicar lazy copy solo si es necesario
+    LaunchedEffect(categorias, periodoSeleccionado) {
+        println("🔍 LAUNCHED_EFFECT: Categorías o período cambiaron - Categorías: ${categorias.size}, Período: $periodoSeleccionado")
+        
+        // Solo ejecutar si hay categorías y no se ha ejecutado recientemente
         if (categorias.isNotEmpty()) {
-            categorias.forEach { categoria ->
-                presupuestosViewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
+            val presupuestosActuales = presupuestosPorCategoria.values.toList()
+            println("🔍 LAUNCHED_EFFECT: Presupuestos actuales en memoria: ${presupuestosActuales.size}")
+            
+            // Solo aplicar lazy copy si realmente no hay presupuestos para el período actual
+            if (presupuestosActuales.isEmpty()) {
+                println("🔍 LAUNCHED_EFFECT: Aplicando lazy copy para ${categorias.size} categorías en período $periodoSeleccionado")
+                categorias.forEach { categoria ->
+                    println("🔍 LAUNCHED_EFFECT: Procesando categoría: ${categoria.nombre} (ID: ${categoria.id})")
+                    presupuestosViewModel.lazyCopyPresupuestoSiNoExiste(categoria.id, periodoSeleccionado)
+                }
+                // Recargar presupuestos después de aplicar lazy copy
+                kotlinx.coroutines.delay(200)
+                println("🔍 LAUNCHED_EFFECT: Recargando presupuestos después de lazy copy")
+                presupuestosViewModel.cargarPresupuestos(periodoSeleccionado)
+            } else {
+                println("🔍 LAUNCHED_EFFECT: Ya existen presupuestos para el período $periodoSeleccionado, saltando lazy copy")
             }
-            // Recargar presupuestos después de aplicar lazy copy
-            kotlinx.coroutines.delay(200)
-            presupuestosViewModel.cargarPresupuestos(periodoSeleccionado)
+        } else {
+            println("🔍 LAUNCHED_EFFECT: No hay categorías disponibles")
         }
     }
 

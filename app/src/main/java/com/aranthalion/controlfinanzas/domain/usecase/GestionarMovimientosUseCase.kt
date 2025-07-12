@@ -20,12 +20,12 @@ class GestionarMovimientosUseCase @Inject constructor(
         return movimientoRepository.obtenerCategorias()
     }
 
-    suspend fun agregarMovimiento(movimiento: MovimientoEntity) {
-        movimientoRepository.agregarMovimiento(movimiento)
+    suspend fun agregarMovimiento(movimiento: MovimientoEntity, metodo: String = "INSERT", dao: String = "MovimientoDao") {
+        movimientoRepository.agregarMovimiento(movimiento, metodo, dao)
     }
 
-    suspend fun actualizarMovimiento(movimiento: MovimientoEntity) {
-        movimientoRepository.actualizarMovimiento(movimiento)
+    suspend fun actualizarMovimiento(movimiento: MovimientoEntity, metodo: String = "UPDATE", dao: String = "MovimientoDao") {
+        movimientoRepository.actualizarMovimiento(movimiento, metodo, dao)
     }
 
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity) {

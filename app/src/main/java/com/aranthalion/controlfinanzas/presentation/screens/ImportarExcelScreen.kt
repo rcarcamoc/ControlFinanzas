@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
@@ -329,9 +330,14 @@ fun ImportarExcelScreen(
                             
                             val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(mesSeleccionado)
                             val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(mesSeleccionado)
+                            
+                            // Para "Estado de cierre", preservar clasificaciones existentes en lugar de eliminar todo
                             if (tipoArchivo == "Estado de cierre") {
-                                viewModel.eliminarMovimientosPorPeriodo(mesSeleccionado)
+                                // En lugar de eliminar todo el período, solo actualizar movimientos existentes
+                                // y agregar los nuevos, preservando las clasificaciones manuales
+                                println("🔄 IMPORTACIÓN: Preservando clasificaciones manuales para Estado de cierre")
                             }
+                            
                             val nuevos = movimientos.filter { it.idUnico !in existentes }
                             val duplicados = movimientos.size - nuevos.size
                             
@@ -344,6 +350,9 @@ fun ImportarExcelScreen(
                                 }
                                 viewModel.agregarMovimiento(movConCategoria)
                             }
+                            
+                            // Aprender de las clasificaciones manuales preservadas
+                            // Nota: Las clasificaciones se preservan automáticamente en el proceso de importación
                             
                             val montoTotal = nuevos.sumOf { it.monto.toDouble() }
                             val clasificadasAutomaticamente = nuevos.count { it.categoriaId != null }

@@ -91,7 +91,7 @@ class MovimientosViewModel @Inject constructor(
     fun agregarMovimiento(movimiento: MovimientoEntity) {
         viewModelScope.launch {
             try {
-                gestionarMovimientosUseCase.agregarMovimiento(movimiento)
+                gestionarMovimientosUseCase.agregarMovimiento(movimiento, "INSERT", "MovimientosViewModel")
                 
                 // Aprender del patrón si se asignó una categoría manualmente
                 if (movimiento.categoriaId != null) {
@@ -113,7 +113,7 @@ class MovimientosViewModel @Inject constructor(
                 val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
                 val movimientoAnterior = movimientos.find { it.id == movimiento.id }
                 
-                gestionarMovimientosUseCase.actualizarMovimiento(movimiento)
+                gestionarMovimientosUseCase.actualizarMovimiento(movimiento, "UPDATE", "MovimientosViewModel")
                 
                 // Aprender del patrón si se asignó una categoría manualmente (nueva o cambiada)
                 if (movimiento.categoriaId != null && 
@@ -182,6 +182,12 @@ class MovimientosViewModel @Inject constructor(
     suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
         withContext(Dispatchers.IO) {
             gestionarMovimientosUseCase.eliminarMovimientosPorPeriodo(periodo)
+        }
+    }
+
+    suspend fun obtenerMovimientos(): List<MovimientoEntity> {
+        return withContext(Dispatchers.IO) {
+            gestionarMovimientosUseCase.obtenerMovimientos()
         }
     }
 }

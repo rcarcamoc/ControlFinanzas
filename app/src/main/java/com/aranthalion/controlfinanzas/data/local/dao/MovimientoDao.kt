@@ -16,6 +16,16 @@ interface MovimientoDao {
     @Update
     suspend fun actualizarMovimiento(movimiento: MovimientoEntity)
 
+    // Métodos de auditoría
+    @Query("UPDATE movimientos SET fechaActualizacion = :timestamp, metodoActualizacion = :metodo, daoResponsable = :dao WHERE id = :id")
+    suspend fun actualizarAuditoria(id: Long, timestamp: Long, metodo: String, dao: String)
+    
+    @Query("SELECT * FROM movimientos ORDER BY fechaActualizacion DESC LIMIT 50")
+    suspend fun obtenerMovimientosRecientes(): List<MovimientoEntity>
+    
+    @Query("SELECT * FROM movimientos WHERE metodoActualizacion = :metodo ORDER BY fechaActualizacion DESC")
+    suspend fun obtenerMovimientosPorMetodo(metodo: String): List<MovimientoEntity>
+
     @Delete
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity)
 

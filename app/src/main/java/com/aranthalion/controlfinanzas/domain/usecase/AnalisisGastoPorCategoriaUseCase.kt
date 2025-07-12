@@ -52,7 +52,7 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
         val presupuestos = presupuestoRepository.obtenerPresupuestosPorPeriodo(periodoActual)
         val periodoAnterior = obtenerPeriodoAnterior(periodoActual)
         val movimientos = movimientoRepository.obtenerMovimientos()
-
+        
         val lista = categorias.mapNotNull { categoria ->
             val presupuesto = presupuestos.find { it.categoriaId == categoria.id }?.monto ?: 0.0
             val gastoActual = movimientos.filter {

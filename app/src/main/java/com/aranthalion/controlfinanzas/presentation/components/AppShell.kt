@@ -42,6 +42,8 @@ val navItems = listOf(
     NavItem("dashboardAnalisis", "Análisis", CustomIcons.Star),
     NavItem("aporte_proporcional", "Aporte", CustomIcons.Person),
     NavItem("analisis_gasto_categoria", "Análisis Gastos", CustomIcons.Info),
+    NavItem("insights_avanzados", "Insights y Agrupaciones", CustomIcons.Psychology),
+    NavItem("auditoria_database", "Auditoría DB", CustomIcons.List),
     NavItem("configuracion", "Configuración", CustomIcons.Settings)
 )
 

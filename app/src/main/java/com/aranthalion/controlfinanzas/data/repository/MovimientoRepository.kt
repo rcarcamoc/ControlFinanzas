@@ -8,11 +8,13 @@ import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
 
 class MovimientoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
     private val categoriaDao: CategoriaDao,
-    private val context: Context
+    private val context: Context,
+    private val auditoriaService: AuditoriaService
 ) {
     suspend fun obtenerMovimientos(): List<MovimientoEntity> {
         val movimientos = movimientoDao.obtenerMovimientos()
@@ -39,16 +41,67 @@ class MovimientoRepository @Inject constructor(
         return categoriaDao.obtenerCategorias()
     }
 
-    suspend fun agregarMovimiento(movimiento: MovimientoEntity) {
-        movimientoDao.agregarMovimiento(movimiento)
+    suspend fun agregarMovimiento(movimiento: MovimientoEntity, metodo: String = "INSERT", dao: String = "MovimientoDao") {
+        val descripcionLimpia = limpiarDescripcion(movimiento.descripcion)
+        val timestamp = System.currentTimeMillis()
+        val movimientoConAuditoria = movimiento.copy(
+            descripcionLimpia = descripcionLimpia,
+            fechaCreacion = timestamp,
+            fechaActualizacion = timestamp,
+            metodoActualizacion = metodo,
+            daoResponsable = dao
+        )
+        movimientoDao.agregarMovimiento(movimientoConAuditoria)
+        
+        // Registrar auditoría
+        auditoriaService.registrarOperacion(
+            tabla = "movimientos",
+            operacion = "INSERT",
+            entidadId = movimientoConAuditoria.id,
+            detalles = "Movimiento agregado: ${movimientoConAuditoria.descripcion} - Monto: ${movimientoConAuditoria.monto} - Tipo: ${movimientoConAuditoria.tipo}",
+            daoResponsable = dao
+        )
+        
+        println("📝 AUDITORÍA: Movimiento agregado - ID: ${movimiento.id}, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
     }
 
-    suspend fun actualizarMovimiento(movimiento: MovimientoEntity) {
-        movimientoDao.actualizarMovimiento(movimiento)
+    suspend fun actualizarMovimiento(movimiento: MovimientoEntity, metodo: String = "UPDATE", dao: String = "MovimientoDao") {
+        val timestamp = System.currentTimeMillis()
+        val movimientoConAuditoria = movimiento.copy(
+            fechaActualizacion = timestamp,
+            metodoActualizacion = metodo,
+            daoResponsable = dao
+        )
+        movimientoDao.actualizarMovimiento(movimientoConAuditoria)
+        
+        // Registrar auditoría
+        auditoriaService.registrarOperacion(
+            tabla = "movimientos",
+            operacion = "UPDATE",
+            entidadId = movimiento.id,
+            detalles = "Movimiento actualizado: ${movimiento.descripcion} - Monto: ${movimiento.monto} - Categoría: ${movimiento.categoriaId}",
+            daoResponsable = dao
+        )
+        
+        println("📝 AUDITORÍA: Movimiento actualizado - ID: ${movimiento.id}, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
     }
 
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity) {
+        val timestamp = System.currentTimeMillis()
+        println("📝 AUDITORÍA: Eliminando movimiento individual - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}")
+        
+        // Registrar auditoría antes de eliminar
+        auditoriaService.registrarOperacion(
+            tabla = "movimientos",
+            operacion = "DELETE_INDIVIDUAL",
+            entidadId = movimiento.id,
+            detalles = "Movimiento eliminado: ${movimiento.descripcion} - Monto: ${movimiento.monto} - Tipo: ${movimiento.tipo}",
+            daoResponsable = "MovimientoDao"
+        )
+        
+        // Ahora eliminar el movimiento
         movimientoDao.eliminarMovimiento(movimiento)
+        println("✅ AUDITORÍA: Movimiento eliminado exitosamente")
     }
 
     suspend fun obtenerIdUnicos(): Set<String> {
@@ -64,7 +117,51 @@ class MovimientoRepository @Inject constructor(
     }
 
     suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
+        val timestamp = System.currentTimeMillis()
+        println("📝 AUDITORÍA: Eliminando movimientos por período - Período: $periodo, Timestamp: $timestamp")
+        
+        // Obtener los movimientos que se van a eliminar para registrar auditoría
+        val movimientosAEliminar = movimientoDao.obtenerMovimientos().filter { 
+            it.periodoFacturacion == periodo 
+        }
+        
+        println("📝 AUDITORÍA: Movimientos a eliminar: ${movimientosAEliminar.size}")
+        
+        // Registrar auditoría para cada movimiento antes de eliminarlo
+        movimientosAEliminar.forEach { movimiento ->
+            auditoriaService.registrarOperacion(
+                tabla = "movimientos",
+                operacion = "DELETE_PERIODO",
+                entidadId = movimiento.id,
+                detalles = "Movimiento eliminado por período $periodo: ${movimiento.descripcion} - Monto: ${movimiento.monto}",
+                daoResponsable = "MovimientoDao"
+            )
+            println("📝 AUDITORÍA: Registrada eliminación para movimiento ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}")
+        }
+        
+        // Ahora eliminar los movimientos
         movimientoDao.eliminarMovimientosPorPeriodo(periodo)
+        println("✅ AUDITORÍA: Eliminación completada para período: $periodo")
+    }
+    
+    // Métodos de auditoría
+    suspend fun obtenerMovimientosRecientes(): List<MovimientoEntity> {
+        val movimientos = movimientoDao.obtenerMovimientosRecientes()
+        println("🔍 AUDITORIA_REPO: Movimientos recientes obtenidos: ${movimientos.size}")
+        movimientos.take(5).forEach { movimiento ->
+            println("  - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}, Método: ${movimiento.metodoActualizacion}, DAO: ${movimiento.daoResponsable}")
+        }
+        return movimientos
+    }
+    
+    suspend fun obtenerMovimientosPorMetodo(metodo: String): List<MovimientoEntity> {
+        return movimientoDao.obtenerMovimientosPorMetodo(metodo)
+    }
+    
+    suspend fun actualizarAuditoria(id: Long, metodo: String, dao: String) {
+        val timestamp = System.currentTimeMillis()
+        movimientoDao.actualizarAuditoria(id, timestamp, metodo, dao)
+        println("📝 AUDITORÍA: Actualizando auditoría - ID: $id, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
     }
 
     /**
@@ -425,5 +522,18 @@ class MovimientoRepository @Inject constructor(
             }
             println("Se cargaron ${movimientos.size} movimientos históricos hardcodeados")
         }
+    }
+
+    /**
+     * Limpia y normaliza la descripción de una transacción para facilitar el análisis y sugerencias.
+     */
+    private fun limpiarDescripcion(descripcion: String): String {
+        // Ejemplo simple: quitar números, caracteres especiales y espacios extra
+        return descripcion
+            .replace(Regex("[0-9]+"), "")
+            .replace(Regex("[^A-Za-zÁÉÍÓÚáéíóúÑñüÜ\\s]"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .lowercase()
     }
 } 

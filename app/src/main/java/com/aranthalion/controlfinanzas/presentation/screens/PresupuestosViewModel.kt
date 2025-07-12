@@ -43,16 +43,23 @@ class PresupuestosViewModel @Inject constructor(
                 println("🔍 PRESUPUESTO: Cargando presupuestos para periodo: $periodo")
                 val categorias = categoriaRepository.obtenerCategorias()
                 val categoriasUnicas = categorias.distinctBy { it.nombre.trim().lowercase() }
+                println("🔍 PRESUPUESTO: Categorías obtenidas: ${categoriasUnicas.size}")
+                
                 val presupuestos = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodo)
+                println("🔍 PRESUPUESTO: Presupuestos en BD para periodo $periodo: ${presupuestos.size}")
+                
                 val presupuestosMap = presupuestos.associateBy { it.categoriaId }
                 val resumen = gestionarPresupuestosUseCase.obtenerResumenPresupuestos(periodo)
                 val presupuestosCompletos = gestionarPresupuestosUseCase.obtenerEstadoPresupuestos(periodo)
                 println("🔍 PRESUPUESTO: Resumen obtenido: totalPresupuestado=${resumen.totalPresupuestado}, totalGastado=${resumen.totalGastado}, porcentaje=${resumen.porcentajeGastado}")
+                println("🔍 PRESUPUESTO: Presupuestos completos: ${presupuestosCompletos.size}")
+                
                 _categorias.value = categoriasUnicas
                 _presupuestosPorCategoria.value = presupuestosMap
                 _resumen.value = resumen
                 _presupuestosCompletos.value = presupuestosCompletos
                 _uiState.value = PresupuestosUiState.Success
+                println("✅ PRESUPUESTO: Carga completada exitosamente")
             } catch (e: Exception) {
                 println("❌ PRESUPUESTO: ${e.message}")
                 _uiState.value = PresupuestosUiState.Error(e.message ?: "Error al cargar presupuestos")
@@ -100,9 +107,13 @@ class PresupuestosViewModel @Inject constructor(
     // Lazy copy: si se navega a un mes futuro sin presupuesto, replicar el último valor conocido
     fun lazyCopyPresupuestoSiNoExiste(categoriaId: Long, periodo: String) {
         viewModelScope.launch {
+            println("🔍 LAZY_COPY: Verificando presupuesto para categoría $categoriaId en periodo $periodo")
             val existe = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodo)
                 .any { it.categoriaId == categoriaId }
+            println("🔍 LAZY_COPY: ¿Existe presupuesto? $existe")
+            
             if (!existe) {
+                println("🔍 LAZY_COPY: Buscando presupuesto anterior para categoría $categoriaId")
                 // Buscar el último presupuesto anterior
                 val formato = java.text.SimpleDateFormat("yyyy-MM")
                 val calendar = java.util.Calendar.getInstance()
@@ -113,15 +124,19 @@ class PresupuestosViewModel @Inject constructor(
                     val presupuestos = gestionarPresupuestosUseCase.obtenerPresupuestosPorPeriodo(periodoAnterior)
                     val anterior = presupuestos.find { it.categoriaId == categoriaId }
                     if (anterior != null) {
+                        println("🔍 LAZY_COPY: Presupuesto anterior encontrado en $periodoAnterior: ${anterior.monto}")
                         val entity = PresupuestoCategoriaEntity(
                             categoriaId = categoriaId,
                             monto = anterior.monto,
                             periodo = periodo
                         )
                         gestionarPresupuestosUseCase.guardarPresupuesto(entity)
+                        println("✅ LAZY_COPY: Presupuesto copiado exitosamente de $periodoAnterior a $periodo")
                         break
                     }
                 }
+            } else {
+                println("ℹ️ LAZY_COPY: Presupuesto ya existe para categoría $categoriaId en periodo $periodo")
             }
         }
     }

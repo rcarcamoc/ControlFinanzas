@@ -30,4 +30,13 @@ object CustomIcons {
     val Star: ImageVector = Icons.Default.Star
     val Warning: ImageVector = Icons.Default.Warning
     val AccountCircle: ImageVector = Icons.Default.AccountCircle
+    val Psychology: ImageVector = Icons.Default.Info
+    val Group: ImageVector = Icons.Default.List
+    val Lightbulb: ImageVector = Icons.Default.Star
+    val Assessment: ImageVector = Icons.Default.Info
+    val Schedule: ImageVector = Icons.Default.Info
+    val Repeat: ImageVector = Icons.Default.Refresh
+    val AttachMoney: ImageVector = Icons.Default.Info
+    val TrendingUp: ImageVector = Icons.Default.Info
+    val Analytics: ImageVector = Icons.Default.Info
 } 

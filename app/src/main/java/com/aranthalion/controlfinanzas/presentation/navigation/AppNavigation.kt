@@ -18,6 +18,8 @@ import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosYCategor
 import com.aranthalion.controlfinanzas.presentation.screens.FirstRunScreen
 import com.aranthalion.controlfinanzas.presentation.screens.UsuariosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.CuentasPorCobrarScreen
+import com.aranthalion.controlfinanzas.presentation.screens.InsightsAvanzadosScreen
+import com.aranthalion.controlfinanzas.presentation.screens.AuditoriaDatabaseScreen
 
 import com.aranthalion.controlfinanzas.presentation.components.AppShell
 
@@ -64,6 +66,14 @@ fun AppNavigation(navController: NavHostController) {
             }
             composable("cuentas_por_cobrar") {
                 CuentasPorCobrarScreen(navController = navController)
+            }
+            composable("insights_avanzados") {
+                InsightsAvanzadosScreen(navController = navController)
+            }
+            composable("auditoria_database") {
+                AuditoriaDatabaseScreen(
+                    onNavigateBack = { navController.navigateUp() }
+                )
             }
         }
     }

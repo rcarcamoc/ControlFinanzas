@@ -226,6 +226,13 @@ fun ConfiguracionScreen(
                             subtitle = "Información de la aplicación",
                             onClick = { /* TODO */ }
                         )
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                        ConfiguracionItem(
+                            icon = Icons.Default.List,
+                            title = "Auditoría de Base de Datos",
+                            subtitle = "Ver logs y estado de la base de datos",
+                            onClick = { navController.navigate("auditoria_database") }
+                        )
                     }
                 }
             }

@@ -3,6 +3,7 @@ package com.aranthalion.controlfinanzas.di
 import android.content.Context
 import com.aranthalion.controlfinanzas.data.local.AppDatabase
 import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+import com.aranthalion.controlfinanzas.data.local.dao.AuditoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.ClasificacionAutomaticaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
@@ -11,6 +12,7 @@ import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
 import com.aranthalion.controlfinanzas.data.local.dao.UsuarioDao
 import com.aranthalion.controlfinanzas.data.local.dao.CuentaPorCobrarDao
+import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.ClasificacionAutomaticaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
@@ -37,6 +39,7 @@ import com.aranthalion.controlfinanzas.domain.usecase.GestionarCuentasPorCobrarU
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 import com.aranthalion.controlfinanzas.domain.movimiento.GestionarMovimientosManualesUseCase
 import com.aranthalion.controlfinanzas.domain.categoria.GestionarCategoriasUseCase
+import com.aranthalion.controlfinanzas.domain.usecase.InsightsAvanzadosUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -96,6 +99,12 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideAuditoriaDao(database: AppDatabase): AuditoriaDao {
+            return database.auditoriaDao()
+        }
+
+        @Provides
+        @Singleton
         fun provideCategoriaDao(database: AppDatabase): CategoriaDao {
             return database.categoriaDao()
         }
@@ -144,12 +153,21 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideAuditoriaService(
+            auditoriaDao: AuditoriaDao
+        ): AuditoriaService {
+            return AuditoriaService(auditoriaDao)
+        }
+
+        @Provides
+        @Singleton
         fun provideMovimientoRepository(
             movimientoDao: MovimientoDao, 
             categoriaDao: CategoriaDao,
-            @ApplicationContext context: Context
+            @ApplicationContext context: Context,
+            auditoriaService: AuditoriaService
         ): MovimientoRepository {
-            return MovimientoRepository(movimientoDao, categoriaDao, context)
+            return MovimientoRepository(movimientoDao, categoriaDao, context, auditoriaService)
         }
 
         @Provides
@@ -251,6 +269,15 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideInsightsAvanzadosUseCase(
+            movimientoRepository: MovimientoRepository,
+            presupuestoRepository: PresupuestoCategoriaRepository
+        ): InsightsAvanzadosUseCase {
+            return InsightsAvanzadosUseCase(movimientoRepository, presupuestoRepository)
+        }
+
+        @Provides
+        @Singleton
         fun provideAnalisisGastoPorCategoriaUseCase(
             movimientoRepository: MovimientoRepository,
             presupuestoRepository: PresupuestoCategoriaRepository,
@@ -267,9 +294,10 @@ abstract class AppModule {
 
         @Provides
         fun providePresupuestoCategoriaRepository(
-            dao: PresupuestoCategoriaDao
+            dao: PresupuestoCategoriaDao,
+            auditoriaService: AuditoriaService
         ): PresupuestoCategoriaRepository =
-            PresupuestoCategoriaRepositoryImpl(dao)
+            PresupuestoCategoriaRepositoryImpl(dao, auditoriaService)
 
         @Provides
         @Singleton

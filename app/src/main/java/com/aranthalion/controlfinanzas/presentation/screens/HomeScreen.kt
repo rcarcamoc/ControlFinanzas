@@ -330,7 +330,10 @@ fun HomeScreen(
                                         
                                         // Botón para ver detalles
                                         Button(
-                                            onClick = { navController.navigate("presupuestos") },
+                                            onClick = {
+                                                println("[HOME_CLICK] Ver Detalles del Presupuesto")
+                                                navController.navigate("presupuestos")
+                                            },
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Text("Ver Detalles del Presupuesto")
@@ -415,7 +418,10 @@ fun HomeScreen(
                                 
                                 // Botón para drill-down
                                 Button(
-                                    onClick = { navController.navigate("dashboardAnalisis") },
+                                    onClick = {
+                                        println("[HOME_CLICK] Ver Análisis Detallado")
+                                        navController.navigate("dashboardAnalisis")
+                                    },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text("Ver Análisis Detallado")
@@ -424,85 +430,7 @@ fun HomeScreen(
                         }
                     }
 
-                    // Tarjeta: "Proyecciones y Perspectivas"
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Proyecciones y Perspectivas",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Icon(
-                                        imageVector = CustomIcons.KeyboardArrowUp,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                
-                                // Información de proyecciones
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = "Proyección mensual",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        Text(
-                                            text = FormatUtils.formatMoneyCLP(totalGastos * 1.1),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = "Ahorro potencial",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        Text(
-                                            text = FormatUtils.formatMoneyCLP(totalGastos * 0.2),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.tertiary
-                                        )
-                                    }
-                                    
-                                    // Botón condicional "Ver Resumen General"
-                                    if (totalGastos > 1000) {
-                                        Button(
-                                            onClick = { navController.navigate("dashboardAnalisis") },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text("Ver Resumen General")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+
                 }
             }
             else -> {
@@ -549,7 +477,10 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("$movimientosSinCategoria transacciones sin clasificar", color = MaterialTheme.colorScheme.onErrorContainer)
-                    Button(onClick = { navController.navigate("clasificacion_pendiente") }) {
+                    Button(onClick = {
+                        println("[HOME_CLICK] Clasificar")
+                        navController.navigate("transacciones")
+                    }) {
                         Text("Clasificar")
                     }
                 }
