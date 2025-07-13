@@ -39,40 +39,64 @@ object ExcelProcessor {
     }
     
     /**
-     * Procesa un archivo Excel y extrae una lista de transacciones con clasificación automática.
+     * Procesa un archivo Excel y extrae una lista de transacciones SIN clasificación automática.
      * Soporta .xls y .xlsx. Lanza excepción si el archivo es inválido.
+     * IMPORTANTE: NO asigna categorías automáticamente - solo las sugiere para el Tinder
      */
-    suspend fun procesarArchivoConClasificacion(inputStream: InputStream): List<ExcelTransaction> {
+    suspend fun procesarArchivoConSugerencias(inputStream: InputStream): List<ExcelTransaction> {
         val transacciones = procesarArchivo(inputStream)
-        return aplicarClasificacionAutomatica(transacciones)
+        return agregarSugerenciasSinAsignar(transacciones)
     }
     
     /**
-     * Aplica clasificación automática a una lista de transacciones
+     * Agrega sugerencias de categorías SIN asignarlas automáticamente
+     * Las sugerencias solo se usan para el Tinder de clasificación
      */
-    private suspend fun aplicarClasificacionAutomatica(transacciones: List<ExcelTransaction>): List<ExcelTransaction> {
-        Log.d("ExcelProcessor", "🤖 Aplicando clasificación automática a ${transacciones.size} transacciones")
-        var clasificadas = 0
-        var noClasificadas = 0
+    private suspend fun agregarSugerenciasSinAsignar(transacciones: List<ExcelTransaction>): List<ExcelTransaction> {
+        Log.d("ExcelProcessor", "🔍 Generando sugerencias para ${transacciones.size} transacciones (SIN asignar automáticamente)")
+        var sugerenciasGeneradas = 0
+        var sinSugerencias = 0
         
         val resultado = transacciones.map { transaccion ->
             val sugerencia = clasificacionUseCase?.sugerirCategoria(transaccion.descripcion)
             if (sugerencia != null) {
-                clasificadas++
-                Log.d("ExcelProcessor", "✅ Transacción clasificada: '${transaccion.descripcion}' -> Categoría ID: ${sugerencia.categoriaId}, Confianza: ${sugerencia.nivelConfianza}")
+                sugerenciasGeneradas++
+                Log.d("ExcelProcessor", "💡 Sugerencia generada: '${transaccion.descripcion}' -> Categoría ID: ${sugerencia.categoriaId}, Confianza: ${sugerencia.nivelConfianza} (NO asignada)")
             } else {
-                noClasificadas++
-                Log.d("ExcelProcessor", "❌ Transacción sin clasificación: '${transaccion.descripcion}'")
+                sinSugerencias++
+                Log.d("ExcelProcessor", "❌ Sin sugerencia: '${transaccion.descripcion}'")
             }
             
+            // IMPORTANTE: NO asignar categoriaId automáticamente
             transaccion.copy(
-                categoriaId = sugerencia?.categoriaId,
-                nivelConfianza = sugerencia?.nivelConfianza
+                categoriaId = null, // SIEMPRE null - el usuario debe decidir
+                nivelConfianza = sugerencia?.nivelConfianza // Solo para información
             )
         }
         
-        Log.d("ExcelProcessor", "📊 Resumen clasificación: $clasificadas clasificadas, $noClasificadas sin clasificar")
+        Log.d("ExcelProcessor", "📊 Resumen sugerencias: $sugerenciasGeneradas sugerencias generadas, $sinSugerencias sin sugerencias")
+        Log.d("ExcelProcessor", "⚠️ IMPORTANTE: Ninguna categoría fue asignada automáticamente - el usuario debe decidir")
         return resultado
+    }
+    
+    /**
+     * @deprecated NO USAR - Este método asignaba categorías automáticamente
+     * Usar procesarArchivoConSugerencias en su lugar
+     */
+    @Deprecated("Este método asignaba categorías automáticamente. Usar procesarArchivoConSugerencias")
+    suspend fun procesarArchivoConClasificacion(inputStream: InputStream): List<ExcelTransaction> {
+        Log.w("ExcelProcessor", "⚠️ ADVERTENCIA: Se está usando el método deprecado que asigna categorías automáticamente")
+        return procesarArchivoConSugerencias(inputStream)
+    }
+    
+    /**
+     * @deprecated NO USAR - Este método asignaba categorías automáticamente
+     * Usar agregarSugerenciasSinAsignar en su lugar
+     */
+    @Deprecated("Este método asignaba categorías automáticamente. Usar agregarSugerenciasSinAsignar")
+    private suspend fun aplicarClasificacionAutomatica(transacciones: List<ExcelTransaction>): List<ExcelTransaction> {
+        Log.w("ExcelProcessor", "⚠️ ADVERTENCIA: Se está usando el método deprecado que asigna categorías automáticamente")
+        return agregarSugerenciasSinAsignar(transacciones)
     }
 
     /**
@@ -129,12 +153,41 @@ object ExcelProcessor {
     }
 
     /**
-     * Importa transacciones desde un archivo de 'estado de cierre' con clasificación automática.
+     * Importa transacciones desde un archivo de 'estado de cierre' SIN clasificación automática.
      * @param periodoFacturacion El periodo seleccionado en la UI
      */
-    suspend fun importarEstadoDeCierreConClasificacion(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
+    suspend fun importarEstadoDeCierreConSugerencias(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
         val transacciones = importarEstadoDeCierre(inputStream, periodoFacturacion)
-        return aplicarClasificacionAutomatica(transacciones)
+        return agregarSugerenciasSinAsignar(transacciones)
+    }
+
+    /**
+     * @deprecated NO USAR - Este método asignaba categorías automáticamente
+     * Usar importarEstadoDeCierreConSugerencias en su lugar
+     */
+    @Deprecated("Este método asignaba categorías automáticamente. Usar importarEstadoDeCierreConSugerencias")
+    suspend fun importarEstadoDeCierreConClasificacion(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
+        Log.w("ExcelProcessor", "⚠️ ADVERTENCIA: Se está usando el método deprecado que asigna categorías automáticamente")
+        return importarEstadoDeCierreConSugerencias(inputStream, periodoFacturacion)
+    }
+
+    /**
+     * Importa transacciones desde un archivo de 'últimos movimientos' SIN clasificación automática.
+     * @param periodoFacturacion El periodo seleccionado en la UI
+     */
+    suspend fun importarUltimosMovimientosConSugerencias(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
+        val transacciones = importarUltimosMovimientos(inputStream, periodoFacturacion)
+        return agregarSugerenciasSinAsignar(transacciones)
+    }
+
+    /**
+     * @deprecated NO USAR - Este método asignaba categorías automáticamente
+     * Usar importarUltimosMovimientosConSugerencias en su lugar
+     */
+    @Deprecated("Este método asignaba categorías automáticamente. Usar importarUltimosMovimientosConSugerencias")
+    suspend fun importarUltimosMovimientosConClasificacion(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
+        Log.w("ExcelProcessor", "⚠️ ADVERTENCIA: Se está usando el método deprecado que asigna categorías automáticamente")
+        return importarUltimosMovimientosConSugerencias(inputStream, periodoFacturacion)
     }
 
     /**
@@ -176,15 +229,6 @@ object ExcelProcessor {
         }
         workbook.close()
         return transacciones
-    }
-
-    /**
-     * Importa transacciones desde un archivo de 'últimos movimientos' con clasificación automática.
-     * @param periodoFacturacion El periodo seleccionado en la UI
-     */
-    suspend fun importarUltimosMovimientosConClasificacion(inputStream: InputStream, periodoFacturacion: String?): List<ExcelTransaction> {
-        val transacciones = importarUltimosMovimientos(inputStream, periodoFacturacion)
-        return aplicarClasificacionAutomatica(transacciones)
     }
 
     /**

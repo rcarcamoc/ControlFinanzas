@@ -47,78 +47,78 @@ fun AnalisisGastoPorCategoriaScreen(
     ) {
         // Header
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Análisis de Gasto por Categoría",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = { viewModel.cargarAnalisis() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Análisis de Gasto por Categoría",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = { viewModel.cargarAnalisis() }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
             }
+        }
         }
         
         // Resumen
         uiState.resumen?.let { resumen ->
             item {
-                ResumenAnalisisCard(resumen = resumen)
+            ResumenAnalisisCard(resumen = resumen)
             }
         }
         
         // Botón de Re-analizar
         if (!uiState.isLoading && uiState.error == null) {
             item {
-                Button(
-                    onClick = { viewModel.cargarAnalisis() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Re-analizar Datos",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            Button(
+                onClick = { viewModel.cargarAnalisis() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Re-analizar Datos",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
             }
         }
         
         // Estado de carga
         if (uiState.isLoading) {
             item {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
                 }
             }
         } else if (uiState.error != null) {
             item {
-                ErrorCard(
-                    error = uiState.error!!,
-                    onDismiss = { viewModel.limpiarError() }
-                )
+            ErrorCard(
+                error = uiState.error!!,
+                onDismiss = { viewModel.limpiarError() }
+            )
             }
         } else {
             // Tabla de análisis
             item {
-                AnalisisGastoTable(
-                    analisis = uiState.analisis,
-                    periodoActual = uiState.periodoActual
-                )
+            AnalisisGastoTable(
+                analisis = uiState.analisis,
+                periodoActual = uiState.periodoActual
+            )
             }
         }
     }
@@ -407,37 +407,37 @@ private fun DetalleMovimientosCategoria(
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
-        ) {
+    ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Movimientos de la categoría: ${categoria.nombre}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar")
-                }
+            Text(
+                text = "Movimientos de la categoría: ${categoria.nombre}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar")
             }
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+        Spacer(modifier = Modifier.height(8.dp))
             
-            if (isLoading) {
+        if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+            CircularProgressIndicator()
                 }
-            } else if (movimientos.isEmpty()) {
+        } else if (movimientos.isEmpty()) {
                 Text(
                     "No hay movimientos para esta categoría en el período seleccionado.", 
                     style = MaterialTheme.typography.bodyMedium
                 )
-            } else {
-                DetalleMovimientosTable(movimientos)
+        } else {
+            DetalleMovimientosTable(movimientos)
             }
         }
     }

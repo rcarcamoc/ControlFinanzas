@@ -126,98 +126,100 @@ fun PresupuestosYCategoriasScreen(
         }
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header unificado
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Text(
-                    "Presupuestos y Categorías",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    "Gestiona todo en una sola vista",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                // Botones de acción responsive
-                val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                val screenWidth = configuration.screenWidthDp.dp
-                val isSmallScreen = screenWidth < 600.dp
-                
-                if (isSmallScreen) {
-                    // En pantallas pequeñas, apilar verticalmente
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { showPeriodoSelector = true },
-                            modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        "Presupuestos y Categorías",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Gestiona todo en una sola vista",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Botones de acción responsive
+                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                    val screenWidth = configuration.screenWidthDp.dp
+                    val isSmallScreen = screenWidth < 600.dp
+                    
+                    if (isSmallScreen) {
+                        // En pantallas pequeñas, apilar verticalmente
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                CustomIcons.DateRange,
-                                contentDescription = "Período",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Período", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(
+                                onClick = { showPeriodoSelector = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    CustomIcons.DateRange,
+                                    contentDescription = "Período",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Período", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Button(
+                                onClick = { showAddCategoriaDialog = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    CustomIcons.Add,
+                                    contentDescription = "Nueva categoría",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Categoría", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
-                        Button(
-                            onClick = { showAddCategoriaDialog = true },
-                            modifier = Modifier.fillMaxWidth()
+                    } else {
+                        // En pantallas grandes, alinear horizontalmente
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                CustomIcons.Add,
-                                contentDescription = "Nueva categoría",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Categoría", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                } else {
-                    // En pantallas grandes, alinear horizontalmente
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { showPeriodoSelector = true },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                CustomIcons.DateRange,
-                                contentDescription = "Período",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Período", style = MaterialTheme.typography.bodySmall)
-                        }
-                        Button(
-                            onClick = { showAddCategoriaDialog = true },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                CustomIcons.Add,
-                                contentDescription = "Nueva categoría",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Categoría", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(
+                                onClick = { showPeriodoSelector = true },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    CustomIcons.DateRange,
+                                    contentDescription = "Período",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Período", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Button(
+                                onClick = { showAddCategoriaDialog = true },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    CustomIcons.Add,
+                                    contentDescription = "Nueva categoría",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Categoría", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
@@ -226,146 +228,151 @@ fun PresupuestosYCategoriasScreen(
 
         // Resumen de presupuestos
         if (resumen != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Text(
-                        "Resumen del Período",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Grid de métricas
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier.padding(20.dp)
                     ) {
-                        item {
-                            MetricCard(
-                                title = "Presupuesto",
-                                value = FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                        Text(
+                            "Resumen del Período",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Grid de métricas
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.height(120.dp) // Altura fija para evitar scroll anidado
+                        ) {
+                            item {
+                                MetricCard(
+                                    title = "Presupuesto",
+                                    value = FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            item {
+                                MetricCard(
+                                    title = "Gastado",
+                                    value = FormatUtils.formatMoneyCLP(resumen!!.totalGastado),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            item {
+                                MetricCard(
+                                    title = "Restante",
+                                    value = FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado - resumen!!.totalGastado),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
-                        item {
-                            MetricCard(
-                                title = "Gastado",
-                                value = FormatUtils.formatMoneyCLP(resumen!!.totalGastado),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                        item {
-                            MetricCard(
-                                title = "Restante",
-                                value = FormatUtils.formatMoneyCLP(resumen!!.totalPresupuestado - resumen!!.totalGastado),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        PresupuestoProgressBar(
+                            porcentaje = if (resumen!!.totalPresupuestado > 0) 
+                                (resumen!!.totalGastado / resumen!!.totalPresupuestado) * 100 
+                            else 0.0,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    PresupuestoProgressBar(
-                        porcentaje = if (resumen!!.totalPresupuestado > 0) 
-                            (resumen!!.totalGastado / resumen!!.totalPresupuestado) * 100 
-                        else 0.0,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                 }
             }
         }
 
         // Contenido principal - Grid de categorías con presupuestos
-        when {
-            presupuestosUiState is PresupuestosUiState.Loading || categoriasUiState is CategoriasUiState.Loading -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(40.dp),
-                        contentAlignment = Alignment.Center
+        item {
+            when {
+                presupuestosUiState is PresupuestosUiState.Loading || categoriasUiState is CategoriasUiState.Loading -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(40.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                "Cargando...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Cargando...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
-            }
-            presupuestosUiState is PresupuestosUiState.Success && categoriasUiState is CategoriasUiState.Success -> {
-                val categoriasList = (categoriasUiState as CategoriasUiState.Success).categorias
-                
-                if (categoriasList.isEmpty()) {
-                    EmptyStateCard(
-                        icon = Icons.Default.List,
-                        title = "No hay categorías",
-                        description = "Crea tu primera categoría para organizar tus gastos",
-                        actionText = "Crear Categoría",
-                        onAction = { showAddCategoriaDialog = true }
-                    )
-                } else {
-                    // Grid de categorías con presupuestos
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 280.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(categoriasList) { categoria ->
-                            CategoriaPresupuestoCard(
-                                categoria = categoria,
-                                presupuesto = presupuestosCompletos.find { it.categoria.id == categoria.id },
-                                onEditCategoria = { categoriaToEdit = categoria },
-                                onDeleteCategoria = { 
-                                    scope.launch {
-                                        categoriasViewModel.eliminarCategoria(categoria)
+                presupuestosUiState is PresupuestosUiState.Success && categoriasUiState is CategoriasUiState.Success -> {
+                    val categoriasList = (categoriasUiState as CategoriasUiState.Success).categorias
+                    
+                    if (categoriasList.isEmpty()) {
+                        EmptyStateCard(
+                            icon = Icons.Default.List,
+                            title = "No hay categorías",
+                            description = "Crea tu primera categoría para organizar tus gastos",
+                            actionText = "Crear Categoría",
+                            onAction = { showAddCategoriaDialog = true }
+                        )
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 280.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.heightIn(max = 800.dp) // Limitar altura para evitar scroll anidado
+                        ) {
+                            items(categoriasList) { categoria ->
+                                CategoriaPresupuestoCard(
+                                    categoria = categoria,
+                                    presupuesto = presupuestosCompletos.find { it.categoria.id == categoria.id },
+                                    onEditCategoria = { categoriaToEdit = categoria },
+                                    onDeleteCategoria = { 
+                                        scope.launch {
+                                            categoriasViewModel.eliminarCategoria(categoria)
+                                        }
+                                    },
+                                    onEditPresupuesto = { presupuesto ->
+                                        presupuestoToEdit = presupuesto
+                                    },
+                                    onAddPresupuesto = { 
+                                        categoriaParaPresupuesto = categoria
+                                        showAddPresupuestoDialog = true
                                     }
-                                },
-                                onEditPresupuesto = { presupuesto ->
-                                    presupuestoToEdit = presupuesto
-                                },
-                                onAddPresupuesto = { 
-                                    categoriaParaPresupuesto = categoria
-                                    showAddPresupuestoDialog = true
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
-            }
-            presupuestosUiState is PresupuestosUiState.Error -> {
-                ErrorCard(
-                    title = "Error al cargar presupuestos",
-                    message = (presupuestosUiState as PresupuestosUiState.Error).mensaje
-                )
-            }
-            categoriasUiState is CategoriasUiState.Error -> {
-                ErrorCard(
-                    title = "Error al cargar categorías",
-                    message = (categoriasUiState as CategoriasUiState.Error).mensaje
-                )
+                presupuestosUiState is PresupuestosUiState.Error -> {
+                    ErrorCard(
+                        title = "Error al cargar presupuestos",
+                        message = (presupuestosUiState as PresupuestosUiState.Error).mensaje
+                    )
+                }
+                categoriasUiState is CategoriasUiState.Error -> {
+                    ErrorCard(
+                        title = "Error al cargar categorías",
+                        message = (categoriasUiState as CategoriasUiState.Error).mensaje
+                    )
+                }
             }
         }
     }

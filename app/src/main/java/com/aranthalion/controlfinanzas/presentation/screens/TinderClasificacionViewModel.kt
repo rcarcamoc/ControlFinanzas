@@ -46,6 +46,7 @@ class TinderClasificacionViewModel @Inject constructor(
 
     /**
      * Procesa una lista de transacciones y encuentra las que tienen sugerencias válidas
+     * IMPORTANTE: Todas las transacciones van al Tinder ya que no se asignan categorías automáticamente
      */
     fun procesarTransaccionesParaTinder(transacciones: List<ExcelTransaction>) {
         viewModelScope.launch {
@@ -56,22 +57,30 @@ class TinderClasificacionViewModel @Inject constructor(
                 val transaccionesTinder = mutableListOf<TransaccionTinder>()
                 
                 transacciones.forEach { transaccion ->
-                    // Solo procesar transacciones sin categoría
-                    if (transaccion.categoriaId == null) {
-                        val sugerencia = clasificacionUseCase.sugerirCategoria(transaccion.descripcion)
-                        if (sugerencia != null && sugerencia.nivelConfianza >= 0.3) {
-                            val categoria = categorias.find { it.id == sugerencia.categoriaId }
-                            if (categoria != null) {
-                                transaccionesTinder.add(
-                                    TransaccionTinder(
-                                        transaccion = transaccion,
-                                        categoriaSugerida = categoria,
-                                        nivelConfianza = sugerencia.nivelConfianza,
-                                        patron = sugerencia.patron
-                                    )
+                    // IMPORTANTE: Procesar TODAS las transacciones ya que ninguna tiene categoría asignada automáticamente
+                    val sugerencia = clasificacionUseCase.sugerirCategoria(transaccion.descripcion)
+                    if (sugerencia != null && sugerencia.nivelConfianza >= 0.3) {
+                        val categoria = categorias.find { it.id == sugerencia.categoriaId }
+                        if (categoria != null) {
+                            transaccionesTinder.add(
+                                TransaccionTinder(
+                                    transaccion = transaccion,
+                                    categoriaSugerida = categoria,
+                                    nivelConfianza = sugerencia.nivelConfianza,
+                                    patron = sugerencia.patron
                                 )
-                            }
+                            )
                         }
+                    } else {
+                        // Si no hay sugerencia válida, crear una transacción sin categoría sugerida
+                        transaccionesTinder.add(
+                            TransaccionTinder(
+                                transaccion = transaccion,
+                                categoriaSugerida = categorias.firstOrNull() ?: categorias.first(), // Categoría por defecto
+                                nivelConfianza = 0.0,
+                                patron = "Sin patrón"
+                            )
+                        )
                     }
                 }
                 

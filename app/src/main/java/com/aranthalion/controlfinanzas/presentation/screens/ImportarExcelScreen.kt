@@ -305,8 +305,8 @@ fun ImportarExcelScreen(
                         try {
                             context.contentResolver.openInputStream(archivoUri!!)?.use { inputStream ->
                                 val transacciones = when (tipoArchivo) {
-                                    "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConClasificacion(inputStream, mesSeleccionado)
-                                    "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConClasificacion(inputStream, mesSeleccionado)
+                                    "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConSugerencias(inputStream, mesSeleccionado)
+                                    "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConSugerencias(inputStream, mesSeleccionado)
                                     else -> emptyList()
                                 }
                             
@@ -326,7 +326,7 @@ fun ImportarExcelScreen(
                                     descripcion = t.descripcion,
                                     fecha = t.fecha,
                                     periodoFacturacion = t.periodoFacturacion ?: mesSeleccionado,
-                                    categoriaId = t.categoriaId,
+                                    categoriaId = null, // IMPORTANTE: SIEMPRE null - el usuario debe decidir
                                     tipoTarjeta = t.tipoTarjeta,
                                     idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
                                 )
@@ -361,8 +361,8 @@ fun ImportarExcelScreen(
                             // Nota: Las clasificaciones se preservan automáticamente en el proceso de importación
                             
                             val montoTotal = nuevos.sumOf { it.monto.toDouble() }
-                            val clasificadasAutomaticamente = nuevos.count { it.categoriaId != null }
-                            val pendientesClasificacion = nuevos.size - clasificadasAutomaticamente
+                            val clasificadasAutomaticamente = 0 // IMPORTANTE: Ya no hay clasificación automática
+                            val pendientesClasificacion = nuevos.size // Todas las transacciones necesitan clasificación manual
                             
                             resumenImportacion = ResumenImportacion(
                                 totalProcesadas = movimientos.size,
@@ -374,10 +374,10 @@ fun ImportarExcelScreen(
                                 pendientesClasificacion = pendientesClasificacion
                             )
                             
-                            // Procesar transacciones para el Tinder de clasificación
-                            val transaccionesSinClasificar = transacciones.filter { it.categoriaId == null }
-                            if (transaccionesSinClasificar.isNotEmpty()) {
-                                tinderViewModel.procesarTransaccionesParaTinder(transaccionesSinClasificar)
+                            // Procesar TODAS las transacciones para el Tinder de clasificación
+                            // ya que ninguna tiene categoría asignada automáticamente
+                            if (transacciones.isNotEmpty()) {
+                                tinderViewModel.procesarTransaccionesParaTinder(transacciones)
                                 mostrarTinder = true
                             }
                             
