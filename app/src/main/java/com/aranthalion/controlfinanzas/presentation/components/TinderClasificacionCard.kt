@@ -379,48 +379,26 @@ fun TinderClasificacionCard(
             // Botones de acción optimizados
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Botón Rechazar
                 Button(
                     onClick = onRechazar,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Rechazar",
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Rechazar",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
-                }
-                
-                // Botón Confirmar (solo si hay categoría seleccionada)
-                if (categoriaSeleccionada != null) {
-                    Button(
-                        onClick = onConfirmarClasificacion,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Confirmar",
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = "Confirmar",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp
-                        )
-                    }
                 }
                 
                 // Botón Aceptar
@@ -428,18 +406,18 @@ fun TinderClasificacionCard(
                     onClick = onAceptar,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Green),
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Aceptar",
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Aceptar",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }

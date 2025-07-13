@@ -131,8 +131,12 @@ class TinderClasificacionViewModel @Inject constructor(
             println("🔍 TINDER_DEBUG: Procesando ${transacciones.size} transacciones")
             val transaccionesTinder = mutableListOf<TransaccionTinder>()
             
+            // Procesar solo las primeras 10 transacciones para mayor velocidad
+            val transaccionesLimitadas = transacciones.take(10)
+            println("🔍 TINDER_DEBUG: Procesando solo las primeras ${transaccionesLimitadas.size} transacciones")
+            
             // Procesar transacciones
-            transacciones.forEach { transaccion ->
+            transaccionesLimitadas.forEach { transaccion ->
                 // USAR EL NUEVO SISTEMA MEJORADO
                 val resultadoClasificacion = clasificacionUseCase.obtenerSugerenciaMejorada(transaccion.descripcion)
                 
@@ -210,6 +214,7 @@ class TinderClasificacionViewModel @Inject constructor(
     private fun generarSugerenciasParaTransaccion(transaccionTinder: TransaccionTinder) {
         viewModelScope.launch {
             try {
+                println("🔍 TINDER_DEBUG: Generando sugerencias para: ${transaccionTinder.transaccion.descripcion}")
                 val resultadoClasificacion = clasificacionUseCase.obtenerSugerenciaMejorada(transaccionTinder.transaccion.descripcion)
                 val categorias = _uiState.value.categoriasDisponibles
                 

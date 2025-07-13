@@ -57,7 +57,7 @@ fun TinderClasificacionScreen(
         ) {
             val configuration = LocalConfiguration.current
             val screenWidth = configuration.screenWidthDp.dp
-            val dialogWidth = (screenWidth * 0.95f).coerceAtMost(400.dp)
+            val dialogWidth = (screenWidth * 0.98f).coerceAtMost(450.dp)
             
             Box(
                 modifier = Modifier
@@ -177,13 +177,31 @@ fun TinderClasificacionDialog(
             
             // Contenido principal
             if (uiState.isLoading) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    contentAlignment = Alignment.Center
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Preparando clasificación automática...",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Analizando transacciones y generando sugerencias",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
             } else {
                 uiState.transaccionActual?.let { transaccionTinder ->
