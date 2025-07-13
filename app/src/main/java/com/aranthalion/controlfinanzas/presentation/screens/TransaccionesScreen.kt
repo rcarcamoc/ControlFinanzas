@@ -804,12 +804,20 @@ private fun TransaccionItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onEdit(movimiento) },
+            .clickable { onEdit(movimiento) }
+            .background(
+                when (movimiento.tipo) {
+                    "INGRESO" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    "GASTO" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                    "OMITIR" -> MaterialTheme.colorScheme.surface.copy(alpha = 0.0f) // Transparente
+                    else -> MaterialTheme.colorScheme.surface
+                }
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (movimiento.categoriaId == null) 
                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
             else 
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f) // Semi-transparente para que se vea el fondo
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = if (movimiento.categoriaId == null) {
@@ -825,14 +833,14 @@ private fun TransaccionItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de tipo de transacción mejorado
+            // Indicador de tipo de transacción con color de fondo
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = MaterialTheme.shapes.medium,
                 color = when (movimiento.tipo) {
-                    "INGRESO" -> MaterialTheme.colorScheme.primaryContainer
-                    "GASTO" -> MaterialTheme.colorScheme.errorContainer
-                    "OMITIR" -> MaterialTheme.colorScheme.tertiaryContainer
+                    "INGRESO" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    "GASTO" -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                    "OMITIR" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 }
             ) {
@@ -840,21 +848,22 @@ private fun TransaccionItem(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = when (movimiento.tipo) {
-                            "INGRESO" -> Icons.Default.KeyboardArrowUp
-                            "GASTO" -> Icons.Default.KeyboardArrowDown
-                            "OMITIR" -> Icons.Default.Info
-                            else -> Icons.Default.KeyboardArrowDown
+                    // Texto del tipo en lugar de icono
+                    Text(
+                        text = when (movimiento.tipo) {
+                            "INGRESO" -> "↑"
+                            "GASTO" -> "↓"
+                            "OMITIR" -> "○"
+                            else -> "?"
                         },
-                        contentDescription = null,
-                        tint = when (movimiento.tipo) {
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = when (movimiento.tipo) {
                             "INGRESO" -> MaterialTheme.colorScheme.primary
                             "GASTO" -> MaterialTheme.colorScheme.error
                             "OMITIR" -> MaterialTheme.colorScheme.tertiary
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(24.dp)
+                        }
                     )
                 }
             }
