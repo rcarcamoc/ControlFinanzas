@@ -95,11 +95,13 @@ class TinderClasificacionViewModel @Inject constructor(
     }
     
     fun cargarTransaccionesEspecificas(transacciones: List<ExcelTransaction>) {
+        println("🔍 TINDER_DEBUG: Iniciando carga de transacciones específicas: ${transacciones.size}")
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
                 val categoriasDominio = categoriaRepository.obtenerCategorias()
+                println("🔍 TINDER_DEBUG: Categorías del dominio obtenidas: ${categoriasDominio.size}")
                 
                 // Convertir categorías del dominio a entidades
                 val categorias = categoriasDominio.map { categoriaDominio ->
@@ -111,9 +113,11 @@ class TinderClasificacionViewModel @Inject constructor(
                     )
                 }
                 
+                println("🔍 TINDER_DEBUG: Categorías convertidas: ${categorias.size}")
                 procesarTransaccionesParaTinder(transacciones, categorias)
                 
             } catch (e: Exception) {
+                println("❌ TINDER_DEBUG: Error al cargar transacciones específicas: ${e.message}")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Error al cargar transacciones específicas: ${e.message}"
@@ -124,8 +128,10 @@ class TinderClasificacionViewModel @Inject constructor(
     
     private fun procesarTransaccionesParaTinder(transacciones: List<ExcelTransaction>, categorias: List<Categoria>) {
         viewModelScope.launch {
-                val transaccionesTinder = mutableListOf<TransaccionTinder>()
+            println("🔍 TINDER_DEBUG: Procesando ${transacciones.size} transacciones")
+            val transaccionesTinder = mutableListOf<TransaccionTinder>()
             
+            // Procesar transacciones
             transacciones.forEach { transaccion ->
                 // USAR EL NUEVO SISTEMA MEJORADO
                 val resultadoClasificacion = clasificacionUseCase.obtenerSugerenciaMejorada(transaccion.descripcion)
@@ -176,16 +182,21 @@ class TinderClasificacionViewModel @Inject constructor(
                             )
                         )
                     }
-                    }
                 }
+            }
+                
+                println("🔍 TINDER_DEBUG: Transacciones procesadas: ${transaccionesTinder.size}")
+                println("🔍 TINDER_DEBUG: Primera transacción: ${transaccionesTinder.firstOrNull()?.transaccion?.descripcion}")
+                println("🔍 TINDER_DEBUG: Categorías disponibles: ${categorias.size}")
+                println("🔍 TINDER_DEBUG: Mostrar Tinder: ${transaccionesTinder.isNotEmpty()}")
                 
                 _uiState.value = _uiState.value.copy(
                     transaccionesPendientes = transaccionesTinder,
                     transaccionActual = transaccionesTinder.firstOrNull(),
-                categoriasDisponibles = categorias,
+                    categoriasDisponibles = categorias,
                     isLoading = false,
-                mostrarTinder = transaccionesTinder.isNotEmpty()
-            )
+                    mostrarTinder = transaccionesTinder.isNotEmpty()
+                )
             
             // Generar sugerencias para la primera transacción
             if (transaccionesTinder.isNotEmpty()) {

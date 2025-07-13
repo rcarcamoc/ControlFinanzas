@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.presentation.components.TinderClasificacionCard
 import com.aranthalion.controlfinanzas.presentation.components.SelectorCategoriaManual
@@ -54,6 +55,15 @@ fun TinderClasificacionScreen(
                 dismissOnClickOutside = false
             )
         ) {
+            val configuration = LocalConfiguration.current
+            val screenWidth = configuration.screenWidthDp.dp
+            val dialogWidth = (screenWidth * 0.95f).coerceAtMost(400.dp)
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .width(dialogWidth)
+            ) {
             TinderClasificacionDialog(
                 uiState = uiState,
                 onAceptar = { viewModel.aceptarTransaccion() },
@@ -65,6 +75,7 @@ fun TinderClasificacionScreen(
                 onDismiss = { onDismiss() },
                 onClose = onDismiss
             )
+            }
         }
     }
     

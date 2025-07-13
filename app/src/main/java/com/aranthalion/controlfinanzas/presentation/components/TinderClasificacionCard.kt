@@ -376,68 +376,70 @@ fun TinderClasificacionCard(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Botones de acción
+            // Botones de acción optimizados
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Botón Rechazar
                 Button(
                     onClick = onRechazar,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Rechazar",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
                     Text(
                         text = "Rechazar",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp
                     )
                 }
-                
-                Spacer(modifier = Modifier.width(8.dp))
                 
                 // Botón Confirmar (solo si hay categoría seleccionada)
                 if (categoriaSeleccionada != null) {
                     Button(
                         onClick = onConfirmarClasificacion,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Confirmar",
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
                         Text(
                             text = "Confirmar",
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp
                         )
                     }
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
                 
                 // Botón Aceptar
                 Button(
                     onClick = onAceptar,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Green),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Aceptar",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
                     Text(
                         text = "Aceptar",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp
                     )
                 }
             }
