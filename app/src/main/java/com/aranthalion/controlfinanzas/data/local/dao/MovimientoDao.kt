@@ -50,6 +50,10 @@ interface MovimientoDao {
     @Query("DELETE FROM movimientos WHERE periodoFacturacion = :periodo")
     suspend fun eliminarMovimientosPorPeriodo(periodo: String?)
 
+    // Nuevo método para obtener movimientos que ya tienen categoría asignada
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NOT NULL ORDER BY fecha DESC")
+    suspend fun obtenerMovimientosConCategoria(): List<MovimientoEntity>
+
     data class IdUnicoCategoria(
         val idUnico: String,
         val categoriaId: Long?

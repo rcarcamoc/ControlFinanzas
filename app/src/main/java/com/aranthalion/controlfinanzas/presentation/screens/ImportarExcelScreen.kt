@@ -377,7 +377,7 @@ fun ImportarExcelScreen(
                             // Procesar TODAS las transacciones para el Tinder de clasificación
                             // ya que ninguna tiene categoría asignada automáticamente
                             if (transacciones.isNotEmpty()) {
-                                tinderViewModel.procesarTransaccionesParaTinder(transacciones)
+                                tinderViewModel.recargarTransacciones()
                                 mostrarTinder = true
                             }
                             

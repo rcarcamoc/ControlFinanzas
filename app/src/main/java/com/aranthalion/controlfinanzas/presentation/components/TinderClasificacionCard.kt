@@ -30,7 +30,8 @@ data class TransaccionTinder(
     val transaccion: ExcelTransaction,
     val categoriaSugerida: Categoria,
     val nivelConfianza: Double,
-    val patron: String
+    val patron: String,
+    val tipoCoincidencia: String = "PATRON"
 )
 
 @Composable

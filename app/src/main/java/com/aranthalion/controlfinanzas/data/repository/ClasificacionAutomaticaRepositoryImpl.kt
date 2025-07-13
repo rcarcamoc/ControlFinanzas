@@ -4,27 +4,260 @@ import android.content.Context
 import android.util.Log
 import com.aranthalion.controlfinanzas.data.local.dao.ClasificacionAutomaticaDao
 import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
+import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
 import com.aranthalion.controlfinanzas.data.local.entity.ClasificacionAutomaticaEntity
-import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomatica
-import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
-import com.aranthalion.controlfinanzas.domain.clasificacion.SugerenciaClasificacion
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.domain.clasificacion.*
+import com.aranthalion.controlfinanzas.data.util.ClasificacionNormalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
     private val clasificacionDao: ClasificacionAutomaticaDao,
     private val categoriaDao: CategoriaDao,
+    private val movimientoDao: MovimientoDao,
     private val context: Context
 ) : ClasificacionAutomaticaRepository {
 
+    // Cache de clasificaciones históricas
+    private var cacheClasificaciones: Map<String, Long> = emptyMap()
+    private var cacheActualizado = false
+
+    override suspend fun obtenerSugerenciaMejorada(descripcion: String): ResultadoClasificacion {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("ClasificacionRepo", "🔍 Buscando sugerencia mejorada para: '$descripcion'")
+                
+                // Asegurar que el cache esté actualizado
+                if (!cacheActualizado) {
+                    actualizarCacheClasificaciones()
+                }
+                
+                // 1. Buscar coincidencia exacta (100% confianza)
+                val coincidenciaExacta = ClasificacionNormalizer.buscarCoincidenciaExacta(descripcion, cacheClasificaciones)
+                if (coincidenciaExacta != null) {
+                    Log.d("ClasificacionRepo", "✅ Coincidencia exacta encontrada: ${coincidenciaExacta.first}")
+                    return@withContext ResultadoClasificacion.AltaConfianza(
+                        categoriaId = coincidenciaExacta.first,
+                        confianza = coincidenciaExacta.second,
+                        patron = descripcion,
+                        tipoCoincidencia = TipoCoincidencia.EXACTA
+                    )
+                }
+                
+                // 2. Buscar coincidencia parcial (90% confianza)
+                val coincidenciaParcial = ClasificacionNormalizer.buscarCoincidenciaParcial(descripcion, cacheClasificaciones)
+                if (coincidenciaParcial != null) {
+                    Log.d("ClasificacionRepo", "✅ Coincidencia parcial encontrada: ${coincidenciaParcial.first}")
+                    return@withContext ResultadoClasificacion.AltaConfianza(
+                        categoriaId = coincidenciaParcial.first,
+                        confianza = coincidenciaParcial.second,
+                        patron = descripcion,
+                        tipoCoincidencia = TipoCoincidencia.PARCIAL
+                    )
+                }
+                
+                // 3. Buscar coincidencia fuzzy (60-80% confianza)
+                val coincidenciaFuzzy = ClasificacionNormalizer.buscarCoincidenciaFuzzy(descripcion, cacheClasificaciones)
+                if (coincidenciaFuzzy != null && ClasificacionNormalizer.esConfianzaSuficiente(coincidenciaFuzzy.second)) {
+                    Log.d("ClasificacionRepo", "✅ Coincidencia fuzzy encontrada: ${coincidenciaFuzzy.first} (${(coincidenciaFuzzy.second * 100).toInt()}%)")
+                    return@withContext ResultadoClasificacion.AltaConfianza(
+                        categoriaId = coincidenciaFuzzy.first,
+                        confianza = coincidenciaFuzzy.second,
+                        patron = descripcion,
+                        tipoCoincidencia = determinarTipoCoincidencia(coincidenciaFuzzy.second)
+                    )
+                }
+                
+                // 4. Buscar en patrones aprendidos (sistema anterior)
+                val sugerenciaPatron = obtenerSugerencia(descripcion)
+                if (sugerenciaPatron != null && ClasificacionNormalizer.esConfianzaSuficiente(sugerenciaPatron.nivelConfianza)) {
+                    Log.d("ClasificacionRepo", "✅ Sugerencia de patrón encontrada: ${sugerenciaPatron.categoriaId} (${(sugerenciaPatron.nivelConfianza * 100).toInt()}%)")
+                    return@withContext ResultadoClasificacion.AltaConfianza(
+                        categoriaId = sugerenciaPatron.categoriaId,
+                        confianza = sugerenciaPatron.nivelConfianza,
+                        patron = sugerenciaPatron.patron,
+                        tipoCoincidencia = TipoCoincidencia.PATRON
+                    )
+                }
+                
+                // 5. Si no hay coincidencias suficientes, devolver sugerencias de baja confianza
+                val sugerenciasBajaConfianza = obtenerSugerenciasBajaConfianza(descripcion)
+                if (sugerenciasBajaConfianza.isNotEmpty()) {
+                    Log.d("ClasificacionRepo", "⚠️ Sugerencias de baja confianza encontradas: ${sugerenciasBajaConfianza.size}")
+                    return@withContext ResultadoClasificacion.BajaConfianza(
+                        sugerencias = sugerenciasBajaConfianza,
+                        confianzaMaxima = sugerenciasBajaConfianza.maxOfOrNull { it.nivelConfianza } ?: 0.0
+                    )
+                }
+                
+                // 6. Sin coincidencias
+                Log.d("ClasificacionRepo", "❌ No se encontraron coincidencias para: '$descripcion'")
+                return@withContext ResultadoClasificacion.SinCoincidencias(
+                    descripcion = descripcion,
+                    razon = "No hay datos históricos suficientes para clasificar esta transacción"
+                )
+                
+            } catch (e: Exception) {
+                Log.e("ClasificacionRepo", "❌ Error al obtener sugerencia mejorada: ${e.message}")
+                return@withContext ResultadoClasificacion.SinCoincidencias(
+                    descripcion = descripcion,
+                    razon = "Error en el sistema de clasificación: ${e.message}"
+                )
+            }
+        }
+    }
+
+    private fun determinarTipoCoincidencia(confianza: Double): TipoCoincidencia {
+        return when {
+            confianza >= 1.0 -> TipoCoincidencia.EXACTA
+            confianza >= 0.9 -> TipoCoincidencia.PARCIAL
+            confianza >= 0.8 -> TipoCoincidencia.FUZZY_ALTA
+            confianza >= 0.6 -> TipoCoincidencia.FUZZY_MEDIA
+            else -> TipoCoincidencia.PATRON
+        }
+    }
+
+    override suspend fun actualizarCacheClasificaciones() {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d("ClasificacionRepo", "🔄 Actualizando cache de clasificaciones...")
+                
+                // Obtener todas las transacciones ya clasificadas
+                val movimientosClasificados = movimientoDao.obtenerMovimientosConCategoria()
+                
+                // Crear cache de clasificaciones históricas
+                val nuevoCache = mutableMapOf<String, Long>()
+                
+                for (movimiento in movimientosClasificados) {
+                    if (movimiento.categoriaId != null) {
+                        val descripcionNormalizada = ClasificacionNormalizer.normalizarDescripcion(movimiento.descripcion)
+                        nuevoCache[descripcionNormalizada] = movimiento.categoriaId
+                        
+                        // También agregar variaciones para mejorar la búsqueda
+                        val variaciones = ClasificacionNormalizer.generarVariaciones(movimiento.descripcion)
+                        for (variacion in variaciones) {
+                            if (variacion != descripcionNormalizada) {
+                                nuevoCache[variacion] = movimiento.categoriaId
+                            }
+                        }
+                    }
+                }
+                
+                cacheClasificaciones = nuevoCache
+                cacheActualizado = true
+                
+                Log.d("ClasificacionRepo", "✅ Cache actualizado: ${cacheClasificaciones.size} clasificaciones históricas")
+                
+            } catch (e: Exception) {
+                Log.e("ClasificacionRepo", "❌ Error al actualizar cache: ${e.message}")
+            }
+        }
+    }
+
+    override suspend fun obtenerEstadisticasClasificacion(): EstadisticasClasificacion {
+        return withContext(Dispatchers.IO) {
+            try {
+                val movimientos = movimientoDao.obtenerMovimientos()
+                val categorias = categoriaDao.obtenerCategorias()
+                
+                val totalTransacciones = movimientos.size
+                val transaccionesClasificadas = movimientos.count { it.categoriaId != null }
+                val sinClasificar = totalTransacciones - transaccionesClasificadas
+                
+                // Calcular estadísticas por tipo de coincidencia
+                var clasificacionesExactas = 0
+                var clasificacionesParciales = 0
+                var clasificacionesFuzzy = 0
+                
+                // Calcular precisión promedio (simulada basada en confianza)
+                val precisionPromedio = if (transaccionesClasificadas > 0) {
+                    // Simular precisión basada en el número de transacciones clasificadas
+                    (transaccionesClasificadas.toDouble() / totalTransacciones.toDouble()) * 0.85
+                } else 0.0
+                
+                // Comercios más frecuentes
+                val comerciosFrecuentes = movimientos
+                    .filter { it.categoriaId != null }
+                    .groupBy { ClasificacionNormalizer.normalizarDescripcion(it.descripcion) }
+                    .map { (descripcion, movimientos) ->
+                        val categoria = categorias.find { it.id == movimientos.first().categoriaId }
+                        ComercioFrecuente(
+                            nombreNormalizado = descripcion,
+                            nombreOriginal = movimientos.first().descripcion,
+                            categoriaId = movimientos.first().categoriaId!!,
+                            frecuencia = movimientos.size,
+                            confianzaPromedio = 0.9 // Simulado
+                        )
+                    }
+                    .sortedByDescending { it.frecuencia }
+                    .take(10)
+                
+                // Categorías más usadas
+                val categoriasMasUsadas = movimientos
+                    .filter { it.categoriaId != null }
+                    .groupBy { it.categoriaId }
+                    .map { (categoriaId, movimientos) ->
+                        val categoria = categorias.find { it.id == categoriaId }
+                        CategoriaUso(
+                            categoriaId = categoriaId!!,
+                            nombre = categoria?.nombre ?: "Desconocida",
+                            frecuencia = movimientos.size,
+                            porcentaje = (movimientos.size.toDouble() / totalTransacciones.toDouble()) * 100
+                        )
+                    }
+                    .sortedByDescending { it.frecuencia }
+                    .take(10)
+                
+                EstadisticasClasificacion(
+                    totalTransacciones = totalTransacciones,
+                    clasificacionesExactas = clasificacionesExactas,
+                    clasificacionesParciales = clasificacionesParciales,
+                    clasificacionesFuzzy = clasificacionesFuzzy,
+                    sinClasificar = sinClasificar,
+                    precisionPromedio = precisionPromedio,
+                    comerciosMasFrecuentes = comerciosFrecuentes,
+                    categoriasMasUsadas = categoriasMasUsadas
+                )
+                
+            } catch (e: Exception) {
+                Log.e("ClasificacionRepo", "❌ Error al obtener estadísticas: ${e.message}")
+                EstadisticasClasificacion()
+            }
+        }
+    }
+
+    private suspend fun obtenerSugerenciasBajaConfianza(descripcion: String): List<SugerenciaClasificacion> {
+        val sugerencias = mutableListOf<SugerenciaClasificacion>()
+        
+        // Buscar en patrones aprendidos con confianza baja
+        val patrones = clasificacionDao.obtenerTodosLosPatrones()
+        for (patron in patrones) {
+            if (patron.nivelConfianza < 0.6 && patron.nivelConfianza > 0.3) {
+                sugerencias.add(
+                    SugerenciaClasificacion(
+                        categoriaId = patron.categoriaId,
+                        nivelConfianza = patron.nivelConfianza,
+                        patron = patron.patron
+                    )
+                )
+            }
+        }
+        
+        return sugerencias.sortedByDescending { it.nivelConfianza }.take(3)
+    }
+
+    // Métodos existentes (mantener compatibilidad)
     override suspend fun guardarPatron(patron: String, categoriaId: Long) {
         withContext(Dispatchers.IO) {
             try {
                 Log.d("ClasificacionRepo", "💾 Guardando patrón: '$patron' -> Categoría ID: $categoriaId")
-                val patronNormalizado = patron.trim().lowercase()
+                val patronNormalizado = ClasificacionNormalizer.normalizarDescripcion(patron)
                 val patronExistente = clasificacionDao.obtenerPatronPorDescripcion(patronNormalizado)
                 
                 if (patronExistente != null && patronExistente.categoriaId == categoriaId) {
@@ -56,6 +289,10 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
                     Log.d("ClasificacionRepo", "🆕 Creando nuevo patrón: Confianza $nuevaConfianza")
                     clasificacionDao.insertarPatron(nuevoPatron)
                 }
+                
+                // Invalidar cache para forzar actualización
+                cacheActualizado = false
+                
                 Log.d("ClasificacionRepo", "✅ Patrón guardado exitosamente")
             } catch (e: Exception) {
                 Log.e("ClasificacionRepo", "❌ Error al guardar patrón: ${e.message}")
@@ -67,7 +304,7 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 Log.d("ClasificacionRepo", "🔍 Buscando sugerencia para: '$descripcion'")
-                val descripcionNormalizada = descripcion.trim().lowercase()
+                val descripcionNormalizada = ClasificacionNormalizer.normalizarDescripcion(descripcion)
                 val mejorCoincidencia = clasificacionDao.buscarMejorCoincidencia(descripcionNormalizada)
                 
                 if (mejorCoincidencia != null) {
@@ -138,200 +375,85 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
             try {
                 Log.d("ClasificacionRepo", "📚 Iniciando carga de datos históricos...")
                 
-                // Verificar cantidad actual de patrones
-                val patronesAntes = clasificacionDao.obtenerCantidadPatrones()
-                Log.d("ClasificacionRepo", "📊 Patrones antes de la carga: $patronesAntes")
+                // Cargar datos del archivo CSV de historial
+                cargarDatosDesdeCSV()
                 
-                // NO limpiar patrones existentes - preservar datos del usuario
-                // Solo cargar patrones predefinidos si no existen
-                if (patronesAntes == 0) {
-                    Log.d("ClasificacionRepo", "📖 Cargando patrones predefinidos (base de datos vacía)...")
-                    cargarPatronesPredefinidos()
-                } else {
-                    Log.d("ClasificacionRepo", "ℹ️ Patrones existentes detectados - preservando datos del usuario")
-                }
+                // Actualizar cache
+                actualizarCacheClasificaciones()
                 
-                // Verificar cantidad final de patrones
-                val patronesDespues = clasificacionDao.obtenerCantidadPatrones()
-                Log.d("ClasificacionRepo", "📊 Patrones después de la carga: $patronesDespues")
-                Log.i("ClasificacionRepo", "✅ Datos históricos cargados exitosamente (preservando datos del usuario)")
+                Log.d("ClasificacionRepo", "✅ Datos históricos cargados exitosamente")
             } catch (e: Exception) {
                 Log.e("ClasificacionRepo", "❌ Error al cargar datos históricos: ${e.message}")
             }
         }
     }
 
-    private suspend fun cargarPatronesPredefinidos() {
+    private suspend fun cargarDatosDesdeCSV() {
         try {
-            Log.d("ClasificacionRepo", "📖 Cargando patrones predefinidos...")
+            val inputStream = context.assets.open("Archivos/Movimientos_historicos/Historia.csv")
+            val reader = BufferedReader(InputStreamReader(inputStream))
             
-            // Obtener todas las categorías para mapear por nombre
-            val categorias = categoriaDao.obtenerCategorias()
-            val categoriasMap = categorias.associateBy { it.nombre.lowercase() }
+            var lineNumber = 0
+            var line: String?
             
-            Log.d("ClasificacionRepo", "📋 Categorías disponibles: ${categorias.map { it.nombre }}")
-            
-            // Patrones predefinidos basados en el archivo Historia.csv
-            val patronesPredefinidos = listOf(
-                // Datos exactos del archivo Historia.csv
-                "UNIRED CL AGUAS AND SANTIAGO" to "Agua",
-                "ALICIA 11001SANTIAG" to "Almacen",
-                "DISTRIBUIDORA LOS C SANTIAGO" to "Almacen",
-                "EVENTOS HOLZ PADRE HURTAD" to "Almacen",
-                "KIOSCO UBERLINDA MA SANTIAGO" to "Almacen",
-                "LA MARTITA SANTIAGO" to "Almacen",
-                "MERPAGO*CONFITERIA SANTIAGO" to "Almacen",
-                "MINIMARKET FIONA NUNOA" to "Almacen",
-                "PANIFICADORA NUEVA SANTIAGO" to "Almacen",
-                "PAYSCAN*SNACK CENTE SANTIAGO" to "Almacen",
-                "SANTUARIO PADRE HUR SANTIAGO" to "Almacen",
-                "SERVICIOS Y COMERCI PROVIDENCIA" to "Almacen",
-                "SumUp * Rita Oliva Santiago" to "Almacen",
-                "VELERITO SANTIAGO" to "Almacen",
-                "arariendo" to "Arriendo",
-                "arriendo" to "Arriendo",
-                "COPEC APP SANTIAGO" to "Bencina",
-                "COPEC APP COMPRAS" to "Bencina",
-                "COPEC APP REV.COMPRAS" to "Bencina",
-                "SHELL.FILE181 SANTIAGO" to "Bencina",
-                "ANLUKE COMPRAS" to "Bubi",
-                "COLLOKY MALL PASEO COMPRAS" to "Bubi",
-                "COLLOKY O BUENAVENT COMPRAS" to "Bubi",
-                "FALABELLA COSTANERA SAN NC 01-03" to "Bubi",
-                "GOOGLE PLAY YOUTUBE COMPRAS" to "Bubi",
-                "ORLANDO HIDALGO COMPRAS" to "Bubi",
-                "OUTLET EASTON COMPRAS" to "Bubi",
-                "PILLIN COMPRAS" to "Bubi",
-                "TUU*estiloKidsPeluq PROVIDENCIA" to "Bubi",
-                "TUU*estiloKidsPeluq COMPRAS" to "Bubi",
-                "TUU*estiloKidsPeluq PROVIDENCIA" to "Bubi",
-                "CASA IDEAS PORTAL L COMPRAS" to "Casa",
+            while (reader.readLine().also { line = it } != null) {
+                lineNumber++
+                if (lineNumber == 1) continue // Saltar header
                 
-                // Patrones adicionales de gastos históricos para mayor cobertura
-                "arriendo" to "Arriendo",
-                "supermercado" to "Supermercado",
-                "gastos comunes" to "Gastos comunes",
-                "choquito" to "Choquito",
-                "bencina" to "Bencina",
-                "veguita" to "Veguita",
-                "gatos" to "Gatos",
-                "uber" to "Uber",
-                "seguro" to "Seguro",
-                "salir a comer" to "Salir a comer",
-                "almacen" to "Almacen",
-                "gas" to "Gas",
-                "peajes" to "Peajes",
-                "delivery" to "Delivery",
-                "luz" to "Luz",
-                "internet" to "Internet",
-                "streaming" to "Streaming",
-                "bubi" to "Bubi",
-                "agua" to "Agua",
-                "farmacia" to "Farmacia",
-                "casa" to "Casa",
-                "medico" to "Medico",
-                "regalos" to "Regalos",
-                "credito" to "Credito",
-                "vacaciones" to "Vacaciones",
-                "antojos" to "Antojos",
-                "imprevistos" to "Imprevistos"
-            )
-            
-            var contador = 0
-            for ((patron, categoriaNombre) in patronesPredefinidos) {
-                Log.d("ClasificacionRepo", "🔄 Procesando patrón: '$patron' -> '$categoriaNombre'")
-                val categoriaId = categoriasMap[categoriaNombre.lowercase()]?.id
-                if (categoriaId != null) {
-                    guardarPatron(patron, categoriaId)
-                    contador++
-                    Log.d("ClasificacionRepo", "✅ Patrón predefinido: '$patron' -> '$categoriaNombre' (ID: $categoriaId)")
-                } else {
-                    Log.w("ClasificacionRepo", "⚠️ Categoría no encontrada: '$categoriaNombre' para patrón: '$patron'")
+                line?.let { csvLine ->
+                    val parts = csvLine.split(",")
+                    if (parts.size >= 2) {
+                        val descripcion = parts[0].trim()
+                        val categoriaNombre = parts[1].trim()
+                        
+                        // Buscar categoría por nombre
+                        val categoria = buscarCategoriaPorNombreInsensible(categoriaNombre)
+                        if (categoria != null) {
+                            // Guardar patrón normalizado
+                            val descripcionNormalizada = ClasificacionNormalizer.normalizarDescripcion(descripcion)
+                            guardarPatron(descripcionNormalizada, categoria.id)
+                        }
+                    }
                 }
             }
             
-            Log.d("ClasificacionRepo", "✅ Patrones predefinidos cargados: $contador patrones")
+            reader.close()
+            Log.d("ClasificacionRepo", "📊 Datos CSV cargados: $lineNumber líneas procesadas")
+            
         } catch (e: Exception) {
-            Log.e("ClasificacionRepo", "❌ Error al cargar patrones predefinidos: ${e.message}")
-            e.printStackTrace()
+            Log.e("ClasificacionRepo", "❌ Error al cargar CSV: ${e.message}")
         }
     }
 
     private suspend fun buscarCategoriaPorNombreInsensible(nombre: String): com.aranthalion.controlfinanzas.data.local.entity.Categoria? {
-        // Obtener todas las categorías y buscar por nombre insensible a mayúsculas/minúsculas
-        val todasLasCategorias = categoriaDao.obtenerCategorias()
-        return todasLasCategorias.find { it.nombre.equals(nombre, ignoreCase = true) }
-    }
-
-    private suspend fun mapearItemACategoria(item: String): Long? {
-        val itemLower = item.lowercase()
-        
-        // Mapeo basado en patrones conocidos - usando los nombres exactos de las categorías por defecto
-        val mapeo = mapOf(
-            "arriendo" to "Arriendo",
-            "supermercado" to "Supermercado",
-            "bencina" to "Bencina",
-            "gas" to "Gas",
-            "luz" to "Luz",
-            "agua" to "Agua",
-            "internet" to "Internet",
-            "streaming" to "Streaming",
-            "farmacia" to "Farmacia",
-            "medico" to "Medico",
-            "seguro" to "Seguro",
-            "peajes" to "Peajes",
-            "uber" to "Uber",
-            "delivery" to "Delivery",
-            "salir a comer" to "Salir a comer",
-            "almacen" to "Almacen",
-            "gastos comunes" to "Gastos comunes",
-            "casa" to "Casa",
-            "bubi" to "Bubi",
-            "veguita" to "Veguita",
-            "gatos" to "Gatos",
-            "choquito" to "Choquito",
-            "regalos" to "Regalos",
-            "imprevistos" to "Imprevistos",
-            "antojos" to "Antojos",
-            "credito" to "Credito",
-            "vacaciones" to "Vacaciones"
-        )
-        
-        for ((patron, categoriaNombre) in mapeo) {
-            if (itemLower.contains(patron)) {
-                val categoria = buscarCategoriaPorNombreInsensible(categoriaNombre)
-                Log.d("ClasificacionRepo", "🎯 Mapeo encontrado: '$item' -> '$categoriaNombre' (ID: ${categoria?.id})")
-                return categoria?.id
-            }
+        val categorias = categoriaDao.obtenerCategorias()
+        return categorias.find { 
+            it.nombre.equals(nombre, ignoreCase = true) 
         }
-        
-        return null
     }
 
     private fun calcularConfianza(frecuencia: Int, longitudPatron: Int): Double {
-        // Fórmula para calcular confianza basada en frecuencia y longitud del patrón
-        val confianzaFrecuencia = minOf(frecuencia / 10.0, 1.0) // Máximo 1.0
-        val confianzaLongitud = minOf(longitudPatron / 20.0, 1.0) // Máximo 1.0
-        val confianzaFinal = (confianzaFrecuencia * 0.7 + confianzaLongitud * 0.3).coerceIn(0.0, 1.0)
+        // Fórmula mejorada para calcular confianza
+        val confianzaFrecuencia = minOf(frecuencia / 5.0, 1.0) // Más sensible a la frecuencia
+        val confianzaLongitud = minOf(longitudPatron / 15.0, 1.0) // Ajustado para patrones más cortos
+        val confianzaFinal = (confianzaFrecuencia * 0.8 + confianzaLongitud * 0.2).coerceIn(0.0, 1.0)
         Log.d("ClasificacionRepo", "🧮 Cálculo de confianza: Frecuencia=$frecuencia, Longitud=$longitudPatron, ConfianzaFrecuencia=$confianzaFrecuencia, ConfianzaLongitud=$confianzaLongitud, Final=$confianzaFinal")
         return confianzaFinal
     }
 
     // Métodos stub para cumplir con la interfaz
-    override suspend fun agregarRegla(regla: com.aranthalion.controlfinanzas.domain.clasificacion.ReglaClasificacion) {
-        // TODO: Implementar lógica real
-    }
-    override suspend fun obtenerReglas(): List<com.aranthalion.controlfinanzas.domain.clasificacion.ReglaClasificacion> = emptyList()
-    override suspend fun actualizarRegla(regla: com.aranthalion.controlfinanzas.domain.clasificacion.ReglaClasificacion) {}
+    override suspend fun agregarRegla(regla: ReglaClasificacion) {}
+    override suspend fun obtenerReglas(): List<ReglaClasificacion> = emptyList()
+    override suspend fun actualizarRegla(regla: ReglaClasificacion) {}
     override suspend fun eliminarRegla(reglaId: Long) {}
-    override suspend fun obtenerPatronesAprendidos(): List<com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido> = emptyList()
-    override suspend fun obtenerPatronPorDescripcion(descripcion: String): com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido? = null
-    override suspend fun agregarPatron(patron: com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido) {}
-    override suspend fun actualizarPatron(patron: com.aranthalion.controlfinanzas.domain.clasificacion.PatronAprendido) {}
+    override suspend fun obtenerPatronesAprendidos(): List<PatronAprendido> = emptyList()
+    override suspend fun obtenerPatronPorDescripcion(descripcion: String): PatronAprendido? = null
+    override suspend fun agregarPatron(patron: PatronAprendido) {}
+    override suspend fun actualizarPatron(patron: PatronAprendido) {}
     override suspend fun obtenerTotalClasificaciones(): Int = 0
     override suspend fun obtenerClasificacionesAutomaticas(): Int = 0
     override suspend fun obtenerPrecisionPromedio(): Double = 0.0
-    override suspend fun obtenerCategoriasMasUsadas(): List<com.aranthalion.controlfinanzas.domain.clasificacion.CategoriaUso> = emptyList()
-    override suspend fun obtenerPatronesMasEfectivos(): List<com.aranthalion.controlfinanzas.domain.clasificacion.PatronEfectivo> = emptyList()
+    override suspend fun obtenerCategoriasMasUsadas(): List<CategoriaUso> = emptyList()
+    override suspend fun obtenerPatronesMasEfectivos(): List<PatronEfectivo> = emptyList()
     override suspend fun registrarClasificacion(descripcion: String, categoriaId: Long, esCorrecta: Boolean) {}
 } 

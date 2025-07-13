@@ -185,9 +185,10 @@ abstract class AppModule {
         fun provideClasificacionAutomaticaRepository(
             clasificacionDao: ClasificacionAutomaticaDao,
             categoriaDao: CategoriaDao,
+            movimientoDao: MovimientoDao,
             @ApplicationContext context: Context
         ): ClasificacionAutomaticaRepositoryImpl {
-            return ClasificacionAutomaticaRepositoryImpl(clasificacionDao, categoriaDao, context)
+            return ClasificacionAutomaticaRepositoryImpl(clasificacionDao, categoriaDao, movimientoDao, context)
         }
 
         @Provides

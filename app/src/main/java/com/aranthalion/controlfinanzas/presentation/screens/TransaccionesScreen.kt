@@ -118,7 +118,7 @@ fun TransaccionesScreen(
                         nivelConfianza = null
                     )
                 }
-                tinderViewModel.procesarTransaccionesParaTinder(excelTransactions)
+                tinderViewModel.recargarTransacciones()
                 mostrarTinderClasificacion = true
             }
         }

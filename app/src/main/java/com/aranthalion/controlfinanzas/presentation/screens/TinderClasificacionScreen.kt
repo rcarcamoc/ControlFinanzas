@@ -47,7 +47,7 @@ fun TinderClasificacionScreen(
         )
     ) {
         Dialog(
-            onDismissRequest = { viewModel.finalizarTinder() },
+            onDismissRequest = { onDismiss() },
             properties = DialogProperties(
                 dismissOnBackPress = true,
                 dismissOnClickOutside = false
@@ -55,9 +55,9 @@ fun TinderClasificacionScreen(
         ) {
             TinderClasificacionDialog(
                 uiState = uiState,
-                onAceptar = { viewModel.aceptarClasificacion() },
-                onRechazar = { viewModel.rechazarClasificacion() },
-                onDismiss = { viewModel.finalizarTinder() },
+                onAceptar = { viewModel.aceptarTransaccion() },
+                onRechazar = { viewModel.rechazarTransaccion() },
+                onDismiss = { onDismiss() },
                 onClose = onDismiss
             )
         }

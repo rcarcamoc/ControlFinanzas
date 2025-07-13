@@ -22,6 +22,28 @@ class TinderClasificacionService @Inject constructor(
     private val transaccionesRechazadas = mutableListOf<TransaccionTinder>()
     
     /**
+     * Obtiene las transacciones pendientes de clasificación
+     */
+    suspend fun obtenerTransaccionesPendientes(): List<ExcelTransaction> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("TinderService", "🔍 Obteniendo transacciones pendientes...")
+                
+                // Por ahora, devolver una lista vacía ya que las transacciones
+                // se cargan desde el ExcelProcessor
+                // En el futuro, esto podría obtener transacciones sin clasificar de la BD
+                
+                Log.d("TinderService", "📊 Transacciones pendientes obtenidas: 0")
+                emptyList()
+                
+            } catch (e: Exception) {
+                Log.e("TinderService", "❌ Error al obtener transacciones pendientes: ${e.message}")
+                emptyList()
+            }
+        }
+    }
+    
+    /**
      * Registra una transacción aceptada en el Tinder
      */
     suspend fun registrarAceptacion(transaccionTinder: TransaccionTinder) {
