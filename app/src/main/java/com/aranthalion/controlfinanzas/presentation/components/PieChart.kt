@@ -50,6 +50,18 @@ fun PieChart(
     var tooltipOffset by remember { mutableStateOf(IntOffset.Zero) }
     val density = LocalDensity.current
     
+    // Paleta de colores accesible
+    val palette = listOf(
+        Color(0xFF1976D2), // Azul
+        Color(0xFF388E3C), // Verde
+        Color(0xFFFBC02D), // Amarillo
+        Color(0xFFD32F2F), // Rojo
+        Color(0xFF7B1FA2), // Morado
+        Color(0xFF0288D1), // Celeste
+        Color(0xFFF57C00), // Naranja
+        Color(0xFF388E3C)  // Verde oscuro
+    )
+    
     // Animación para el gráfico
     val animatedProgress by animateFloatAsState(
         targetValue = 1f,
@@ -67,7 +79,8 @@ fun PieChart(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Título
             title?.let {
@@ -76,183 +89,53 @@ fun PieChart(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            
+            // Gráfico circular
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 180.dp)
+            ) {
+                val size = minOf(maxWidth, maxHeight)
+                Canvas(modifier = Modifier.size(size)) {
+                    var startAngle = -90f
+                    data.forEachIndexed { i, slice ->
+                        val color = slice.color.takeIf { it != Color.Unspecified } ?: palette[i % palette.size]
+                        val sweep = (slice.value / total) * 360f * animatedProgress
+                        drawArc(
+                            color = color,
+                            startAngle = startAngle,
+                            sweepAngle = sweep,
+                            useCenter = true
+                        )
+                        startAngle += sweep
+                    }
+                }
+            }
+            // Leyenda
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                horizontalArrangement = Arrangement.Center
             ) {
-                // Gráfico de torta
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(220.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    var tapPosition by remember { mutableStateOf<Offset?>(null) }
-                    Canvas(
-                        modifier = Modifier
-                            .size(200.dp)
-                            .pointerInput(data, selectedSlice) {
-                                detectTapGestures { offset ->
-                                    tapPosition = offset
-                                }
-                            }
+                data.take(palette.size).forEachIndexed { i, slice ->
+                    val color = slice.color.takeIf { it != Color.Unspecified } ?: palette[i % palette.size]
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
-                        val center = Offset(size.width / 2, size.height / 2)
-                        val radius = min(size.width, size.height) / 2 - 15f
-                        var startAngle = -90f // Empezar desde arriba
-                        var tappedSlice: PieChartData? = null
-                        data.forEach { slice ->
-                            val sweepAngle = (slice.value / total) * 360f * animatedProgress
-                            val isSelected = selectedSlice?.id == slice.id
-                            val offset = if (isSelected) 8f else 0f
-                            // Dibujar sector con efecto 3D
-                            drawPieSlice(
-                                color = slice.color,
-                                center = center,
-                                radius = radius + offset,
-                                startAngle = startAngle,
-                                sweepAngle = sweepAngle,
-                                isSelected = isSelected
-                            )
-                            // Detección de tap
-                            tapPosition?.let { tap ->
-                                val dx = tap.x - center.x
-                                val dy = tap.y - center.y
-                                val angle = (atan2(dy, dx) * 180f / Math.PI).toFloat() + 180f
-                                val normAngle = (angle + 360f) % 360f
-                                val sliceStart = (startAngle + 360f) % 360f
-                                val sliceEnd = (startAngle + sweepAngle + 360f) % 360f
-                                if (normAngle in sliceStart..sliceEnd) {
-                                    tappedSlice = slice
-                                }
-                            }
-                            startAngle += sweepAngle
-                        }
-                        if (tappedSlice != null) {
-                            selectedSlice = if (selectedSlice?.id == tappedSlice?.id) null else tappedSlice
-                            tapPosition = null
-                    }
-                }
-                    // Tooltip flotante centrado
-                    if (selectedSlice != null) {
-                        val slice = selectedSlice!!
-                        val percentage = (slice.value / total) * 100
                         Box(
                             modifier = Modifier
-                                .align(Alignment.Center)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = MaterialTheme.shapes.medium
-                                )
-                                .padding(8.dp)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(slice.label, style = MaterialTheme.typography.labelMedium)
-                                Text("${slice.value.toInt()} (${"%.1f".format(percentage)}%)", fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-                
-                // Leyenda mejorada y accesible
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(220.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    data.forEach { slice ->
-                        val percentage = (slice.value / total) * 100
-                        val isSelected = selectedSlice?.id == slice.id
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedSlice = if (selectedSlice?.id == slice.id) null else slice
-                                    onSliceClick?.invoke(slice)
-                                },
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) 
-                                    MaterialTheme.colorScheme.primaryContainer 
-                                else 
-                                    MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            elevation = CardDefaults.cardElevation(
-                                defaultElevation = if (isSelected) 4.dp else 1.dp
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Indicador de color
-                                Card(
-                                    modifier = Modifier.size(20.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = slice.color
-                                    ),
-                                    shape = MaterialTheme.shapes.small
-                                ) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (isSelected) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(12.dp),
-                                                tint = Color.White
-                                            )
-                                        }
-                                    }
-                                }
-                                
-                                Spacer(modifier = Modifier.width(12.dp))
-                                
-                                // Información
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = slice.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (isSelected) 
-                                            MaterialTheme.colorScheme.onPrimaryContainer 
-                                        else 
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Row(
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = "%.1f%%".format(percentage),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) 
-                                                MaterialTheme.colorScheme.onPrimaryContainer 
-                                            else 
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = slice.value.toInt().toString(),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (isSelected) 
-                                                MaterialTheme.colorScheme.onPrimaryContainer 
-                                            else 
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                                .size(12.dp)
+                                .background(color = color, shape = MaterialTheme.shapes.small)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${slice.label} (${slice.value.toInt()})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }

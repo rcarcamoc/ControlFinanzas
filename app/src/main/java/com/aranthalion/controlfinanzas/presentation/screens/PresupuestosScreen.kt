@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -332,10 +333,11 @@ fun PresupuestosScreen(
                                 }
                             }
                         } else {
+                            @OptIn(ExperimentalFoundationApi::class)
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(presupuestosCompletos) { presupuestoCompleto ->
+                                items(presupuestosCompletos, key = { it.categoria.id }) { presupuestoCompleto ->
                                     val presupuesto = presupuestosPorCategoria[presupuestoCompleto.categoria.id]
                                     PresupuestoItemCompleto(
                                         presupuestoCompleto = presupuestoCompleto,
@@ -350,7 +352,8 @@ fun PresupuestosScreen(
                                             scope.launch {
                                                 viewModel.guardarPresupuesto(presupuestoCompleto.categoria.id, monto, periodoSeleccionado)
                                             }
-                                        }
+                                        },
+                                        modifier = Modifier.animateItemPlacement()
                                     )
                                 }
                                 
@@ -771,7 +774,8 @@ fun PresupuestoItemCompleto(
     presupuesto: PresupuestoCategoriaEntity?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onSave: (Double) -> Unit
+    onSave: (Double) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
@@ -786,7 +790,7 @@ fun PresupuestoItemCompleto(
     }
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),

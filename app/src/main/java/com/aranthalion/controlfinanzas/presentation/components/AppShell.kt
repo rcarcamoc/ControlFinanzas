@@ -28,24 +28,43 @@ import androidx.compose.foundation.layout.asPaddingValues
 data class NavItem(
     val route: String,
     val label: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val category: String = "General"
+)
+
+data class NavCategory(
+    val name: String,
+    val items: List<NavItem>
 )
 
 val navItems = listOf(
-    NavItem("home", "Dashboard", CustomIcons.Home),
-    NavItem("transacciones", "Transacciones", CustomIcons.List),
-    NavItem("presupuestos", "Presupuestos y Categorías", CustomIcons.Star),
-    NavItem("usuarios", "Usuarios", CustomIcons.Person),
-    NavItem("cuentas_por_cobrar", "Cuentas por Cobrar", CustomIcons.Star),
+    // Principal
+    NavItem("home", "Dashboard", CustomIcons.Dashboard, "Principal"),
+    NavItem("transacciones", "Transacciones", CustomIcons.Transaction, "Principal"),
+    NavItem("importar_excel", "Importar Excel", CustomIcons.Import, "Principal"),
+    
+    // Gestión
+    NavItem("presupuestos", "Presupuestos y Categorías", CustomIcons.Category, "Gestión"),
+    NavItem("usuarios", "Usuarios", CustomIcons.User, "Gestión"),
+    NavItem("cuentas_por_cobrar", "Cuentas por Cobrar", CustomIcons.CreditCard, "Gestión"),
+    
+    // Análisis
+    NavItem("dashboardAnalisis", "Análisis General", CustomIcons.Analytics, "Análisis"),
+    NavItem("aporte_proporcional", "Aporte Proporcional", CustomIcons.Group, "Análisis"),
+    NavItem("analisis_gasto_categoria", "Análisis por Categoría", CustomIcons.Assessment, "Análisis"),
+    NavItem("insights_avanzados", "Insights Avanzados", CustomIcons.Lightbulb, "Análisis"),
+    
+    // Herramientas
+    NavItem("auditoria_database", "Auditoría DB", CustomIcons.Storage, "Herramientas"),
+    NavItem("debug_clasificacion", "Debug Clasificación", CustomIcons.BugReport, "Herramientas"),
+    NavItem("configuracion", "Configuración", CustomIcons.Settings, "Herramientas")
+)
 
-    NavItem("importar_excel", "Importar", CustomIcons.Info),
-    NavItem("dashboardAnalisis", "Análisis", CustomIcons.Star),
-    NavItem("aporte_proporcional", "Aporte", CustomIcons.Person),
-    NavItem("analisis_gasto_categoria", "Análisis Gastos", CustomIcons.Info),
-    NavItem("insights_avanzados", "Insights y Agrupaciones", CustomIcons.Psychology),
-    NavItem("auditoria_database", "Auditoría DB", CustomIcons.List),
-    NavItem("debug_clasificacion", "Debug Clasificación", CustomIcons.Psychology),
-    NavItem("configuracion", "Configuración", CustomIcons.Settings)
+val navCategories = listOf(
+    NavCategory("Principal", navItems.filter { it.category == "Principal" }),
+    NavCategory("Gestión", navItems.filter { it.category == "Gestión" }),
+    NavCategory("Análisis", navItems.filter { it.category == "Análisis" }),
+    NavCategory("Herramientas", navItems.filter { it.category == "Herramientas" })
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,10 +93,11 @@ fun AppShell(
             if (isSidebarExpanded) {
                 Column(
                     modifier = Modifier
-                        .width(256.dp)
+                        .width(280.dp)
                         .fillMaxHeight()
                         .background(SidebarBackground)
                         .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     // Logo/Header
                     Row(
@@ -116,34 +136,38 @@ fun AppShell(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Navigation Items
-                    Text(
-                        text = "Navegación",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = SidebarForeground,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    navItems.forEach { item ->
-                        val isActive = currentRoute == item.route
-                        NavigationItem(
-                            item = item,
-                            isActive = isActive,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
+                    // Navigation Items por categorías
+                    navCategories.forEach { category ->
+                        if (category.items.isNotEmpty()) {
+                            Text(
+                                text = category.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = SidebarForeground.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(bottom = 8.dp, top = 16.dp)
+                            )
+                            
+                            category.items.forEach { item ->
+                                val isActive = currentRoute == item.route
+                                NavigationItem(
+                                    item = item,
+                                    isActive = isActive,
+                                    onClick = {
+                                        navController.navigate(item.route) {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                        // Cerrar sidebar en pantallas pequeñas después de navegar
+                                        if (isSmallScreen) {
+                                            isSidebarExpanded = false
+                                        }
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                                // Cerrar sidebar en pantallas pequeñas después de navegar
-                                if (isSmallScreen) {
-                                    isSidebarExpanded = false
-                                }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -222,7 +246,7 @@ private fun NavigationItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         color = backgroundColor,
         shape = MaterialTheme.shapes.medium,
         onClick = onClick
@@ -237,7 +261,7 @@ private fun NavigationItem(
                 imageVector = item.icon,
                 contentDescription = null,
                 tint = textColor,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(

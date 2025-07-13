@@ -18,6 +18,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.presentation.components.TinderClasificacionCard
+import com.aranthalion.controlfinanzas.presentation.components.SelectorCategoriaManual
 import com.aranthalion.controlfinanzas.presentation.components.TransaccionTinder
 
 @Composable
@@ -57,9 +58,33 @@ fun TinderClasificacionScreen(
                 uiState = uiState,
                 onAceptar = { viewModel.aceptarTransaccion() },
                 onRechazar = { viewModel.rechazarTransaccion() },
+                onSeleccionarCategoria = { viewModel.seleccionarCategoria(it) },
+                onMostrarSelectorManual = { viewModel.mostrarSelectorManual() },
+                onConfirmarClasificacion = { viewModel.confirmarClasificacion() },
+                onSeleccionarCategoriaManual = { viewModel.seleccionarCategoriaManual(it) },
                 onDismiss = { onDismiss() },
                 onClose = onDismiss
             )
+        }
+    }
+    
+    // Dialog para selector manual de categorías
+    if (uiState.mostrarSelectorManual) {
+        SelectorCategoriaManual(
+            categorias = uiState.categoriasDisponibles,
+            onSeleccionar = { categoriaId ->
+                viewModel.seleccionarCategoriaManual(categoriaId)
+            },
+            onDismiss = {
+                viewModel.ocultarSelectorManual()
+            }
+        )
+    }
+    
+    // Snackbar para feedback
+    if (uiState.mostrarFeedback) {
+        LaunchedEffect(uiState.mensajeFeedback) {
+            // Aquí podrías mostrar un Snackbar con el mensaje
         }
     }
 }
@@ -69,6 +94,10 @@ fun TinderClasificacionDialog(
     uiState: TinderClasificacionUiState,
     onAceptar: () -> Unit,
     onRechazar: () -> Unit,
+    onSeleccionarCategoria: (Long) -> Unit,
+    onMostrarSelectorManual: () -> Unit,
+    onConfirmarClasificacion: () -> Unit,
+    onSeleccionarCategoriaManual: (Long) -> Unit,
     onDismiss: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -149,8 +178,13 @@ fun TinderClasificacionDialog(
                 uiState.transaccionActual?.let { transaccionTinder ->
                     TinderClasificacionCard(
                         transaccionTinder = transaccionTinder,
+                        sugerenciasCategorias = uiState.sugerenciasCategorias,
+                        categoriaSeleccionada = uiState.categoriaSeleccionada,
                         onAceptar = onAceptar,
                         onRechazar = onRechazar,
+                        onSeleccionarCategoria = onSeleccionarCategoria,
+                        onMostrarSelectorManual = onMostrarSelectorManual,
+                        onConfirmarClasificacion = onConfirmarClasificacion,
                         onDismiss = onDismiss,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -203,20 +237,17 @@ fun TinderClasificacionOverlay(
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
     ) {
-        // Contenido del Tinder centrado
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            TinderClasificacionCard(
-                transaccionTinder = uiState.transaccionActual!!,
-                onAceptar = onAceptar,
-                onRechazar = onRechazar,
-                onDismiss = onDismiss,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        // Contenido del overlay
+        TinderClasificacionDialog(
+            uiState = uiState,
+            onAceptar = onAceptar,
+            onRechazar = onRechazar,
+            onSeleccionarCategoria = { /* Implementar */ },
+            onMostrarSelectorManual = { /* Implementar */ },
+            onConfirmarClasificacion = { /* Implementar */ },
+            onSeleccionarCategoriaManual = { /* Implementar */ },
+            onDismiss = onDismiss,
+            onClose = onDismiss
+        )
     }
 } 

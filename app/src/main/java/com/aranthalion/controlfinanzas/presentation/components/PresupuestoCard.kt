@@ -12,11 +12,15 @@ import androidx.compose.ui.unit.dp
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.domain.usecase.PresupuestoCategoria
 import com.aranthalion.controlfinanzas.domain.usecase.EstadoPresupuesto
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.draw.scale
 
 @Composable
 fun PresupuestoCard(
-    presupuesto: PresupuestoCategoria,
-    onEditPresupuesto: (Long, Double?) -> Unit
+    presupuesto: com.aranthalion.controlfinanzas.domain.usecase.PresupuestoCategoria,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val colorEstado = when (presupuesto.estado) {
         EstadoPresupuesto.NORMAL -> Color(0xFF4CAF50) // Verde
@@ -28,15 +32,16 @@ fun PresupuestoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Información básica
+            // Header con información básica
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -46,8 +51,10 @@ fun PresupuestoCard(
                     Text(
                         text = presupuesto.categoria.nombre,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Presupuesto: ${FormatUtils.formatMoneyCLP(presupuesto.presupuesto)}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -56,42 +63,79 @@ fun PresupuestoCard(
                     Text(
                         text = "Gastado: ${FormatUtils.formatMoneyCLP(presupuesto.gastoActual)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = colorEstado,
+                        fontWeight = FontWeight.Medium
                     )
                 }
                 
-                // Porcentaje
-                Text(
-                    text = "${String.format("%.1f", presupuesto.porcentajeGastado)}%",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = colorEstado
-                )
+                // Porcentaje destacado
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            color = colorEstado,
+                            shape = MaterialTheme.shapes.medium
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${String.format("%.0f", presupuesto.porcentajeGastado)}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Gráfico de barras
+            // Gráfico de barras mejorado
             PresupuestoProgressBar(
                 porcentaje = presupuesto.porcentajeGastado,
                 color = colorEstado,
                 modifier = Modifier.fillMaxWidth()
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
-            // Estado del presupuesto
-                Text(
-                    text = when (presupuesto.estado) {
-                        EstadoPresupuesto.NORMAL -> "Normal"
-                    EstadoPresupuesto.ADVERTENCIA -> "Advertencia"
-                    EstadoPresupuesto.CRITICO -> "Crítico"
-                    EstadoPresupuesto.EXCEDIDO -> "Excedido"
+            // Acciones
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                var editPressed by remember { mutableStateOf(false) }
+                var deletePressed by remember { mutableStateOf(false) }
+                val editScale by animateFloatAsState(if (editPressed) 0.92f else 1f, animationSpec = spring())
+                val deleteScale by animateFloatAsState(if (deletePressed) 0.92f else 1f, animationSpec = spring())
+                IconButton(
+                    onClick = {
+                        editPressed = true
+                        onEditClick()
+                        editPressed = false
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                color = colorEstado,
-                fontWeight = FontWeight.Medium
-            )
+                    modifier = Modifier.scale(editScale)
+                ) {
+                    Icon(
+                        imageVector = CustomIcons.Edit,
+                        contentDescription = "Editar",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        deletePressed = true
+                        onDeleteClick()
+                        deletePressed = false
+                    },
+                    modifier = Modifier.scale(deleteScale)
+                ) {
+                    Icon(
+                        imageVector = CustomIcons.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         }
     }
 }
@@ -164,20 +208,45 @@ fun ResumenPresupuestosCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Resumen de Presupuestos",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            // Header con icono y título
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = colorEstado,
+                            shape = MaterialTheme.shapes.medium
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = CustomIcons.Category,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "Resumen de Presupuestos",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
+            // Estadísticas principales
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -185,72 +254,114 @@ fun ResumenPresupuestosCard(
                 Column {
                     Text(
                         text = "Total Gastado",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
                         text = FormatUtils.formatMoneyCLP(resumen.totalGastado),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colorEstado
                     )
                 }
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "Total Presupuestado",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
                         text = FormatUtils.formatMoneyCLP(resumen.totalPresupuestado),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Barra de progreso general
-            LinearProgressIndicator(
-                progress = (resumen.porcentajeGastado / 100).toFloat().coerceIn(0f, 1f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = colorEstado
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${String.format("%.1f", resumen.porcentajeGastado)}% del presupuesto",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colorEstado
+            // Barra de progreso mejorada
+            Column {
+                LinearProgressIndicator(
+                    progress = (resumen.porcentajeGastado / 100).toFloat().coerceIn(0f, 1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(12.dp),
+                    color = colorEstado,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                
-                TextButton(onClick = onVerDetalle) {
-                    Text("Ver Detalle")
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${String.format("%.1f", resumen.porcentajeGastado)}% del presupuesto",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorEstado,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    TextButton(
+                        onClick = onVerDetalle,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Ver Detalle")
+                    }
                 }
             }
             
-            if (resumen.categoriasConAlerta > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "⚠️ ${resumen.categoriasConAlerta} categorías con alerta",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            
-            if (resumen.categoriasExcedidas > 0) {
-                Text(
-                    text = "💥 ${resumen.categoriasExcedidas} categorías excedidas",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
+            // Alertas visuales
+            if (resumen.categoriasConAlerta > 0 || resumen.categoriasExcedidas > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (resumen.categoriasConAlerta > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = CustomIcons.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "${resumen.categoriasConAlerta} alertas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFFF9800),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    
+                    if (resumen.categoriasExcedidas > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = CustomIcons.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFD32F2F),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "${resumen.categoriasExcedidas} excedidas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFD32F2F),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
             }
         }
     }

@@ -55,6 +55,9 @@ import com.aranthalion.controlfinanzas.presentation.components.ClasificacionStat
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.draw.scale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -793,16 +796,19 @@ private fun TransaccionItem(
     movimiento: MovimientoEntity,
     categorias: List<Categoria>,
     onEdit: (MovimientoEntity) -> Unit,
-    onDelete: (MovimientoEntity) -> Unit
+    onDelete: (MovimientoEntity) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val categoria = categorias.find { it.id == movimiento.categoriaId }
     val formattedDate = remember(movimiento.fecha) {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(movimiento.fecha)
     }
+    var deletePressed by remember { mutableStateOf(false) }
+    val deleteScale by animateFloatAsState(if (deletePressed) 0.92f else 1f, animationSpec = spring())
     
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onEdit(movimiento) }
             .background(
@@ -923,12 +929,6 @@ private fun TransaccionItem(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                             Text(
                                 text = formattedDate,
                                 style = MaterialTheme.typography.bodySmall,
@@ -1014,16 +1014,16 @@ private fun TransaccionItem(
                     )
                 }
                 IconButton(
-                    onClick = { showDeleteDialog = true },
-                    modifier = Modifier.size(36.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    onClick = {
+                        deletePressed = true
+                        showDeleteDialog = true
+                        deletePressed = false
+                    },
+                    modifier = Modifier.scale(deleteScale)
                 ) {
                     Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        modifier = Modifier.size(18.dp),
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar transacción",
                         tint = MaterialTheme.colorScheme.error
                     )
                 }

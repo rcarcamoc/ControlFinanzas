@@ -5,7 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
 object CustomIcons {
-    // Usar iconos de Material Design como fallback hasta que los iconos personalizados estén listos
+    // Iconos básicos
     val Add: ImageVector = Icons.Default.Add
     val ArrowBack: ImageVector = Icons.Default.ArrowBack
     val ArrowForward: ImageVector = Icons.Default.ArrowForward
@@ -30,13 +30,23 @@ object CustomIcons {
     val Star: ImageVector = Icons.Default.Star
     val Warning: ImageVector = Icons.Default.Warning
     val AccountCircle: ImageVector = Icons.Default.AccountCircle
-    val Psychology: ImageVector = Icons.Default.Info
-    val Group: ImageVector = Icons.Default.List
-    val Lightbulb: ImageVector = Icons.Default.Star
+    
+    // Iconos específicos para navegación (usando iconos disponibles)
+    val Dashboard: ImageVector = Icons.Default.Home
+    val Transaction: ImageVector = Icons.Default.List
+    val Import: ImageVector = Icons.Default.Info
+    val Category: ImageVector = Icons.Default.Star
+    val User: ImageVector = Icons.Default.Person
+    val CreditCard: ImageVector = Icons.Default.Star
+    val Analytics: ImageVector = Icons.Default.Info
     val Assessment: ImageVector = Icons.Default.Info
+    val TrendingUp: ImageVector = Icons.Default.Info
+    val Psychology: ImageVector = Icons.Default.Info
+    val BugReport: ImageVector = Icons.Default.Info
+    val Storage: ImageVector = Icons.Default.List
+    val Group: ImageVector = Icons.Default.Person
+    val Lightbulb: ImageVector = Icons.Default.Star
     val Schedule: ImageVector = Icons.Default.Info
     val Repeat: ImageVector = Icons.Default.Refresh
     val AttachMoney: ImageVector = Icons.Default.Info
-    val TrendingUp: ImageVector = Icons.Default.Info
-    val Analytics: ImageVector = Icons.Default.Info
 } 

@@ -84,18 +84,29 @@ fun BarChart(
         data.maxOfOrNull { it.value } ?: 0f
     }
     
+    // Paleta de colores accesible
+    val palette = listOf(
+        Color(0xFF1976D2), // Azul
+        Color(0xFF388E3C), // Verde
+        Color(0xFFFBC02D), // Amarillo
+        Color(0xFFD32F2F), // Rojo
+        Color(0xFF7B1FA2), // Morado
+        Color(0xFF0288D1), // Celeste
+        Color(0xFFF57C00), // Naranja
+        Color(0xFF388E3C)  // Verde oscuro
+    )
+    
     // Animación para las barras
     val animatedProgress by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(1000, easing = EaseOutCubic),
+        animationSpec = tween(1200, easing = EaseOutCubic),
         label = "barAnimation"
     )
 
     // Estado para tooltip
     var tooltipIndex by remember { mutableStateOf<Int?>(null) }
     var tooltipOffset by remember { mutableStateOf(Offset.Zero) }
-    val density = LocalDensity.current
-    
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -106,8 +117,8 @@ fun BarChart(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 220.dp, max = 380.dp)
-                .padding(20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Título
             title?.let {
@@ -116,224 +127,81 @@ fun BarChart(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            
-            // Leyenda
-            if (showBudget) {
+            // Gráfico de barras
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 180.dp)
+            ) {
+                val barWidth = maxOf(24.dp, maxWidth / (data.size * 2))
+                val space = 12.dp
+                val density = LocalDensity.current
+                val maxHeightPx = with(density) { maxHeight.toPx() }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(space)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = MaterialTheme.shapes.small
+                    data.forEachIndexed { i, bar ->
+                        val color = bar.color.takeIf { it != Color.Unspecified } ?: palette[i % palette.size]
+                        val barHeightPx = if (maxValue > 0) (bar.value / maxValue) * (maxHeightPx - 32) else 0f
+                        val barHeightDp = with(density) { (barHeightPx * animatedProgress).toDp() }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
+                            if (showValues) {
+                                Text(
+                                    text = if (bar.value % 1f == 0f) bar.value.toInt().toString() else String.format("%.1f", bar.value),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = color,
+                                    modifier = Modifier.padding(bottom = 4.dp)
                                 )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Gasto",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.small
-                                )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Presupuesto",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .height(barHeightDp)
+                                    .width(barWidth)
+                                    .background(color = color, shape = MaterialTheme.shapes.medium)
+                            )
+                            Text(
+                                text = bar.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
                 }
             }
-            
-            // Gráfico
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 50.dp, top = 20.dp)
+            // Leyenda si hay más de una categoría de color
+            if (data.map { it.label }.distinct().size > 1) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    val barWidth = (size.width - (data.size - 1) * 12f) / data.size
-                    val maxBarHeight = size.height - 40f
-                    
-                    data.forEachIndexed { index, barData ->
-                        val x = index * (barWidth + 12f)
-                        
-                        // Barra de presupuesto (fondo)
-                        if (showBudget && barData.budgetValue != null) {
-                            val budgetHeight = if (maxValue > 0) {
-                                (barData.budgetValue / maxValue) * maxBarHeight
-                            } else 0f
-                            
-                            val budgetY = size.height - budgetHeight - 20f
-                            
-                            drawRect(
-                                color = Color.Gray.copy(alpha = 0.3f),
-                                topLeft = Offset(x, budgetY),
-                                size = Size(barWidth, budgetHeight)
+                    data.take(palette.size).forEachIndexed { i, bar ->
+                        val color = bar.color.takeIf { it != Color.Unspecified } ?: palette[i % palette.size]
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(color = color, shape = MaterialTheme.shapes.small)
                             )
-                        }
-                        
-                        // Barra principal (gasto)
-                        val barHeight = if (maxValue > 0) {
-                            (barData.value / maxValue) * maxBarHeight * animatedProgress
-                        } else 0f
-                        
-                        val y = size.height - barHeight - 20f
-                        
-                        drawRect(
-                            color = barData.color,
-                            topLeft = Offset(x, y),
-                            size = Size(barWidth, barHeight)
-                        )
-                        
-                        // Borde
-                        drawRect(
-                            color = barData.color.copy(alpha = 0.6f),
-                            topLeft = Offset(x, y),
-                            size = Size(barWidth, barHeight),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
-                        )
-                    }
-                }
-                
-                // Tooltips interactivos
-                if (tooltipIndex != null && tooltipIndex!! in data.indices) {
-                    val barData = data[tooltipIndex!!]
-                    Box(
-                        modifier = Modifier
-                            .offset {
-                                IntOffset(
-                                    x = tooltipOffset.x.toInt(),
-                                    y = tooltipOffset.y.toInt() - 60 // arriba de la barra
-                                )
-                            }
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.medium
-                            )
-                            .padding(8.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(barData.label, style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                FormatUtils.formatMoneyCLP(barData.value.toDouble()),
-                                fontWeight = FontWeight.Bold
+                                text = bar.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                }
-                
-                // Overlay para detectar clicks
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 50.dp, top = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    data.forEachIndexed { index, _ ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clickable {
-                                    tooltipIndex = if (tooltipIndex == index) null else index
-                                    // Calcular posición aproximada del tooltip
-                                    tooltipOffset = Offset(
-                                        x = (index + 0.5f) * (with(density) { 40.dp.toPx() }),
-                                        y = with(density) { 40.dp.toPx() }
-                                    )
-                                }
-                        ) {}
-                    }
-                }
-                
-                // Valores encima de las barras
-                if (showValues) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 50.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        data.forEachIndexed { index, barData ->
-                            val percentage = if (showBudget && barData.budgetValue != null && barData.budgetValue > 0) {
-                                (barData.value / barData.budgetValue * 100).toInt()
-                            } else null
-                            
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                if (percentage != null) {
-                                    Card(
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = when {
-                                                percentage > 100 -> MaterialTheme.colorScheme.errorContainer
-                                                percentage > 80 -> MaterialTheme.colorScheme.tertiaryContainer
-                                                else -> MaterialTheme.colorScheme.primaryContainer
-                                            }
-                                        ),
-                                        modifier = Modifier.padding(bottom = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = "$percentage%",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = FormatUtils.formatMoneyCLP(barData.value.toDouble()),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-                
-                // Etiquetas del eje X
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    data.forEach { barData ->
-                        Text(
-                            text = barData.label,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 2,
-                            textAlign = TextAlign.Center
-                        )
                     }
                 }
             }
