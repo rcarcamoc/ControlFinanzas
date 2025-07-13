@@ -123,7 +123,7 @@ fun TinderClasificacionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .padding(16.dp)
         ) {
             // Header con iconos de acción
             Row(
@@ -241,8 +241,8 @@ fun TinderClasificacionCard(
             
             // Chips de sugerencias
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(vertical = 2.dp)
             ) {
                 items(sugerenciasCategorias) { sugerencia ->
                     SugerenciaChip(
@@ -260,21 +260,22 @@ fun TinderClasificacionCard(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        modifier = Modifier.padding(4.dp)
+                        modifier = Modifier.padding(2.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Otra categoría",
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(14.dp),
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 "Otra...",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         }
@@ -380,42 +381,64 @@ fun TinderClasificacionCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                // Botón Rechazar
                 Button(
                     onClick = onRechazar,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Rechazar"
+                        contentDescription = "Rechazar",
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Rechazar")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Rechazar",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Botón Confirmar (solo si hay categoría seleccionada)
                 if (categoriaSeleccionada != null) {
                     Button(
                         onClick = onConfirmarClasificacion,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Confirmar"
+                            contentDescription = "Confirmar",
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Confirmar")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Confirmar",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
                 
+                // Botón Aceptar
                 Button(
                     onClick = onAceptar,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Green)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Green),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Aceptar"
+                        contentDescription = "Aceptar",
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Aceptar")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Aceptar",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
@@ -429,13 +452,13 @@ fun SugerenciaChip(
     onClick: () -> Unit
 ) {
     val elevation by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else 2.dp,
+        targetValue = if (isSelected) 6.dp else 2.dp,
         animationSpec = tween(durationMillis = 200),
         label = "elevation"
     )
     
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
+        targetValue = if (isSelected) 1.02f else 1f,
         animationSpec = tween(durationMillis = 200),
         label = "scale"
     )
@@ -452,26 +475,27 @@ fun SugerenciaChip(
             }
         ),
         border = if (isSelected) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
         } else null,
         elevation = CardDefaults.cardElevation(defaultElevation = elevation)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = sugerencia.nombre,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
             )
             
             if (sugerencia.nivelConfianza > 0) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${(sugerencia.nivelConfianza * 100).toInt()}%",
                     style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
