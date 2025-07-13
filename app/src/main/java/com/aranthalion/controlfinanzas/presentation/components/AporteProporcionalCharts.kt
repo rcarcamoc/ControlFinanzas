@@ -42,7 +42,12 @@ fun HistorialAportesCharts(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 16.dp,
+            bottom = 96.dp // Extra padding para navegación
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Gráfico de evolución de gastos distribuibles

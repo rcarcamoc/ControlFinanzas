@@ -121,7 +121,9 @@ fun TransaccionesScreen(
                         nivelConfianza = null
                     )
                 }
-                tinderViewModel.recargarTransacciones()
+                
+                // Cargar las transacciones específicas en el ViewModel del Tinder
+                tinderViewModel.cargarTransaccionesEspecificas(excelTransactions)
                 mostrarTinderClasificacion = true
             }
         }
@@ -134,6 +136,7 @@ fun TransaccionesScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .navigationBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {

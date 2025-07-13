@@ -24,6 +24,7 @@ import com.aranthalion.controlfinanzas.ui.theme.SidebarAccentForeground
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 data class NavItem(
     val route: String,
@@ -216,6 +217,7 @@ fun AppShell(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     content()

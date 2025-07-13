@@ -42,6 +42,7 @@ fun AnalisisGastoPorCategoriaScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .navigationBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

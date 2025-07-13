@@ -48,6 +48,13 @@ class CategoriaRepositoryImpl @Inject constructor(
 
     override suspend fun insertCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
         println("📝 CATEGORIA_AUDITORIA: Insertando categoría - Nombre: ${categoria.nombre}")
+        
+        // Verificar si la categoría ya existe
+        if (existeCategoria(categoria.nombre)) {
+            println("⚠️ CATEGORIA_AUDITORIA: Categoría ya existe - Nombre: ${categoria.nombre}")
+            return
+        }
+        
         categoriaDao.agregarCategoria(toEntity(categoria))
         
         // Registrar auditoría
@@ -129,7 +136,16 @@ class CategoriaRepositoryImpl @Inject constructor(
             CategoriaEntity(nombre = "Inversiones", tipo = "Ingreso"),
             CategoriaEntity(nombre = "Otros Ingresos", tipo = "Ingreso")
         )
-        categoriasDefault.forEach { categoriaDao.agregarCategoria(it) }
+        
+        // Solo insertar categorías que no existan
+        categoriasDefault.forEach { categoria ->
+            if (!existeCategoria(categoria.nombre)) {
+                categoriaDao.agregarCategoria(categoria)
+                println("✅ Categoría insertada: ${categoria.nombre}")
+            } else {
+                println("⏭️ Categoría ya existe, omitiendo: ${categoria.nombre}")
+            }
+        }
     }
 
     override suspend fun existeCategoria(nombre: String): Boolean {

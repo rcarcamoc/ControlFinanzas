@@ -337,7 +337,9 @@ fun PresupuestosYCategoriasScreen(
                             columns = GridCells.Adaptive(minSize = 280.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.heightIn(max = 800.dp) // Limitar altura para evitar scroll anidado
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .heightIn(max = 800.dp) // Limitar altura para evitar scroll anidado
                         ) {
                             items(categoriasList) { categoria ->
                                 CategoriaPresupuestoCard(

@@ -56,10 +56,10 @@ class TinderClasificacionViewModel @Inject constructor(
     private val movimientoRepository: MovimientoRepository,
     private val tinderService: TinderClasificacionService
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(TinderClasificacionUiState())
     val uiState: StateFlow<TinderClasificacionUiState> = _uiState.asStateFlow()
-    
+
     init {
         cargarTransaccionesPendientes()
     }
@@ -83,75 +83,7 @@ class TinderClasificacionViewModel @Inject constructor(
                     )
                 }
                 
-                val transaccionesTinder = mutableListOf<TransaccionTinder>()
-                
-                transacciones.forEach { transaccion ->
-                    // USAR EL NUEVO SISTEMA MEJORADO
-                    val resultadoClasificacion = clasificacionUseCase.obtenerSugerenciaMejorada(transaccion.descripcion)
-                    
-                    when (resultadoClasificacion) {
-                        is ResultadoClasificacion.AltaConfianza -> {
-                            // Alta confianza - mostrar sugerencia automática
-                            val categoria = categorias.find { it.id == resultadoClasificacion.categoriaId }
-                            if (categoria != null) {
-                                transaccionesTinder.add(
-                                    TransaccionTinder(
-                                        transaccion = transaccion,
-                                        categoriaSugerida = categoria,
-                                        nivelConfianza = resultadoClasificacion.confianza,
-                                        patron = resultadoClasificacion.patron,
-                                        tipoCoincidencia = resultadoClasificacion.tipoCoincidencia.name
-                                    )
-                                )
-                            }
-                        }
-                        is ResultadoClasificacion.BajaConfianza -> {
-                            // Baja confianza - mostrar múltiples opciones
-                            val mejorSugerencia = resultadoClasificacion.sugerencias.firstOrNull()
-                            if (mejorSugerencia != null) {
-                                val categoria = categorias.find { it.id == mejorSugerencia.categoriaId }
-                                if (categoria != null) {
-                                    transaccionesTinder.add(
-                                        TransaccionTinder(
-                                            transaccion = transaccion,
-                                            categoriaSugerida = categoria,
-                                            nivelConfianza = mejorSugerencia.nivelConfianza,
-                                            patron = mejorSugerencia.patron,
-                                            tipoCoincidencia = "BAJA_CONFIANZA"
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                        is ResultadoClasificacion.SinCoincidencias -> {
-                            // Sin coincidencias - usar categoría por defecto
-                            transaccionesTinder.add(
-                                TransaccionTinder(
-                                    transaccion = transaccion,
-                                    categoriaSugerida = categorias.firstOrNull() ?: categorias.first(),
-                                    nivelConfianza = 0.0,
-                                    patron = "Sin patrón",
-                                    tipoCoincidencia = "SIN_COINCIDENCIAS"
-                                )
-                            )
-                        }
-                    }
-                }
-                
-                _uiState.value = _uiState.value.copy(
-                    transaccionesPendientes = transaccionesTinder,
-                    transaccionActual = transaccionesTinder.firstOrNull(),
-                    categoriasDisponibles = categorias,
-                    isLoading = false,
-                    mostrarTinder = transaccionesTinder.isNotEmpty()
-                )
-                
-                // Generar sugerencias para la primera transacción
-                if (transaccionesTinder.isNotEmpty()) {
-                    generarSugerenciasParaTransaccion(transaccionesTinder.first())
-                }
-                
-                actualizarEstadisticas()
+                procesarTransaccionesParaTinder(transacciones, categorias)
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -159,6 +91,108 @@ class TinderClasificacionViewModel @Inject constructor(
                     error = "Error al cargar transacciones: ${e.message}"
                 )
             }
+        }
+    }
+    
+    fun cargarTransaccionesEspecificas(transacciones: List<ExcelTransaction>) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            try {
+                val categoriasDominio = categoriaRepository.obtenerCategorias()
+                
+                // Convertir categorías del dominio a entidades
+                val categorias = categoriasDominio.map { categoriaDominio ->
+                    Categoria(
+                        id = categoriaDominio.id,
+                        nombre = categoriaDominio.nombre,
+                        descripcion = categoriaDominio.nombre,
+                        tipo = "Gasto"
+                    )
+                }
+                
+                procesarTransaccionesParaTinder(transacciones, categorias)
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Error al cargar transacciones específicas: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    private fun procesarTransaccionesParaTinder(transacciones: List<ExcelTransaction>, categorias: List<Categoria>) {
+        viewModelScope.launch {
+                val transaccionesTinder = mutableListOf<TransaccionTinder>()
+            
+            transacciones.forEach { transaccion ->
+                // USAR EL NUEVO SISTEMA MEJORADO
+                val resultadoClasificacion = clasificacionUseCase.obtenerSugerenciaMejorada(transaccion.descripcion)
+                
+                when (resultadoClasificacion) {
+                    is ResultadoClasificacion.AltaConfianza -> {
+                        // Alta confianza - mostrar sugerencia automática
+                        val categoria = categorias.find { it.id == resultadoClasificacion.categoriaId }
+                        if (categoria != null) {
+                            transaccionesTinder.add(
+                                TransaccionTinder(
+                                    transaccion = transaccion,
+                                    categoriaSugerida = categoria,
+                                    nivelConfianza = resultadoClasificacion.confianza,
+                                    patron = resultadoClasificacion.patron,
+                                    tipoCoincidencia = resultadoClasificacion.tipoCoincidencia.name
+                                )
+                            )
+                        }
+                    }
+                    is ResultadoClasificacion.BajaConfianza -> {
+                        // Baja confianza - mostrar múltiples opciones
+                        val mejorSugerencia = resultadoClasificacion.sugerencias.firstOrNull()
+                        if (mejorSugerencia != null) {
+                            val categoria = categorias.find { it.id == mejorSugerencia.categoriaId }
+                            if (categoria != null) {
+                                transaccionesTinder.add(
+                                    TransaccionTinder(
+                                        transaccion = transaccion,
+                                        categoriaSugerida = categoria,
+                                        nivelConfianza = mejorSugerencia.nivelConfianza,
+                                        patron = mejorSugerencia.patron,
+                                        tipoCoincidencia = "BAJA_CONFIANZA"
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    is ResultadoClasificacion.SinCoincidencias -> {
+                        // Sin coincidencias - usar categoría por defecto
+                        transaccionesTinder.add(
+                            TransaccionTinder(
+                                transaccion = transaccion,
+                                categoriaSugerida = categorias.firstOrNull() ?: categorias.first(),
+                                nivelConfianza = 0.0,
+                                patron = "Sin patrón",
+                                tipoCoincidencia = "SIN_COINCIDENCIAS"
+                            )
+                        )
+                    }
+                    }
+                }
+                
+                _uiState.value = _uiState.value.copy(
+                    transaccionesPendientes = transaccionesTinder,
+                    transaccionActual = transaccionesTinder.firstOrNull(),
+                categoriasDisponibles = categorias,
+                    isLoading = false,
+                mostrarTinder = transaccionesTinder.isNotEmpty()
+            )
+            
+            // Generar sugerencias para la primera transacción
+            if (transaccionesTinder.isNotEmpty()) {
+                generarSugerenciasParaTransaccion(transaccionesTinder.first())
+            }
+            
+            actualizarEstadisticas()
         }
     }
     
@@ -276,11 +310,26 @@ class TinderClasificacionViewModel @Inject constructor(
                     categoriaSeleccionada.categoriaId
                 )
                 
-                // Guardar la transacción con la categoría
-                val movimiento = transaccionActual.transaccion.toMovimientoEntity(
-                    categoriaId = categoriaSeleccionada.categoriaId
-                )
-                movimientoRepository.agregarMovimiento(movimiento)
+                // Buscar el movimiento existente y actualizarlo
+                val movimientos = movimientoRepository.obtenerMovimientos()
+                val movimientoExistente = movimientos.find { it.idUnico == transaccionActual.transaccion.codigoReferencia }
+                
+                if (movimientoExistente != null) {
+                    // Actualizar el movimiento existente
+                    val movimientoActualizado = movimientoExistente.copy(
+                        categoriaId = categoriaSeleccionada.categoriaId,
+                        fechaActualizacion = System.currentTimeMillis(),
+                        metodoActualizacion = "TINDER_CLASIFICACION",
+                        daoResponsable = "TinderClasificacionViewModel"
+                    )
+                    movimientoRepository.actualizarMovimiento(movimientoActualizado)
+                } else {
+                    // Si no existe, crear uno nuevo (caso raro)
+                    val movimiento = transaccionActual.transaccion.toMovimientoEntity(
+                        categoriaId = categoriaSeleccionada.categoriaId
+                    )
+                    movimientoRepository.agregarMovimiento(movimiento)
+                }
                 
                 // Mostrar feedback
                 mostrarFeedback("✅ Clasificado como: ${categoriaSeleccionada.nombre}")
@@ -295,40 +344,53 @@ class TinderClasificacionViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun aceptarTransaccion() {
         viewModelScope.launch {
             val transaccionActual = _uiState.value.transaccionActual ?: return@launch
             val categoriaSeleccionada = _uiState.value.categoriaSeleccionada
             
             try {
-                if (categoriaSeleccionada != null) {
-                    // Usar la categoría seleccionada
-                    clasificacionUseCase.aprenderPatron(
-                        transaccionActual.transaccion.descripcion,
-                        categoriaSeleccionada.categoriaId
-                    )
-                    
-                    val movimiento = transaccionActual.transaccion.toMovimientoEntity(
-                        categoriaId = categoriaSeleccionada.categoriaId
-                    )
-                    movimientoRepository.agregarMovimiento(movimiento)
-                    
-                    mostrarFeedback("✅ Aceptado: ${categoriaSeleccionada.nombre}")
+                // Buscar el movimiento existente
+                val movimientos = movimientoRepository.obtenerMovimientos()
+                val movimientoExistente = movimientos.find { it.idUnico == transaccionActual.transaccion.codigoReferencia }
+                
+                val categoriaId = if (categoriaSeleccionada != null) {
+                    categoriaSeleccionada.categoriaId
                 } else {
-                    // Usar la categoría sugerida por defecto
-                    clasificacionUseCase.aprenderPatron(
-                        transaccionActual.transaccion.descripcion,
-                        transaccionActual.categoriaSugerida.id
+                    transaccionActual.categoriaSugerida.id
+                }
+                
+                val nombreCategoria = if (categoriaSeleccionada != null) {
+                    categoriaSeleccionada.nombre
+                } else {
+                    transaccionActual.categoriaSugerida.nombre
+                }
+                
+                // Aprender el patrón
+                clasificacionUseCase.aprenderPatron(
+                    transaccionActual.transaccion.descripcion,
+                    categoriaId
+                )
+                
+                if (movimientoExistente != null) {
+                    // Actualizar el movimiento existente
+                    val movimientoActualizado = movimientoExistente.copy(
+                        categoriaId = categoriaId,
+                        fechaActualizacion = System.currentTimeMillis(),
+                        metodoActualizacion = "TINDER_CLASIFICACION",
+                        daoResponsable = "TinderClasificacionViewModel"
                     )
-                    
+                    movimientoRepository.actualizarMovimiento(movimientoActualizado)
+                } else {
+                    // Si no existe, crear uno nuevo (caso raro)
                     val movimiento = transaccionActual.transaccion.toMovimientoEntity(
-                        categoriaId = transaccionActual.categoriaSugerida.id
+                        categoriaId = categoriaId
                     )
                     movimientoRepository.agregarMovimiento(movimiento)
-                    
-                    mostrarFeedback("✅ Aceptado: ${transaccionActual.categoriaSugerida.nombre}")
                 }
+                
+                mostrarFeedback("✅ Aceptado: $nombreCategoria")
                 
                 // Pasar a la siguiente transacción
                 pasarSiguienteTransaccion()
@@ -346,18 +408,57 @@ class TinderClasificacionViewModel @Inject constructor(
             val transaccionActual = _uiState.value.transaccionActual ?: return@launch
             
             try {
-                // Guardar la transacción sin categoría (para clasificación manual posterior)
-                val movimiento = transaccionActual.transaccion.toMovimientoEntity()
-                movimientoRepository.agregarMovimiento(movimiento)
+                // Mostrar selector manual para que el usuario elija la categoría correcta
+                _uiState.value = _uiState.value.copy(mostrarSelectorManual = true)
                 
-                mostrarFeedback("❌ Rechazado - Sin clasificar")
+            } catch (e: Exception) {
+        _uiState.value = _uiState.value.copy(
+                    error = "Error al rechazar transacción: ${e.message}"
+        )
+            }
+        }
+    }
+
+    fun rechazarYSeleccionarManual(categoriaId: Long) {
+        viewModelScope.launch {
+            val transaccionActual = _uiState.value.transaccionActual ?: return@launch
+            
+            try {
+                // Aprender el patrón con la categoría seleccionada manualmente
+                clasificacionUseCase.aprenderPatron(
+                    transaccionActual.transaccion.descripcion,
+                    categoriaId
+                )
+                
+                // Buscar el movimiento existente y actualizarlo
+                val movimientos = movimientoRepository.obtenerMovimientos()
+                val movimientoExistente = movimientos.find { it.idUnico == transaccionActual.transaccion.codigoReferencia }
+                
+                if (movimientoExistente != null) {
+                    // Actualizar el movimiento existente
+                    val movimientoActualizado = movimientoExistente.copy(
+                        categoriaId = categoriaId,
+                        fechaActualizacion = System.currentTimeMillis(),
+                        metodoActualizacion = "TINDER_CLASIFICACION",
+                        daoResponsable = "TinderClasificacionViewModel"
+                    )
+                    movimientoRepository.actualizarMovimiento(movimientoActualizado)
+                } else {
+                    // Si no existe, crear uno nuevo (caso raro)
+                    val movimiento = transaccionActual.transaccion.toMovimientoEntity(
+                        categoriaId = categoriaId
+                    )
+                    movimientoRepository.agregarMovimiento(movimiento)
+                }
+                
+                mostrarFeedback("✅ Clasificado manualmente y aprendido")
                 
                 // Pasar a la siguiente transacción
                 pasarSiguienteTransaccion()
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Error al rechazar transacción: ${e.message}"
+                    error = "Error al procesar selección manual: ${e.message}"
                 )
             }
         }
@@ -416,7 +517,7 @@ class TinderClasificacionViewModel @Inject constructor(
     fun limpiarError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
-    
+
     fun ocultarSelectorManual() {
         _uiState.value = _uiState.value.copy(mostrarSelectorManual = false)
     }

@@ -69,6 +69,7 @@ fun UsuariosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
         ) {
             when (uiState) {
                 is UsuariosUiState.Loading -> {

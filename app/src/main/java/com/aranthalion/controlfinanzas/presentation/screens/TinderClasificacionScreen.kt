@@ -73,7 +73,7 @@ fun TinderClasificacionScreen(
         SelectorCategoriaManual(
             categorias = uiState.categoriasDisponibles,
             onSeleccionar = { categoriaId ->
-                viewModel.seleccionarCategoriaManual(categoriaId)
+                viewModel.rechazarYSeleccionarManual(categoriaId)
             },
             onDismiss = {
                 viewModel.ocultarSelectorManual()

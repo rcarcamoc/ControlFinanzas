@@ -73,6 +73,7 @@ fun CuentasPorCobrarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
         ) {
             when (uiState) {
                 is CuentasPorCobrarUiState.Loading -> {
