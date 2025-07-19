@@ -58,7 +58,8 @@ val navItems = listOf(
     // Herramientas
     NavItem("auditoria_database", "Auditoría DB", CustomIcons.Storage, "Herramientas"),
     NavItem("debug_clasificacion", "Debug Clasificación", CustomIcons.BugReport, "Herramientas"),
-    NavItem("configuracion", "Configuración", CustomIcons.Settings, "Herramientas")
+    NavItem("configuracion", "Configuración", CustomIcons.Settings, "Herramientas"),
+    NavItem("import_export", "Importar/Exportar", CustomIcons.ImportExport, "Herramientas")
 )
 
 val navCategories = listOf(
@@ -147,7 +148,6 @@ fun AppShell(
                                 color = SidebarForeground.copy(alpha = 0.7f),
                                 modifier = Modifier.padding(bottom = 8.dp, top = 16.dp)
                             )
-                            
                             category.items.forEach { item ->
                                 val isActive = currentRoute == item.route
                                 NavigationItem(
@@ -161,7 +161,6 @@ fun AppShell(
                                             launchSingleTop = true
                                             restoreState = true
                                         }
-                                        // Cerrar sidebar en pantallas pequeñas después de navegar
                                         if (isSmallScreen) {
                                             isSidebarExpanded = false
                                         }
@@ -170,6 +169,8 @@ fun AppShell(
                             }
                         }
                     }
+                    // Spacer para margen seguro inferior
+                    Spacer(modifier = Modifier.height(32.dp).navigationBarsPadding())
                 }
             }
             
@@ -217,7 +218,7 @@ fun AppShell(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .navigationBarsPadding()
+                        .padding(WindowInsets.systemBars.asPaddingValues())
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     content()

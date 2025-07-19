@@ -106,7 +106,7 @@ fun BarChart(
     // Estado para tooltip
     var tooltipIndex by remember { mutableStateOf<Int?>(null) }
     var tooltipOffset by remember { mutableStateOf(Offset.Zero) }
-
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -135,7 +135,7 @@ fun BarChart(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 180.dp)
-            ) {
+                ) {
                 val barWidth = maxOf(24.dp, maxWidth / (data.size * 2))
                 val space = 12.dp
                 val density = LocalDensity.current
@@ -162,8 +162,8 @@ fun BarChart(
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 )
                             }
-                            Box(
-                                modifier = Modifier
+                    Box(
+                        modifier = Modifier
                                     .height(barHeightDp)
                                     .width(barWidth)
                                     .background(color = color, shape = MaterialTheme.shapes.medium)
@@ -190,18 +190,18 @@ fun BarChart(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
+                        Box(
+                            modifier = Modifier
                                     .size(12.dp)
                                     .background(color = color, shape = MaterialTheme.shapes.small)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
+                                        Text(
                                 text = bar.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                     }
                 }
             }

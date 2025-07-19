@@ -57,23 +57,26 @@ class MovimientosViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 println("🔍 DEBUG: Cargando movimientos para período: $periodo")
-                val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
-                val categorias = gestionarMovimientosUseCase.obtenerCategorias()
                 
-                // Filtrar movimientos por período si no es "Todos"
-                val movimientosFiltrados = if (periodo != "Todos") {
-                    movimientos.filter { it.periodoFacturacion == periodo }
+                // Usar consultas optimizadas del HITO 1
+                val movimientos = if (periodo != "Todos") {
+                    // Usar consulta optimizada por período
+                    gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(periodo)
                 } else {
-                    movimientos
+                    // Usar consulta optimizada con límite
+                    gestionarMovimientosUseCase.obtenerMovimientosOptimizado()
                 }
                 
-                println("🔍 DEBUG: Movimientos obtenidos: ${movimientos.size}, filtrados: ${movimientosFiltrados.size}")
-                movimientosFiltrados.take(5).forEach { movimiento ->
+                // Usar cache para categorías (HITO 1.3)
+                val categorias = gestionarMovimientosUseCase.obtenerCategoriasOptimizado()
+                
+                println("🔍 DEBUG: Movimientos obtenidos: ${movimientos.size}")
+                movimientos.take(5).forEach { movimiento ->
                     println("  - ${movimiento.descripcion}: ${movimiento.fecha} (período: ${movimiento.periodoFacturacion})")
                 }
                 
                 // Ordenar movimientos: primero los sin categoría, luego por fecha descendente
-                val movimientosOrdenados = movimientosFiltrados.sortedWith(
+                val movimientosOrdenados = movimientos.sortedWith(
                     compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
                     .thenByDescending { it.fecha }
                 )

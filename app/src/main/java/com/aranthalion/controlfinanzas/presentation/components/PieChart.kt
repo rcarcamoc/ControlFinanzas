@@ -118,7 +118,7 @@ fun PieChart(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
-            ) {
+                ) {
                 data.take(palette.size).forEachIndexed { i, slice ->
                     val color = slice.color.takeIf { it != Color.Unspecified } ?: palette[i % palette.size]
                     Row(
@@ -131,11 +131,11 @@ fun PieChart(
                                 .background(color = color, shape = MaterialTheme.shapes.small)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
+                                    Text(
                             text = "${slice.label} (${slice.value.toInt()})",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                                        )
                     }
                 }
             }

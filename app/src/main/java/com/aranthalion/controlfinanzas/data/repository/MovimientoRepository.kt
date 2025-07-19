@@ -14,7 +14,9 @@ class MovimientoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
     private val categoriaDao: CategoriaDao,
     private val context: Context,
-    private val auditoriaService: AuditoriaService
+    private val auditoriaService: AuditoriaService,
+    private val normalizacionService: NormalizacionService,
+    private val cacheService: CacheService
 ) {
     suspend fun obtenerMovimientos(): List<MovimientoEntity> {
         val movimientos = movimientoDao.obtenerMovimientos()
@@ -25,35 +27,72 @@ class MovimientoRepository @Inject constructor(
         return movimientos
     }
 
+    // Métodos optimizados del HITO 1
+    suspend fun obtenerMovimientosOptimizado(): List<MovimientoEntity> {
+        return cacheService.getMovimientosSinCategoria {
+            movimientoDao.obtenerMovimientosSinCategoriaOptimizado()
+        }
+    }
+    
+    suspend fun obtenerMovimientosPorPeriodoOptimizado(periodo: String): List<MovimientoEntity> {
+        return cacheService.getMovimientosPorPeriodo(periodo) {
+            val (fechaInicio, fechaFin) = obtenerFechasDePeriodo(periodo)
+            movimientoDao.obtenerMovimientosPorPeriodoOptimizado(fechaInicio, fechaFin)
+        }
+    }
+
     suspend fun obtenerMovimientosPorPeriodo(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity> {
         return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
     }
 
-    // suspend fun obtenerMovimientosPorPeriodo(periodo: String): List<MovimientoEntity> {
-    //     println("🔍 DEBUG: MovimientoRepository.obtenerMovimientosPorPeriodo($periodo)")
-    //     // Implementación anterior comentada
-    //     // val (fechaInicio, fechaFin) = obtenerFechasDePeriodo(periodo)
-    //     // return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
-    //     // return emptyList()
-    // }
-
     suspend fun obtenerCategorias(): List<Categoria> {
-        return categoriaDao.obtenerCategorias()
+        return cacheService.getCategorias {
+            categoriaDao.obtenerCategorias()
+        }
+    }
+    
+    // Método optimizado para categorías (HITO 1.3)
+    suspend fun obtenerCategoriasOptimizado(): List<Categoria> {
+        return cacheService.getCategorias {
+            categoriaDao.obtenerCategorias()
+        }
     }
 
     suspend fun agregarMovimiento(movimiento: MovimientoEntity, metodo: String = "INSERT", dao: String = "MovimientoDao") {
-        val descripcionLimpia = limpiarDescripcion(movimiento.descripcion)
+        // Buscar si ya existe un movimiento con el mismo idUnico
+        val idUnico = movimiento.idUnico
+        val existentes = movimientoDao.obtenerMovimientos().filter { it.idUnico == idUnico }
         val timestamp = System.currentTimeMillis()
-        val movimientoConAuditoria = movimiento.copy(
-            descripcionLimpia = descripcionLimpia,
+        if (existentes.isNotEmpty()) {
+            // Ya existe, actualizar
+            val existente = existentes.first()
+            val movimientoActualizado = movimiento.copy(
+                id = existente.id,
+                fechaActualizacion = timestamp,
+                metodoActualizacion = "UPDATE_POR_DUPLICADO",
+                daoResponsable = dao
+            )
+            movimientoDao.actualizarMovimiento(movimientoActualizado)
+            auditoriaService.registrarOperacion(
+                tabla = "movimientos",
+                operacion = "UPDATE_POR_DUPLICADO",
+                entidadId = movimientoActualizado.id,
+                detalles = "Movimiento actualizado por duplicado: ${movimientoActualizado.descripcion} - Monto: ${movimientoActualizado.monto} - Tipo: ${movimientoActualizado.tipo}",
+                daoResponsable = dao
+            )
+            cacheService.invalidarCacheMovimientosSinCategoria()
+            cacheService.invalidarCacheEstadisticas()
+            println("⚠️ DUPLICADO: Movimiento actualizado - ID: ${movimientoActualizado.id}, idUnico: $idUnico, Timestamp: $timestamp")
+        } else {
+            // No existe, insertar normalmente
+            val movimientoNormalizado = normalizacionService.normalizarMovimientoParaGuardar(movimiento)
+        val movimientoConAuditoria = movimientoNormalizado.copy(
             fechaCreacion = timestamp,
             fechaActualizacion = timestamp,
             metodoActualizacion = metodo,
             daoResponsable = dao
         )
         movimientoDao.agregarMovimiento(movimientoConAuditoria)
-        
-        // Registrar auditoría
         auditoriaService.registrarOperacion(
             tabla = "movimientos",
             operacion = "INSERT",
@@ -61,8 +100,10 @@ class MovimientoRepository @Inject constructor(
             detalles = "Movimiento agregado: ${movimientoConAuditoria.descripcion} - Monto: ${movimientoConAuditoria.monto} - Tipo: ${movimientoConAuditoria.tipo}",
             daoResponsable = dao
         )
-        
-        println("📝 AUDITORÍA: Movimiento agregado - ID: ${movimiento.id}, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
+        cacheService.invalidarCacheMovimientosSinCategoria()
+        cacheService.invalidarCacheEstadisticas()
+            println("📝 AUDITORÍA: Movimiento agregado - ID: ${movimiento.id}, idUnico: $idUnico, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
+        }
     }
 
     suspend fun actualizarMovimiento(movimiento: MovimientoEntity, metodo: String = "UPDATE", dao: String = "MovimientoDao") {
@@ -82,6 +123,10 @@ class MovimientoRepository @Inject constructor(
             detalles = "Movimiento actualizado: ${movimiento.descripcion} - Monto: ${movimiento.monto} - Categoría: ${movimiento.categoriaId}",
             daoResponsable = dao
         )
+        
+        // Invalidar cache relacionado
+        cacheService.invalidarCacheMovimientosSinCategoria()
+        cacheService.invalidarCacheEstadisticas()
         
         println("📝 AUDITORÍA: Movimiento actualizado - ID: ${movimiento.id}, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
     }
@@ -535,5 +580,94 @@ class MovimientoRepository @Inject constructor(
             .replace(Regex("\\s+"), " ")
             .trim()
             .lowercase()
+    }
+    
+    // Métodos optimizados usando campos normalizados (HITO 1.1)
+    
+    /**
+     * Obtiene movimientos sin categoría usando consultas optimizadas
+     */
+    suspend fun obtenerMovimientosSinCategoriaOptimizado(limit: Int = 50): List<MovimientoEntity> {
+        return cacheService.getMovimientosSinCategoria {
+            normalizacionService.obtenerMovimientosSinCategoriaOptimizado(limit)
+        }
+    }
+    
+    /**
+     * Obtiene movimientos similares usando campos normalizados
+     */
+    suspend fun obtenerMovimientosSimilaresOptimizado(
+        descripcion: String,
+        limit: Int = 10
+    ): List<MovimientoEntity> {
+        return normalizacionService.obtenerMovimientosSimilaresOptimizado(descripcion, limit)
+    }
+    
+    /**
+     * Obtiene movimientos similares por monto y patrón
+     */
+    suspend fun obtenerMovimientosSimilaresPorMontoOptimizado(
+        descripcion: String,
+        monto: Double,
+        limit: Int = 10
+    ): List<MovimientoEntity> {
+        return normalizacionService.obtenerMovimientosSimilaresPorMontoOptimizado(descripcion, monto, limit)
+    }
+    
+    /**
+     * Calcula similitud rápida entre dos descripciones
+     */
+    fun calcularSimilitudRapida(descripcion1: String, descripcion2: String): Double {
+        return normalizacionService.calcularSimilitudRapida(descripcion1, descripcion2)
+    }
+    
+    /**
+     * Migra datos existentes para agregar campos normalizados
+     */
+    suspend fun migrarDatosExistentes(): Boolean {
+        return normalizacionService.migrarDatosExistentes()
+    }
+    
+    /**
+     * Obtiene estadísticas de clasificación optimizadas
+     */
+    suspend fun obtenerEstadisticasClasificacion(): Map<String, Int> {
+        return cacheService.getEstadisticas {
+            normalizacionService.obtenerEstadisticasClasificacion()
+        }
+    }
+    
+    /**
+     * Obtiene movimientos por categoría de monto optimizado
+     */
+    suspend fun obtenerMovimientosPorCategoriaMonto(categoriaMonto: String, limit: Int = 20): List<MovimientoEntity> {
+        return normalizacionService.obtenerMovimientosPorCategoriaMonto(categoriaMonto, limit)
+    }
+    
+    /**
+     * Obtiene movimientos por mes optimizado
+     */
+    suspend fun obtenerMovimientosPorMes(mes: String, limit: Int = 20): List<MovimientoEntity> {
+        return normalizacionService.obtenerMovimientosPorMes(mes, limit)
+    }
+    
+    /**
+     * Función auxiliar para obtener fechas de inicio y fin de un período
+     */
+    private fun obtenerFechasDePeriodo(periodo: String): Pair<Date, Date> {
+        val (anio, mes) = periodo.split("-")
+        val calendar = java.util.Calendar.getInstance()
+        
+        // Fecha de inicio: primer día del mes
+        calendar.set(anio.toInt(), mes.toInt() - 1, 1, 0, 0, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        val fechaInicio = calendar.time
+        
+        // Fecha de fin: último día del mes
+        calendar.add(java.util.Calendar.MONTH, 1)
+        calendar.add(java.util.Calendar.MILLISECOND, -1)
+        val fechaFin = calendar.time
+        
+        return Pair(fechaInicio, fechaFin)
     }
 } 

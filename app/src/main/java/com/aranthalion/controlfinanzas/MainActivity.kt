@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.aranthalion.controlfinanzas.data.util.ExcelProcessor
+import com.aranthalion.controlfinanzas.data.repository.TinderPreloadService
+import com.aranthalion.controlfinanzas.data.repository.MigracionInicialService
 import com.aranthalion.controlfinanzas.presentation.configuracion.ConfiguracionViewModel
 import com.aranthalion.controlfinanzas.presentation.navigation.AppNavigation
 import com.aranthalion.controlfinanzas.ui.theme.ControlFinanzasTheme
@@ -22,11 +24,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+import javax.inject.Inject
+import androidx.core.view.WindowCompat
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    @Inject
+    lateinit var migracionInicialService: MigracionInicialService
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val configuracionViewModel: ConfiguracionViewModel = hiltViewModel()
             val tema by configuracionViewModel.temaSeleccionado.collectAsState()
@@ -48,6 +57,17 @@ class MainActivity : ComponentActivity() {
                                 popUpTo(0) { inclusive = true }
                             }
                         }
+                    }
+                    
+                    // Iniciar precarga de transacciones Tinder en segundo plano
+                    LaunchedEffect(Unit) {
+                        // La precarga se iniciará automáticamente cuando se necesite
+                        // No podemos usar hiltViewModel() aquí
+                    }
+                    
+                    // Iniciar migración de datos normalizados (HITO 1.1)
+                    LaunchedEffect(Unit) {
+                        migracionInicialService.iniciarMigracionEnBackground()
                     }
                     
                     AppNavigation(navController = navController)

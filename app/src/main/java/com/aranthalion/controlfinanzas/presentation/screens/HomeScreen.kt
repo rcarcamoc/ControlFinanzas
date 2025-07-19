@@ -96,14 +96,22 @@ fun HomeScreen(
     
     // Observar cambios en el período global y actualizar los ViewModels
     LaunchedEffect(periodoGlobal) {
+        println("🏠 HOME: Cargando datos para período: $periodoGlobal")
         viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
         presupuestosViewModel.cargarPresupuestos(periodoGlobal)
+    }
+    // Forzar carga inicial si el estado es Loading
+    LaunchedEffect(Unit) {
+        if (uiState is MovimientosUiState.Loading) {
+            println("🏠 HOME: Carga inicial forzada...")
+            viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
+        }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding()
+            .padding(WindowInsets.systemBars.asPaddingValues())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
@@ -112,6 +120,15 @@ fun HomeScreen(
             is MovimientosUiState.Success -> {
                 val movimientos = (uiState as MovimientosUiState.Success).movimientos
                 val periodoActual = obtenerPeriodoActual()
+                println("🏠 HOME: Estado Success - Movimientos: ${movimientos.size}, Categorías: ${(uiState as MovimientosUiState.Success).categorias.size}")
+                if (movimientos.isEmpty()) {
+                    Text(
+                        text = "No hay movimientos para mostrar en este período.",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
                 
                 // Filtrar movimientos por período y excluir transacciones omitidas
                 val movimientosFiltrados = movimientos.filter { 
@@ -434,8 +451,8 @@ fun HomeScreen(
 
                 }
             }
-            else -> {
-                // Placeholder mientras carga - también responsive
+            is MovimientosUiState.Loading -> {
+                println("🏠 HOME: Estado Loading - Mostrando placeholder")
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(statCardsColumns),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -459,6 +476,34 @@ fun HomeScreen(
                                     CircularProgressIndicator()
                                 }
                             }
+                        }
+                    }
+                }
+            }
+            is MovimientosUiState.Error -> {
+                println("🏠 HOME: Estado Error - ${(uiState as MovimientosUiState.Error).mensaje}")
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error al cargar datos",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = (uiState as MovimientosUiState.Error).mensaje,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Button(
+                            onClick = { viewModel.cargarMovimientosPorPeriodo(periodoGlobal) }
+                        ) {
+                            Text("Reintentar")
                         }
                     }
                 }

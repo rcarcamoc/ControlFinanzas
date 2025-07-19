@@ -27,6 +27,9 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +47,7 @@ fun CategoriasScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding()
+            .padding(WindowInsets.systemBars.asPaddingValues())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {

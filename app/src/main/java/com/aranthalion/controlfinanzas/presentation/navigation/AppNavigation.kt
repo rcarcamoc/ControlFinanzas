@@ -21,8 +21,12 @@ import com.aranthalion.controlfinanzas.presentation.screens.CuentasPorCobrarScre
 import com.aranthalion.controlfinanzas.presentation.screens.InsightsAvanzadosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AuditoriaDatabaseScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionAutomaticaDebugScreen
+import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesImportExportScreen
+import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 
 import com.aranthalion.controlfinanzas.presentation.components.AppShell
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -78,6 +82,11 @@ fun AppNavigation(navController: NavHostController) {
             }
             composable("debug_clasificacion") {
                 ClasificacionAutomaticaDebugScreen(
+                    onNavigateBack = { navController.navigateUp() }
+                )
+            }
+            composable("import_export") {
+                TransaccionesImportExportScreen(
                     onNavigateBack = { navController.navigateUp() }
                 )
             }

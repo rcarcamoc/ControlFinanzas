@@ -78,12 +78,12 @@ fun PresupuestoCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
+                Text(
                         text = "${String.format("%.0f", presupuesto.porcentajeGastado)}%",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                         color = Color.White
-                    )
+                )
                 }
             }
             
@@ -238,12 +238,12 @@ fun ResumenPresupuestosCard(
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "Resumen de Presupuestos",
-                    style = MaterialTheme.typography.titleLarge,
+            Text(
+                text = "Resumen de Presupuestos",
+                style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+            )
             }
             
             // Estadísticas principales
@@ -282,36 +282,36 @@ fun ResumenPresupuestosCard(
             
             // Barra de progreso mejorada
             Column {
-                LinearProgressIndicator(
-                    progress = (resumen.porcentajeGastado / 100).toFloat().coerceIn(0f, 1f),
-                    modifier = Modifier
-                        .fillMaxWidth()
+            LinearProgressIndicator(
+                progress = (resumen.porcentajeGastado / 100).toFloat().coerceIn(0f, 1f),
+                modifier = Modifier
+                    .fillMaxWidth()
                         .height(12.dp),
                     color = colorEstado,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${String.format("%.1f", resumen.porcentajeGastado)}% del presupuesto",
-                        style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${String.format("%.1f", resumen.porcentajeGastado)}% del presupuesto",
+                    style = MaterialTheme.typography.bodyMedium,
                         color = colorEstado,
                         fontWeight = FontWeight.Bold
-                    )
-                    
+                )
+                
                     TextButton(
                         onClick = onVerDetalle,
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("Ver Detalle")
-                    }
+                    Text("Ver Detalle")
                 }
+            }
             }
             
             // Alertas visuales
@@ -320,7 +320,7 @@ fun ResumenPresupuestosCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (resumen.categoriasConAlerta > 0) {
+            if (resumen.categoriasConAlerta > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
@@ -332,16 +332,16 @@ fun ResumenPresupuestosCard(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
+                Text(
                                 text = "${resumen.categoriasConAlerta} alertas",
-                                style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFFF9800),
                                 fontWeight = FontWeight.Medium
-                            )
+                )
                         }
-                    }
-                    
-                    if (resumen.categoriasExcedidas > 0) {
+            }
+            
+            if (resumen.categoriasExcedidas > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
@@ -353,12 +353,12 @@ fun ResumenPresupuestosCard(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
+                Text(
                                 text = "${resumen.categoriasExcedidas} excedidas",
-                                style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFD32F2F),
                                 fontWeight = FontWeight.Medium
-                            )
+                )
                         }
                     }
                 }

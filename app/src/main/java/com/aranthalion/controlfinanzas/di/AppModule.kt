@@ -24,6 +24,9 @@ import com.aranthalion.controlfinanzas.data.repository.SueldoRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.UsuarioRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.CuentaPorCobrarRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.TinderClasificacionService
+import com.aranthalion.controlfinanzas.data.repository.NormalizacionService
+import com.aranthalion.controlfinanzas.data.repository.MigracionInicialService
+import com.aranthalion.controlfinanzas.data.repository.CacheService
 import com.aranthalion.controlfinanzas.data.util.MovimientoManualMapper
 import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
 import com.aranthalion.controlfinanzas.domain.clasificacion.ClasificacionAutomaticaRepository
@@ -166,9 +169,11 @@ abstract class AppModule {
             movimientoDao: MovimientoDao, 
             categoriaDao: CategoriaDao,
             @ApplicationContext context: Context,
-            auditoriaService: AuditoriaService
+            auditoriaService: AuditoriaService,
+            normalizacionService: NormalizacionService,
+            cacheService: CacheService
         ): MovimientoRepository {
-            return MovimientoRepository(movimientoDao, categoriaDao, context, auditoriaService)
+            return MovimientoRepository(movimientoDao, categoriaDao, context, auditoriaService, normalizacionService, cacheService)
         }
 
         @Provides
@@ -347,6 +352,28 @@ abstract class AppModule {
             clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
         ): TinderClasificacionService {
             return TinderClasificacionService(movimientoDao, clasificacionUseCase)
+        }
+        
+        @Provides
+        @Singleton
+        fun provideNormalizacionService(
+            movimientoDao: MovimientoDao
+        ): NormalizacionService {
+            return NormalizacionService(movimientoDao)
+        }
+        
+        @Provides
+        @Singleton
+        fun provideMigracionInicialService(
+            normalizacionService: NormalizacionService
+        ): MigracionInicialService {
+            return MigracionInicialService(normalizacionService)
+        }
+        
+        @Provides
+        @Singleton
+        fun provideCacheService(): CacheService {
+            return CacheService()
         }
     }
 } 

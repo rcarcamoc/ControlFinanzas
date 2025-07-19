@@ -49,4 +49,5 @@ object CustomIcons {
     val Schedule: ImageVector = Icons.Default.Info
     val Repeat: ImageVector = Icons.Default.Refresh
     val AttachMoney: ImageVector = Icons.Default.Info
+    val ImportExport = Icons.Default.Settings // Temporal, hasta que se agregue un icono específico
 } 

@@ -91,7 +91,7 @@ fun AporteProporcionalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .navigationBarsPadding()
+                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is AporteProporcionalUiState.Loading -> {

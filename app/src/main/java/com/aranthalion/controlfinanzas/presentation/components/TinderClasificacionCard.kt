@@ -526,15 +526,15 @@ fun SelectorCategoriaManual(
                                 onDismiss()
                             },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
+            ) {
                             Text(
                                 text = categoria.nombre,
                                 modifier = Modifier.padding(16.dp),
                                 style = MaterialTheme.typography.bodyLarge
                             )
-                        }
-                    }
-                }
+            }
+        }
+    }
             }
         },
         confirmButton = {

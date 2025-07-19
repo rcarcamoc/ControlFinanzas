@@ -12,11 +12,23 @@ class GestionarMovimientosUseCase @Inject constructor(
         return movimientoRepository.obtenerMovimientos()
     }
 
-    // suspend fun obtenerMovimientosPorPeriodo(periodo: String): List<MovimientoEntity> {
-    //     return movimientoRepository.obtenerMovimientosPorPeriodo(periodo)
-    // }
+    // Métodos optimizados del HITO 1
+    suspend fun obtenerMovimientosOptimizado(): List<MovimientoEntity> {
+        return movimientoRepository.obtenerMovimientos()
+    }
+    
+    suspend fun obtenerMovimientosPorPeriodoOptimizado(periodo: String): List<MovimientoEntity> {
+        return movimientoRepository.obtenerMovimientosPorPeriodo(
+            obtenerFechaInicioPeriodo(periodo),
+            obtenerFechaFinPeriodo(periodo)
+        )
+    }
 
     suspend fun obtenerCategorias(): List<Categoria> {
+        return movimientoRepository.obtenerCategorias()
+    }
+    
+    suspend fun obtenerCategoriasOptimizado(): List<Categoria> {
         return movimientoRepository.obtenerCategorias()
     }
 
@@ -46,5 +58,24 @@ class GestionarMovimientosUseCase @Inject constructor(
 
     suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
         movimientoRepository.eliminarMovimientosPorPeriodo(periodo)
+    }
+    
+    // Funciones auxiliares para optimización
+    private fun obtenerFechaInicioPeriodo(periodo: String): java.util.Date {
+        val (anio, mes) = periodo.split("-")
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(anio.toInt(), mes.toInt() - 1, 1, 0, 0, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        return calendar.time
+    }
+    
+    private fun obtenerFechaFinPeriodo(periodo: String): java.util.Date {
+        val (anio, mes) = periodo.split("-")
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(anio.toInt(), mes.toInt() - 1, 1, 0, 0, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        calendar.add(java.util.Calendar.MONTH, 1)
+        calendar.add(java.util.Calendar.MILLISECOND, -1)
+        return calendar.time
     }
 } 

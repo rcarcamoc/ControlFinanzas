@@ -84,23 +84,7 @@ fun ClasificacionStatsCard(
             )
             
             // Botón para clasificar si hay transacciones sin clasificar
-            if (stats.sinClasificar > 0) {
-                Button(
-                    onClick = onClasificarClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Clasificar automáticamente",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Clasificar ${stats.sinClasificar} transacciones")
-                }
-            }
+            // Eliminado según requerimiento del usuario
         }
     }
 }

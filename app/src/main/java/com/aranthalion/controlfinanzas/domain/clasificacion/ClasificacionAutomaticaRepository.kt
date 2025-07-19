@@ -31,6 +31,9 @@ interface ClasificacionAutomaticaRepository {
     suspend fun obtenerSugerenciaMejorada(descripcion: String): ResultadoClasificacion
     suspend fun actualizarCacheClasificaciones()
     suspend fun obtenerEstadisticasClasificacion(): EstadisticasClasificacion
+    
+    // Método para limpiar duplicados
+    suspend fun limpiarDuplicados()
 }
 
 data class SugerenciaClasificacion(

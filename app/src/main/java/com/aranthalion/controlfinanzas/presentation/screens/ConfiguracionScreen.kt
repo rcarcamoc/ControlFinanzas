@@ -62,7 +62,7 @@ fun ConfiguracionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .navigationBarsPadding()
+                .padding(WindowInsets.systemBars.asPaddingValues())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {

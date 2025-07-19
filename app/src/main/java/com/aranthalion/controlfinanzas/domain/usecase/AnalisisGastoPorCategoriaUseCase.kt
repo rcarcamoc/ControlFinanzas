@@ -53,14 +53,43 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
         val periodoAnterior = obtenerPeriodoAnterior(periodoActual)
         val movimientos = movimientoRepository.obtenerMovimientos()
         
+        println("🔍 ANALISIS DEBUG: Período actual: $periodoActual")
+        println("🔍 ANALISIS DEBUG: Período anterior: $periodoAnterior")
+        println("🔍 ANALISIS DEBUG: Total movimientos: ${movimientos.size}")
+        
+        // Mostrar períodos disponibles
+        val periodosDisponibles = movimientos.map { it.periodoFacturacion }.distinct().sorted()
+        println("🔍 ANALISIS DEBUG: Períodos disponibles: $periodosDisponibles")
+        
+        // Mostrar algunos movimientos de ejemplo
+        movimientos.take(5).forEach { movimiento ->
+            println("🔍 ANALISIS DEBUG: Movimiento - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}, Período: ${movimiento.periodoFacturacion}, Categoría: ${movimiento.categoriaId}")
+        }
+        
+        // Mostrar estadísticas de categorías
+        val movimientosConCategoria = movimientos.count { it.categoriaId != null }
+        val movimientosSinCategoria = movimientos.count { it.categoriaId == null }
+        println("🔍 ANALISIS DEBUG: Movimientos con categoría: $movimientosConCategoria")
+        println("🔍 ANALISIS DEBUG: Movimientos sin categoría: $movimientosSinCategoria")
+        
+        // Mostrar algunos movimientos sin categoría
+        val ejemplosSinCategoria = movimientos.filter { it.categoriaId == null }.take(3)
+        ejemplosSinCategoria.forEach { movimiento ->
+            println("🔍 ANALISIS DEBUG: Sin categoría - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}, Período: ${movimiento.periodoFacturacion}, Tipo: ${movimiento.tipo}")
+        }
+        
         val lista = categorias.mapNotNull { categoria ->
             val presupuesto = presupuestos.find { it.categoriaId == categoria.id }?.monto ?: 0.0
-            val gastoActual = movimientos.filter {
+            val movimientosCategoria = movimientos.filter {
                 it.categoriaId == categoria.id &&
                 it.periodoFacturacion == periodoActual &&
                 it.tipo == TipoMovimiento.GASTO.name &&
                 it.tipo != TipoMovimiento.OMITIR.name
-            }.sumOf { it.monto }
+            }
+            val gastoActual = movimientosCategoria.sumOf { it.monto }
+            
+            println("🔍 ANALISIS DEBUG: Categoría '${categoria.nombre}' - Movimientos en período $periodoActual: ${movimientosCategoria.size}, Gasto: $gastoActual")
+            
             if (gastoActual <= 0) return@mapNotNull null
             val gastoAnterior = calcularGastoCategoria(categoria.id, periodoAnterior)
             val porcentajeGastado = if (presupuesto > 0) (gastoActual / presupuesto) * 100 else 0.0
@@ -91,6 +120,33 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
             it.tipo != TipoMovimiento.OMITIR.name
         }
         val totalSinCategoria = sinCategoriaGastos.sumOf { it.monto }
+        println("🔍 ANALISIS DEBUG: Movimientos sin categoría en período $periodoActual: ${sinCategoriaGastos.size}, Total: $totalSinCategoria")
+        
+        // Debug detallado de filtros
+        val todosSinCategoria = movimientos.filter { it.categoriaId == null }
+        println("🔍 ANALISIS DEBUG: Total sin categoría (sin filtros): ${todosSinCategoria.size}")
+        
+        val sinCategoriaPeriodo = todosSinCategoria.filter { it.periodoFacturacion == periodoActual }
+        println("🔍 ANALISIS DEBUG: Sin categoría en período $periodoActual: ${sinCategoriaPeriodo.size}")
+        
+        val sinCategoriaGastosTodos = sinCategoriaPeriodo.filter { it.tipo == TipoMovimiento.GASTO.name }
+        println("🔍 ANALISIS DEBUG: Sin categoría + gastos en período $periodoActual: ${sinCategoriaGastosTodos.size}")
+        
+        val sinCategoriaFinal = sinCategoriaGastosTodos.filter { it.tipo != TipoMovimiento.OMITIR.name }
+        println("🔍 ANALISIS DEBUG: Sin categoría + gastos + no omitidos en período $periodoActual: ${sinCategoriaFinal.size}")
+        
+        // Mostrar algunos ejemplos de movimientos sin categoría de otros períodos
+        val otrosPeriodosSinCategoria = todosSinCategoria.filter { it.periodoFacturacion != periodoActual }.take(3)
+        otrosPeriodosSinCategoria.forEach { movimiento ->
+            println("🔍 ANALISIS DEBUG: Otro período sin categoría - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}, Período: ${movimiento.periodoFacturacion}, Tipo: ${movimiento.tipo}")
+        }
+        
+        // Mostrar distribución por períodos
+        val sinCategoriaPorPeriodo = sinCategoriaGastos.groupBy { it.periodoFacturacion }
+        sinCategoriaPorPeriodo.forEach { (periodo, movs) ->
+            println("🔍 ANALISIS DEBUG: Período $periodo - ${movs.size} movimientos sin categoría, Total: ${movs.sumOf { it.monto }}")
+        }
+        
         if (totalSinCategoria > 0) {
             val categoriaSin = Categoria(
                 id = -1,
@@ -113,6 +169,8 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
                 )
             )
         }
+        
+        println("🔍 ANALISIS DEBUG: Total categorías con datos: ${lista.size}")
         return lista.sortedByDescending { it.porcentajeGastado }
     }
     

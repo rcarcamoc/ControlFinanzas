@@ -13,10 +13,28 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
     suspend fun aprenderPatron(descripcion: String, categoriaId: Long) {
         Log.d("ClasificacionUseCase", "🔄 Aprendiendo patrón: '$descripcion' -> Categoría ID: $categoriaId")
         val patrones = extraerPatrones(descripcion)
-        Log.d("ClasificacionUseCase", "📝 Patrones extraídos: $patrones")
-        patrones.forEach { patron ->
-            repository.guardarPatron(patron, categoriaId)
+        Log.d("ClasificacionUseCase", "�� Patrones extraídos (${patrones.size}): $patrones")
+        
+        if (patrones.isEmpty()) {
+            Log.w("ClasificacionUseCase", "⚠️ No se extrajeron patrones válidos de: '$descripcion'")
+            return
         }
+        
+        var patronesGuardados = 0
+        var patronesDuplicados = 0
+        
+        patrones.forEach { patron ->
+            try {
+                repository.guardarPatron(patron, categoriaId)
+                patronesGuardados++
+                Log.d("ClasificacionUseCase", "✅ Patrón guardado: '$patron'")
+            } catch (e: Exception) {
+                patronesDuplicados++
+                Log.w("ClasificacionUseCase", "⚠️ Error al guardar patrón '$patron': ${e.message}")
+            }
+        }
+        
+        Log.d("ClasificacionUseCase", "📊 Resumen aprendizaje: $patronesGuardados guardados, $patronesDuplicados duplicados/errores")
         Log.d("ClasificacionUseCase", "✅ Patrón aprendido exitosamente")
     }
     
@@ -88,25 +106,60 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
     
     /**
      * Extrae patrones de una descripción para mejorar el aprendizaje
+     * Optimizado para reducir duplicados y mejorar calidad
      */
     private fun extraerPatrones(descripcion: String): List<String> {
         val patrones = mutableListOf<String>()
+        val descripcionLimpia = descripcion.trim()
         
-        // Patrón completo
-        patrones.add(descripcion.trim())
+        // Solo agregar patrones si la descripción tiene contenido válido
+        if (descripcionLimpia.isBlank() || descripcionLimpia.length < 3) {
+            return emptyList()
+        }
         
-        // Palabras individuales (si tienen más de 3 caracteres)
-        val palabras = descripcion.split(" ").filter { it.length > 3 }
-        patrones.addAll(palabras)
+        // Patrón completo (solo si tiene más de 5 caracteres)
+        if (descripcionLimpia.length >= 5) {
+            patrones.add(descripcionLimpia)
+        }
         
-        // Combinaciones de 2 palabras
+        // Palabras individuales (solo si tienen más de 4 caracteres y no son comunes)
+        val palabras = descripcionLimpia.split(" ")
+            .filter { it.length > 4 }
+            .filter { !esPalabraComun(it) }
+        
+        // Agregar solo las palabras más relevantes (máximo 3)
+        patrones.addAll(palabras.take(3))
+        
+        // Combinaciones de 2 palabras (solo si ambas palabras son relevantes)
         if (palabras.size >= 2) {
             for (i in 0 until palabras.size - 1) {
-                patrones.add("${palabras[i]} ${palabras[i + 1]}")
+                val combinacion = "${palabras[i]} ${palabras[i + 1]}"
+                if (combinacion.length >= 8) { // Solo combinaciones suficientemente largas
+                    patrones.add(combinacion)
+                }
             }
         }
         
-        return patrones.distinct()
+        // Filtrar duplicados y patrones muy similares
+        return patrones.distinct().filter { patron ->
+            // No incluir patrones que sean subcadenas de otros patrones más largos
+            !patrones.any { otroPatron ->
+                otroPatron != patron && otroPatron.contains(patron) && otroPatron.length > patron.length + 2
+            }
+        }
+    }
+    
+    /**
+     * Verifica si una palabra es común y debe ser filtrada
+     */
+    private fun esPalabraComun(palabra: String): Boolean {
+        val palabrasComunes = setOf(
+            "tienda", "servicio", "online", "web", "com", "cl", "santiago", "chile",
+            "compra", "pago", "transferencia", "debito", "credito", "tarjeta",
+            "sucursal", "local", "centro", "mall", "plaza", "avenida", "calle",
+            "banco", "cajero", "atm", "pos", "terminal", "punto", "venta"
+        )
+        return palabrasComunes.contains(palabra.lowercase())
     }
     
     /**
@@ -133,5 +186,14 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
         Log.d("ClasificacionUseCase", "🔄 Actualizando confianza: '$patron' -> $nuevaConfianza")
         repository.actualizarConfianza(patron, categoriaId, nuevaConfianza)
         Log.d("ClasificacionUseCase", "✅ Confianza actualizada")
+    }
+    
+    /**
+     * Limpia duplicados existentes en la base de datos de clasificación automática
+     */
+    suspend fun limpiarDuplicados() {
+        Log.d("ClasificacionUseCase", "🧹 Iniciando limpieza de duplicados...")
+        repository.limpiarDuplicados()
+        Log.d("ClasificacionUseCase", "✅ Limpieza de duplicados completada")
     }
 } 

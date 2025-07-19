@@ -258,6 +258,21 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
             try {
                 Log.d("ClasificacionRepo", "💾 Guardando patrón: '$patron' -> Categoría ID: $categoriaId")
                 val patronNormalizado = ClasificacionNormalizer.normalizarDescripcion(patron)
+                
+                // Verificar si ya existe este patrón exacto
+                val existe = clasificacionDao.existePatron(patronNormalizado, categoriaId)
+                if (existe > 0) {
+                    Log.d("ClasificacionRepo", "⏭️ Patrón ya existe, actualizando frecuencia: '$patronNormalizado'")
+                    val patronExistente = clasificacionDao.obtenerPatronPorDescripcion(patronNormalizado)
+                    if (patronExistente != null) {
+                        val nuevaFrecuencia = patronExistente.frecuencia + 1
+                        val nuevaConfianza = calcularConfianza(nuevaFrecuencia, patronNormalizado.length)
+                        clasificacionDao.actualizarFrecuenciaYConfianza(patronNormalizado, categoriaId, nuevaConfianza)
+                        Log.d("ClasificacionRepo", "✅ Frecuencia actualizada: $nuevaFrecuencia, Confianza: $nuevaConfianza")
+                    }
+                    return@withContext
+                }
+                
                 val patronExistente = clasificacionDao.obtenerPatronPorDescripcion(patronNormalizado)
                 
                 if (patronExistente != null && patronExistente.categoriaId == categoriaId) {
@@ -456,4 +471,51 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
     override suspend fun obtenerCategoriasMasUsadas(): List<CategoriaUso> = emptyList()
     override suspend fun obtenerPatronesMasEfectivos(): List<PatronEfectivo> = emptyList()
     override suspend fun registrarClasificacion(descripcion: String, categoriaId: Long, esCorrecta: Boolean) {}
+
+    /**
+     * Limpia duplicados existentes en la base de datos de clasificación automática
+     */
+    override suspend fun limpiarDuplicados() {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d("ClasificacionRepo", "🧹 Iniciando limpieza de duplicados...")
+                
+                val todosLosPatrones = clasificacionDao.obtenerTodosLosPatrones()
+                val patronesUnicos = mutableMapOf<String, ClasificacionAutomaticaEntity>()
+                var duplicadosEliminados = 0
+                
+                for (patron in todosLosPatrones) {
+                    val clave = "${patron.patron}_${patron.categoriaId}"
+                    if (patronesUnicos.containsKey(clave)) {
+                        // Duplicado encontrado, mantener el que tiene mayor frecuencia
+                        val existente = patronesUnicos[clave]!!
+                        if (patron.frecuencia > existente.frecuencia) {
+                            patronesUnicos[clave] = patron
+                            Log.d("ClasificacionRepo", "🔄 Reemplazando duplicado: '${patron.patron}' (frecuencia: ${patron.frecuencia} > ${existente.frecuencia})")
+                        } else {
+                            Log.d("ClasificacionRepo", "🗑️ Eliminando duplicado: '${patron.patron}' (frecuencia: ${patron.frecuencia} <= ${existente.frecuencia})")
+                        }
+                        duplicadosEliminados++
+                    } else {
+                        patronesUnicos[clave] = patron
+                    }
+                }
+                
+                // Recrear la tabla con solo patrones únicos
+                clasificacionDao.eliminarTodosLosPatrones()
+                
+                for (patron in patronesUnicos.values) {
+                    clasificacionDao.insertarPatron(patron)
+                }
+                
+                Log.d("ClasificacionRepo", "✅ Limpieza completada: ${patronesUnicos.size} patrones únicos, $duplicadosEliminados duplicados eliminados")
+                
+                // Invalidar cache
+                cacheActualizado = false
+                
+            } catch (e: Exception) {
+                Log.e("ClasificacionRepo", "❌ Error al limpiar duplicados: ${e.message}")
+            }
+        }
+    }
 } 

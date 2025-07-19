@@ -347,6 +347,8 @@ fun ImportarExcelScreen(
                             val nuevos = movimientos.filter { it.idUnico !in existentes }
                             val duplicados = movimientos.size - nuevos.size
                             
+                            println("🔄 IMPORTACIÓN: Nuevos movimientos: ${nuevos.size}, Duplicados: $duplicados")
+                            
                             nuevos.forEach { mov ->
                                 val categoriaAnterior = categoriasPrevias[mov.idUnico]
                                 val movConCategoria = if (categoriaAnterior != null) {
@@ -354,7 +356,9 @@ fun ImportarExcelScreen(
                                 } else {
                                     mov
                                 }
+                                println("🔄 IMPORTACIÓN: Procesando movimiento: ${mov.descripcion}, idUnico: ${mov.idUnico}")
                                 viewModel.agregarMovimiento(movConCategoria)
+                                println("💾 IMPORTACIÓN: Intento de guardar movimiento: ${movConCategoria.descripcion}, idUnico: ${movConCategoria.idUnico}")
                             }
                             
                             // Aprender de las clasificaciones manuales preservadas
@@ -377,8 +381,12 @@ fun ImportarExcelScreen(
                             // Procesar TODAS las transacciones para el Tinder de clasificación
                             // ya que ninguna tiene categoría asignada automáticamente
                             if (transacciones.isNotEmpty()) {
-                                tinderViewModel.recargarTransacciones()
-                                mostrarTinder = true
+                                println("🎯 IMPORTACIÓN: Pasando ${transacciones.size} transacciones al Tinder")
+                                // Pasar las transacciones importadas directamente al Tinder
+                                // mostrarTinder = true // Deshabilitado el lanzamiento automático de la ventana Tinder
+                                // tinderViewModel.cargarTransaccionesEspecificas(transacciones) // Deshabilitado
+                            } else {
+                                println("⚠️ IMPORTACIÓN: No hay transacciones para pasar al Tinder")
                             }
                             
                             exito = true

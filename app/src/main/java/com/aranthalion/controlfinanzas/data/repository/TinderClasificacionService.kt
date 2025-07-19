@@ -44,6 +44,41 @@ class TinderClasificacionService @Inject constructor(
     }
     
     /**
+     * Obtiene las transacciones pendientes usando consultas optimizadas (HITO 1)
+     */
+    suspend fun obtenerTransaccionesPendientesOptimizado(): List<ExcelTransaction> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("TinderService", "🔍 Obteniendo transacciones pendientes optimizado...")
+                
+                // Usar consulta optimizada para movimientos sin categoría
+                val movimientosSinCategoria = movimientoDao.obtenerMovimientosSinCategoriaOptimizado(limit = 50)
+                
+                // Convertir a ExcelTransaction
+                val transacciones = movimientosSinCategoria.map { movimiento ->
+                    ExcelTransaction(
+                        fecha = movimiento.fecha,
+                        codigoReferencia = null,
+                        ciudad = null,
+                        descripcion = movimiento.descripcion,
+                        tipoTarjeta = movimiento.tipoTarjeta,
+                        monto = movimiento.monto,
+                        periodoFacturacion = movimiento.periodoFacturacion,
+                        categoria = null
+                    )
+                }
+                
+                Log.d("TinderService", "📊 Transacciones pendientes optimizadas obtenidas: ${transacciones.size}")
+                transacciones
+                
+            } catch (e: Exception) {
+                Log.e("TinderService", "❌ Error al obtener transacciones pendientes optimizadas: ${e.message}")
+                emptyList()
+            }
+        }
+    }
+    
+    /**
      * Registra una transacción aceptada en el Tinder
      */
     suspend fun registrarAceptacion(transaccionTinder: TransaccionTinder) {
@@ -62,7 +97,17 @@ class TinderClasificacionService @Inject constructor(
                 
                 // Convertir a MovimientoEntity y guardar en BD
                 val movimiento = convertirAMovimientoEntity(transaccionTinder)
-                movimientoDao.agregarMovimiento(movimiento)
+                // Buscar si ya existe un movimiento con el mismo idUnico
+                val existentes = movimientoDao.obtenerMovimientos().filter { it.idUnico == movimiento.idUnico }
+                if (existentes.isNotEmpty()) {
+                    val existente = existentes.first()
+                    val movimientoActualizado = movimiento.copy(id = existente.id)
+                    movimientoDao.actualizarMovimiento(movimientoActualizado)
+                    Log.d("TinderService", "⚠️ DUPLICADO: Movimiento actualizado - idUnico: ${movimiento.idUnico}")
+                } else {
+                    movimientoDao.agregarMovimiento(movimiento)
+                    Log.d("TinderService", "📝 Movimiento agregado - idUnico: ${movimiento.idUnico}")
+                }
                 
                 Log.d("TinderService", "✅ Transacción aceptada y guardada exitosamente")
                 

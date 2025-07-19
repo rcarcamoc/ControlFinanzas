@@ -63,7 +63,7 @@ fun TinderClasificacionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .width(dialogWidth)
-            ) {
+        ) {
             TinderClasificacionDialog(
                 uiState = uiState,
                 onAceptar = { viewModel.aceptarTransaccion() },
@@ -269,14 +269,14 @@ fun TinderClasificacionOverlay(
         // Contenido del overlay
         TinderClasificacionDialog(
             uiState = uiState,
-            onAceptar = onAceptar,
-            onRechazar = onRechazar,
+                onAceptar = onAceptar,
+                onRechazar = onRechazar,
             onSeleccionarCategoria = { /* Implementar */ },
             onMostrarSelectorManual = { /* Implementar */ },
             onConfirmarClasificacion = { /* Implementar */ },
             onSeleccionarCategoriaManual = { /* Implementar */ },
-            onDismiss = onDismiss,
+                onDismiss = onDismiss,
             onClose = onDismiss
-        )
+            )
     }
 } 
