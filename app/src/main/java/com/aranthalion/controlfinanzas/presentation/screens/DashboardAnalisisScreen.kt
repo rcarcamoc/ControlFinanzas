@@ -26,6 +26,7 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,10 +65,17 @@ fun DashboardAnalisisScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(WindowInsets.systemBars.asPaddingValues())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                Text(
+                    text = "SECCIÓN 3: DASHBOARD ANALÍTICO",
+                    color = Color.White,
+                    fontSize = MaterialTheme.typography.headlineLarge.fontSize,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            }
             item {
                 PeriodoSelectorGlobal()
             }
