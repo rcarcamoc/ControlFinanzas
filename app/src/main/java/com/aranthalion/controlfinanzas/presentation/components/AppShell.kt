@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
 
 data class NavItem(
     val route: String,
@@ -43,6 +45,8 @@ val navItems = listOf(
     NavItem("home", "Dashboard", CustomIcons.Dashboard, "Principal"),
     NavItem("transacciones", "Transacciones", CustomIcons.Transaction, "Principal"),
     NavItem("importar_excel", "Importar Excel", CustomIcons.Import, "Principal"),
+    // Nueva pantalla de verificación
+    NavItem("verificacion_compilacion", "Verificación compilación", CustomIcons.Info, "Principal"),
     
     // Gestión
     NavItem("presupuestos", "Presupuestos y Categorías", CustomIcons.Category, "Gestión"),
@@ -182,6 +186,12 @@ fun AppShell(
             ) {
                 // Header con botón de menú
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background, // Usa el color del tema
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    ),
                     title = {
                         Text(
                             text = navItems.find { it.route == currentRoute }?.label ?: "FinaVision",
@@ -205,21 +215,15 @@ fun AppShell(
                                 contentDescription = "Usuario"
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    )
+                    }
                 )
                 
                 // Content
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(WindowInsets.systemBars.asPaddingValues())
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .padding(top = 1.dp, start = 1.dp, end = 1.dp)
+                        .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
                 ) {
                     content()
                 }

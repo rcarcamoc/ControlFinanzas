@@ -47,6 +47,9 @@ import kotlin.math.abs
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,9 +114,9 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .padding(1.dp),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Dashboard Stats con datos reales - Layout responsive
         when (uiState) {
@@ -222,7 +225,7 @@ fun HomeScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(if (isSmallScreen) 1 else 2),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     // Tarjeta: "Tendencia de Gasto Mensual" (con BarChart)
                     item {
