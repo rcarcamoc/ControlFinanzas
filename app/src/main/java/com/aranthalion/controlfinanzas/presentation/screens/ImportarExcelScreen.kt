@@ -54,6 +54,8 @@ import androidx.compose.material.icons.filled.Info
 import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
 import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionScreen
 import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionViewModel
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
+import com.aranthalion.controlfinanzas.data.util.ParDuplicadoSimilar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,19 +73,10 @@ fun ImportarExcelScreen(
     var archivoNombre by remember { mutableStateOf("") }
     var tipoArchivo by remember { mutableStateOf("") }
     var expandedTipo by remember { mutableStateOf(false) }
-    var expandedMes by remember { mutableStateOf(false) }
     val periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
     val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
-    var mesSeleccionado by remember { mutableStateOf(periodoGlobal) }
+    val periodosDisponibles by periodoGlobalViewModel.periodosDisponibles.collectAsState()
     val tipos = listOf("Estado de cierre", "Últimos movimientos")
-    val calendar = Calendar.getInstance()
-    val meses = (0..11).map { offset ->
-        val cal = calendar.clone() as Calendar
-        cal.add(Calendar.MONTH, -offset)
-        val year = cal.get(Calendar.YEAR)
-        val month = (cal.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
-        "$year-$month"
-    }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         archivoUri = uri
         archivoNombre = uri?.let {
@@ -109,15 +102,7 @@ fun ImportarExcelScreen(
         ExcelProcessor.setClasificacionUseCase(clasificacionUseCase)
     }
     
-    // Sincronizar mesSeleccionado con periodoGlobal
-    LaunchedEffect(periodoGlobal) {
-        if (mesSeleccionado != periodoGlobal) mesSeleccionado = periodoGlobal
-    }
-    
-    // Cuando el usuario cambie mesSeleccionado, actualizar periodoGlobalViewModel.cambiarPeriodo(mesSeleccionado)
-    LaunchedEffect(mesSeleccionado) {
-        periodoGlobalViewModel.cambiarPeriodo(mesSeleccionado)
-    }
+
     
     Column(
         modifier = Modifier
@@ -268,28 +253,10 @@ fun ImportarExcelScreen(
                     }
                 }
                 
-                ExposedDropdownMenuBox(expanded = expandedMes, onExpandedChange = { expandedMes = !expandedMes }) {
-                    OutlinedTextField(
-                        value = mesSeleccionado,
-                        onValueChange = {},
-                        label = { Text("Mes de ciclo de facturación") },
-                        readOnly = true,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMes) }
-                    )
-                    ExposedDropdownMenu(expanded = expandedMes, onDismissRequest = { expandedMes = false }) {
-                        meses.forEach { mes ->
-                            DropdownMenuItem(
-                                text = { Text(mes) },
-                                onClick = {
-                                    mesSeleccionado = mes
-                                    expandedMes = false
-                                    periodoGlobalViewModel.cambiarPeriodo(mes)
-                                }
-                            )
-                        }
-                    }
-                }
+                PeriodoSelectorGlobal(
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Mes de ciclo de facturación"
+                )
             }
         }
         
@@ -305,8 +272,8 @@ fun ImportarExcelScreen(
                         try {
                             context.contentResolver.openInputStream(archivoUri!!)?.use { inputStream ->
                                 val transacciones = when (tipoArchivo) {
-                                    "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConSugerencias(inputStream, mesSeleccionado)
-                                    "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConSugerencias(inputStream, mesSeleccionado)
+                                    "Estado de cierre" -> ExcelProcessor.importarEstadoDeCierreConSugerencias(inputStream, periodoGlobal)
+                                    "Últimos movimientos" -> ExcelProcessor.importarUltimosMovimientosConSugerencias(inputStream, periodoGlobal)
                                     else -> emptyList()
                                 }
                             
@@ -325,7 +292,7 @@ fun ImportarExcelScreen(
                                     monto = montoFinal,
                                     descripcion = t.descripcion,
                                     fecha = t.fecha,
-                                    periodoFacturacion = t.periodoFacturacion ?: mesSeleccionado,
+                                    periodoFacturacion = t.periodoFacturacion ?: periodoGlobal,
                                     categoriaId = null, // IMPORTANTE: SIEMPRE null - el usuario debe decidir
                                     tipoTarjeta = t.tipoTarjeta,
                                     idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
@@ -334,8 +301,8 @@ fun ImportarExcelScreen(
                             
                             resultado = movimientos
                             
-                            val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(mesSeleccionado)
-                            val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(mesSeleccionado)
+                            val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(periodoGlobal)
+                            val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(periodoGlobal)
                             
                             // Para "Estado de cierre", preservar clasificaciones existentes en lugar de eliminar todo
                             if (tipoArchivo == "Estado de cierre") {
@@ -373,7 +340,7 @@ fun ImportarExcelScreen(
                                 nuevas = nuevos.size,
                                 duplicadas = duplicados,
                                 montoTotal = montoTotal.toLong(),
-                                periodo = mesSeleccionado ?: "-",
+                                periodo = periodoGlobal ?: "-",
                                 clasificadasAutomaticamente = clasificadasAutomaticamente,
                                 pendientesClasificacion = pendientesClasificacion
                             )
@@ -397,7 +364,7 @@ fun ImportarExcelScreen(
                     }
                 }
             },
-            enabled = archivoUri != null && tipoArchivo.isNotEmpty() && mesSeleccionado.isNotEmpty(),
+            enabled = archivoUri != null && tipoArchivo.isNotEmpty() && periodoGlobal.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
