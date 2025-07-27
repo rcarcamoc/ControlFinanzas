@@ -14,6 +14,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.io.OutputStream
+import java.io.InputStream
+import java.io.OutputStreamWriter
+import java.io.InputStreamReader
 
 class TransaccionesImportExportService(private val context: Context, private val movimientoRepository: MovimientoRepository) {
     private val gson = Gson()
@@ -31,13 +35,13 @@ class TransaccionesImportExportService(private val context: Context, private val
     /**
      * Exporta todas las transacciones de un periodo a un archivo JSON.
      * @param periodo El periodo a exportar (ej: "2024-07")
-     * @param outputFile Archivo destino
+     * @param outputStream Archivo destino
      * @throws Exception si ocurre un error de IO
      */
-    suspend fun exportarPorPeriodo(periodo: String, outputFile: File) {
+    suspend fun exportarPorPeriodo(periodo: String, outputStream: OutputStream) {
         val (fechaInicio, fechaFin) = obtenerFechasDePeriodo(periodo)
         val movimientos = movimientoRepository.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
-        FileWriter(outputFile).use { writer ->
+        OutputStreamWriter(outputStream).use { writer ->
             gson.toJson(movimientos, writer)
         }
     }
@@ -45,15 +49,15 @@ class TransaccionesImportExportService(private val context: Context, private val
     /**
      * Importa transacciones desde un archivo JSON, validando duplicados por idUnico.
      * @param periodo El periodo al que se asignarán las transacciones importadas
-     * @param inputFile Archivo fuente
+     * @param inputStream Archivo fuente
      * @throws Exception si ocurre un error de IO o formato
      */
-    suspend fun importarPorPeriodo(periodo: String, inputFile: File) {
+    suspend fun importarPorPeriodo(periodo: String, inputStream: InputStream) {
         val (fechaInicio, fechaFin) = obtenerFechasDePeriodo(periodo)
         val movimientosExistentes = movimientoRepository.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
         val existentesIdUnico = movimientosExistentes.map { it.idUnico }.toSet()
         val type = object : TypeToken<List<MovimientoEntity>>() {}.type
-        val nuevos: List<MovimientoEntity> = FileReader(inputFile).use { reader ->
+        val nuevos: List<MovimientoEntity> = InputStreamReader(inputStream).use { reader ->
             gson.fromJson(reader, type)
         }
         val nuevosFiltrados = nuevos.filter { it.idUnico !in existentesIdUnico }

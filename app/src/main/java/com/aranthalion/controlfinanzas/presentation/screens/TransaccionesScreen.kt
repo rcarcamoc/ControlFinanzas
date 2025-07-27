@@ -59,6 +59,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,7 +83,7 @@ fun TransaccionesScreen(
     var expandedPeriodo by remember { mutableStateOf(false) }
     var expandedTipo by remember { mutableStateOf(false) }
     var expandedCategoria by remember { mutableStateOf(false) }
-    var mostrarTinderClasificacion by remember { mutableStateOf(false) }
+    var mostrarTinderClasificacion by rememberSaveable { mutableStateOf(false) }
     
     // ViewModel del Tinder de clasificación
     val tinderViewModel: TinderClasificacionViewModel = hiltViewModel()
@@ -108,29 +109,30 @@ fun TransaccionesScreen(
     
     // Función para procesar transacciones sin categoría para el Tinder
     fun procesarTransaccionesSinCategoria() {
+        println("[LOG_TINDER_CLASIFICACION 1] Botón 'Juguemos a clasificar' presionado")
+        println("[LOG_TINDER_CLASIFICACION 2] Iniciando función procesarTransaccionesSinCategoria")
         if (uiState is MovimientosUiState.Success) {
+            println("[LOG_TINDER_CLASIFICACION 3] Estado UI: Success")
             val movimientos = (uiState as MovimientosUiState.Success).movimientos
             val transaccionesSinCategoria = movimientos.filter { it.categoriaId == null }
+            println("[LOG_TINDER_CLASIFICACION 4] Transacciones sin categoría encontradas: ${transaccionesSinCategoria.size}")
             if (transaccionesSinCategoria.isNotEmpty()) {
-                println("🔍 TINDER_DEBUG: Iniciando procesamiento de "+transaccionesSinCategoria.size+" transacciones")
-                val excelTransactions = transaccionesSinCategoria.map { movimiento ->
-                    ExcelTransaction(
-                        fecha = movimiento.fecha,
-                        codigoReferencia = movimiento.idUnico,
-                        ciudad = null,
-                        descripcion = movimiento.descripcion,
-                        tipoTarjeta = movimiento.tipoTarjeta,
-                        monto = movimiento.monto,
-                        periodoFacturacion = movimiento.periodoFacturacion,
-                        categoria = null,
-                        categoriaId = null,
-                        nivelConfianza = null
-                    )
+                scope.launch {
+                    snackbarHostState.showSnackbar("Procesando ${transaccionesSinCategoria.size} transacciones sin clasificar")
                 }
-                mostrarTinderClasificacion = true // AHORA SE ACTIVA
-                tinderViewModel.cargarTransaccionesEspecificas(excelTransactions)
+                println("[LOG_TINDER_CLASIFICACION 5] Navegando a pantalla TinderClasificacionScreen")
+                // Navegar a la nueva pantalla dedicada
+                navController.navigate("tinder_clasificacion")
             } else {
-                println("🔍 TINDER_DEBUG: No hay transacciones sin categoría")
+                println("[LOG_TINDER_CLASIFICACION 6] No hay transacciones pendientes de clasificación")
+                scope.launch {
+                    snackbarHostState.showSnackbar("No hay transacciones pendientes de clasificación")
+                }
+            }
+        } else {
+            println("[LOG_TINDER_CLASIFICACION 7] Estado UI no es Success")
+            scope.launch {
+                snackbarHostState.showSnackbar("No se pudo obtener el estado de las transacciones")
             }
         }
     }
@@ -237,7 +239,10 @@ fun TransaccionesScreen(
                                 Text("Nueva transacción")
                             }
                             Button(
-                                onClick = { procesarTransaccionesSinCategoria() },
+                                onClick = {
+                                    println("[LOG_TINDER_CLASIFICACION 1] Botón 'Juguemos a clasificar' presionado")
+                                    procesarTransaccionesSinCategoria()
+                                },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = "Jugar a clasificar")
@@ -494,18 +499,6 @@ fun TransaccionesScreen(
             }
         }
         
-        // Tinder de clasificación
-        if (mostrarTinderClasificacion) {
-            item {
-                TinderClasificacionScreen(
-                    onDismiss = {
-                        mostrarTinderClasificacion = false
-                        // Recargar transacciones después del Tinder
-                        viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
-                    }
-                )
-            }
-        }
     }
             }
             // Diálogo de filtros

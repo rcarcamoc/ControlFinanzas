@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.aranthalion.controlfinanzas.presentation.configuracion.TemaApp
 import androidx.compose.ui.graphics.Color
 
-// Tema Naranja FinaVision (basado en el prototipo exacto)
+// Tema Naranja Finanzas personales (basado en el prototipo exacto)
 private val NaranjaLightColorScheme = lightColorScheme(
     primary = OrangePrimary,
     secondary = OrangeSecondary,

@@ -57,7 +57,6 @@ fun InsightsAvanzadosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(WindowInsets.systemBars.asPaddingValues())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

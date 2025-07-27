@@ -21,17 +21,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.presentation.components.TinderClasificacionCard
 import com.aranthalion.controlfinanzas.presentation.components.SelectorCategoriaManual
 import com.aranthalion.controlfinanzas.presentation.components.TransaccionTinder
+import android.util.Log
 
 @Composable
 fun TinderClasificacionScreen(
     viewModel: TinderClasificacionViewModel = hiltViewModel(),
     onDismiss: () -> Unit
 ) {
+    Log.i("LOG_TINDER_CLASIFICACION", "[8] Renderizando pantalla TinderClasificacionScreen")
     val uiState by viewModel.uiState.collectAsState()
     
     // Mostrar error si existe
     uiState.error?.let { error ->
         LaunchedEffect(error) {
+            Log.i("LOG_TINDER_CLASIFICACION", "[9] Error detectado en TinderClasificacionScreen: $error")
             // Aquí podrías mostrar un Snackbar o Toast
         }
     }
@@ -48,8 +51,12 @@ fun TinderClasificacionScreen(
             targetOffsetY = { it }
         )
     ) {
+        Log.i("LOG_TINDER_CLASIFICACION", "[10] Mostrando Dialog principal de TinderClasificacionScreen")
         Dialog(
-            onDismissRequest = { onDismiss() },
+            onDismissRequest = { 
+                Log.i("LOG_TINDER_CLASIFICACION", "[11] onDismissRequest ejecutado en Dialog de TinderClasificacionScreen")
+                onDismiss() 
+            },
             properties = DialogProperties(
                 dismissOnBackPress = true,
                 dismissOnClickOutside = false
@@ -66,14 +73,38 @@ fun TinderClasificacionScreen(
         ) {
             TinderClasificacionDialog(
                 uiState = uiState,
-                onAceptar = { viewModel.aceptarTransaccion() },
-                onRechazar = { viewModel.rechazarTransaccion() },
-                onSeleccionarCategoria = { viewModel.seleccionarCategoria(it) },
-                onMostrarSelectorManual = { viewModel.mostrarSelectorManual() },
-                onConfirmarClasificacion = { viewModel.confirmarClasificacion() },
-                onSeleccionarCategoriaManual = { viewModel.seleccionarCategoriaManual(it) },
-                onDismiss = { onDismiss() },
-                onClose = onDismiss
+                onAceptar = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[12] Botón Aceptar presionado")
+                    viewModel.aceptarTransaccion() 
+                },
+                onRechazar = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[13] Botón Rechazar presionado")
+                    viewModel.rechazarTransaccion() 
+                },
+                onSeleccionarCategoria = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[14] Categoría seleccionada: $it")
+                    viewModel.seleccionarCategoria(it) 
+                },
+                onMostrarSelectorManual = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[15] Mostrar selector manual de categoría")
+                    viewModel.mostrarSelectorManual() 
+                },
+                onConfirmarClasificacion = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[16] Confirmar clasificación manual")
+                    viewModel.confirmarClasificacion() 
+                },
+                onSeleccionarCategoriaManual = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[17] Categoría manual seleccionada: $it")
+                    viewModel.seleccionarCategoriaManual(it) 
+                },
+                onDismiss = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[18] onDismiss ejecutado en TinderClasificacionDialog")
+                    onDismiss() 
+                },
+                onClose = { 
+                    Log.i("LOG_TINDER_CLASIFICACION", "[19] onClose ejecutado en TinderClasificacionDialog")
+                    onDismiss() 
+                }
             )
             }
         }
@@ -81,12 +112,15 @@ fun TinderClasificacionScreen(
     
     // Dialog para selector manual de categorías
     if (uiState.mostrarSelectorManual) {
+        Log.i("LOG_TINDER_CLASIFICACION", "[20] Mostrando SelectorCategoriaManual")
         SelectorCategoriaManual(
             categorias = uiState.categoriasDisponibles,
             onSeleccionar = { categoriaId ->
+                Log.i("LOG_TINDER_CLASIFICACION", "[21] Categoría seleccionada manualmente: $categoriaId")
                 viewModel.rechazarYSeleccionarManual(categoriaId)
             },
             onDismiss = {
+                Log.i("LOG_TINDER_CLASIFICACION", "[22] onDismiss ejecutado en SelectorCategoriaManual")
                 viewModel.ocultarSelectorManual()
             }
         )
@@ -95,6 +129,7 @@ fun TinderClasificacionScreen(
     // Snackbar para feedback
     if (uiState.mostrarFeedback) {
         LaunchedEffect(uiState.mensajeFeedback) {
+            Log.i("LOG_TINDER_CLASIFICACION", "[23] Mostrando feedback: ${uiState.mensajeFeedback}")
             // Aquí podrías mostrar un Snackbar con el mensaje
         }
     }

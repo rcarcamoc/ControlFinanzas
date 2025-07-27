@@ -69,7 +69,6 @@ fun UsuariosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is UsuariosUiState.Loading -> {
@@ -79,7 +78,9 @@ fun UsuariosScreen(
                 }
                 is UsuariosUiState.Success -> {
                     Column(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
                     ) {
                         // Barra de búsqueda
                         OutlinedTextField(

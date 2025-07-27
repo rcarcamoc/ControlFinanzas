@@ -103,48 +103,58 @@ class CategoriaRepositoryImpl @Inject constructor(
 
     override suspend fun insertDefaultCategorias() {
         val categoriasDefault = listOf(
-            CategoriaEntity(nombre = "Arriendo", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Tarjeta titular", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Vacaciones", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Supermercado", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Gastos comunes", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Choquito", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Bencina", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Veguita", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Gatos", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Uber", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Seguro", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Salir a comer", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Almacen", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Gas", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Peajes", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Delivery", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Luz", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Internet", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Streaming", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Bubi", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Agua", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Farmacia", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Casa", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Medico", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Regalos", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Credito", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Antojos", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Imprevistos", tipo = "Gasto"),
-            CategoriaEntity(nombre = "Salario", tipo = "Ingreso"),
-            CategoriaEntity(nombre = "Freelance", tipo = "Ingreso"),
-            CategoriaEntity(nombre = "Inversiones", tipo = "Ingreso"),
-            CategoriaEntity(nombre = "Otros Ingresos", tipo = "Ingreso")
+            CategoriaEntity(nombre = "Arriendo", tipo = "Gasto", presupuestoMensual = 590000.0),
+            CategoriaEntity(nombre = "Tarjeta titular", tipo = "Gasto", presupuestoMensual = 300000.0),
+            CategoriaEntity(nombre = "Vacaciones", tipo = "Gasto", presupuestoMensual = 0.0),
+            CategoriaEntity(nombre = "Supermercado", tipo = "Gasto", presupuestoMensual = 500000.0),
+            CategoriaEntity(nombre = "Gastos comunes", tipo = "Gasto", presupuestoMensual = 100000.0),
+            CategoriaEntity(nombre = "Choquito", tipo = "Gasto", presupuestoMensual = 0.0),
+            CategoriaEntity(nombre = "Bencina", tipo = "Gasto", presupuestoMensual = 1000000.0),
+            CategoriaEntity(nombre = "Veguita", tipo = "Gasto", presupuestoMensual = 60000.0),
+            CategoriaEntity(nombre = "Gatos", tipo = "Gasto", presupuestoMensual = 50000.0),
+            CategoriaEntity(nombre = "Uber", tipo = "Gasto", presupuestoMensual = 20000.0),
+            CategoriaEntity(nombre = "Seguro", tipo = "Gasto", presupuestoMensual = 50000.0),
+            CategoriaEntity(nombre = "Salir a comer", tipo = "Gasto", presupuestoMensual = 50000.0),
+            CategoriaEntity(nombre = "Almacen", tipo = "Gasto", presupuestoMensual = 60000.0),
+            CategoriaEntity(nombre = "Gas", tipo = "Gasto", presupuestoMensual = 75000.0),
+            CategoriaEntity(nombre = "Peajes", tipo = "Gasto", presupuestoMensual = 50000.0),
+            CategoriaEntity(nombre = "Delivery", tipo = "Gasto", presupuestoMensual = 20000.0),
+            CategoriaEntity(nombre = "Luz", tipo = "Gasto", presupuestoMensual = 35000.0),
+            CategoriaEntity(nombre = "Internet", tipo = "Gasto", presupuestoMensual = 17000.0),
+            CategoriaEntity(nombre = "Streaming", tipo = "Gasto", presupuestoMensual = 15000.0),
+            CategoriaEntity(nombre = "Bubi", tipo = "Gasto", presupuestoMensual = 50000.0),
+            CategoriaEntity(nombre = "Agua", tipo = "Gasto", presupuestoMensual = 20000.0),
+            CategoriaEntity(nombre = "Farmacia", tipo = "Gasto", presupuestoMensual = 10000.0),
+            CategoriaEntity(nombre = "Casa", tipo = "Gasto", presupuestoMensual = 20000.0),
+            CategoriaEntity(nombre = "Medico", tipo = "Gasto", presupuestoMensual = 15000.0),
+            CategoriaEntity(nombre = "Regalos", tipo = "Gasto", presupuestoMensual = 15000.0),
+            CategoriaEntity(nombre = "Credito", tipo = "Gasto", presupuestoMensual = 0.0),
+            CategoriaEntity(nombre = "Antojos", tipo = "Gasto", presupuestoMensual = 0.0),
+            CategoriaEntity(nombre = "Imprevistos", tipo = "Gasto", presupuestoMensual = 0.0)
+            // Las categorías de ingreso pueden agregarse aquí si se desea con presupuesto 0.0
         )
+        
+        println("📝 CATEGORIA_DEBUG: Iniciando inserción de categorías por defecto")
+        var categoriasInsertadas = 0
         
         // Solo insertar categorías que no existan
         categoriasDefault.forEach { categoria ->
             if (!existeCategoria(categoria.nombre)) {
                 categoriaDao.agregarCategoria(categoria)
-                println("✅ Categoría insertada: ${categoria.nombre}")
+                categoriasInsertadas++
+                println("✅ Categoría insertada: ${categoria.nombre} con presupuesto: ${categoria.presupuestoMensual}")
             } else {
                 println("⏭️ Categoría ya existe, omitiendo: ${categoria.nombre}")
             }
+        }
+        
+        println("📊 CATEGORIA_DEBUG: Total de categorías insertadas: $categoriasInsertadas")
+        
+        // Verificar categorías insertadas
+        val categoriasVerificadas = categoriaDao.obtenerCategorias()
+        println("🔍 CATEGORIA_DEBUG: Total de categorías en BD: ${categoriasVerificadas.size}")
+        categoriasVerificadas.forEach { cat ->
+            println("🔍 CATEGORIA_DEBUG: ID=${cat.id}, Nombre=${cat.nombre}, Presupuesto=${cat.presupuestoMensual}")
         }
     }
 

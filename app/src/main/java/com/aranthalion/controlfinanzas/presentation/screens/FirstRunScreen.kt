@@ -23,6 +23,9 @@ import com.aranthalion.controlfinanzas.presentation.FirstRunUiState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,22 +33,51 @@ fun FirstRunScreen(
     navController: NavHostController,
     viewModel: FirstRunViewModel = hiltViewModel()
 ) {
+    Log.i("LOG_PRIMER_USO_UI", "[1] Renderizando FirstRunScreen")
     val uiState by viewModel.uiState.collectAsState()
     var showLoadingDialog by remember { mutableStateOf(false) }
     var showCategoriasDialog by remember { mutableStateOf(false) }
+    var showPeriodoDialog by remember { mutableStateOf(false) }
+    var periodoSeleccionado by remember { mutableStateOf("") }
+    val periodosDisponibles = remember {
+        val formato = SimpleDateFormat("yyyy-MM")
+        val calendar = Calendar.getInstance()
+        val lista = mutableListOf<String>()
+        // 12 meses antes
+        for (i in 12 downTo 1) {
+            calendar.add(Calendar.MONTH, -1)
+            lista.add(0, formato.format(calendar.time))
+        }
+        // Actual
+        calendar.time = java.util.Date()
+        lista.add(formato.format(calendar.time))
+        // 2 meses después
+        for (i in 1..2) {
+            calendar.add(Calendar.MONTH, 1)
+            lista.add(formato.format(calendar.time))
+        }
+        lista
+    }
+    if (periodoSeleccionado.isEmpty() && periodosDisponibles.isNotEmpty()) {
+        periodoSeleccionado = periodosDisponibles[12] // El actual
+    }
 
     LaunchedEffect(uiState) {
+        Log.i("LOG_PRIMER_USO_UI", "[2] LaunchedEffect: uiState=$uiState")
         when (uiState) {
             is FirstRunUiState.Success -> {
+                Log.i("LOG_PRIMER_USO_UI", "[3] Navegando a home tras Success")
                 // Navegar a la pantalla principal
                 navController.navigate("home") {
                     popUpTo("first_run") { inclusive = true }
                 }
             }
             is FirstRunUiState.Loading -> {
+                Log.i("LOG_PRIMER_USO_UI", "[4] Mostrando loading dialog")
                 showLoadingDialog = true
             }
             is FirstRunUiState.Error -> {
+                Log.i("LOG_PRIMER_USO_UI", "[5] Error: ${(uiState as FirstRunUiState.Error).mensaje}")
                 showLoadingDialog = false
             }
             else -> {
@@ -70,7 +102,6 @@ fun FirstRunScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(WindowInsets.systemBars.asPaddingValues())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -109,7 +140,7 @@ fun FirstRunScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     Text(
-                        text = "¡Bienvenido a FinaVision!",
+                        text = "Bienvenida a Finanzas personales",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -279,6 +310,7 @@ fun FirstRunScreen(
 
     // Diálogo de carga
     if (showLoadingDialog) {
+        Log.i("LOG_PRIMER_USO_UI", "[6] Renderizando loading dialog")
         AlertDialog(
             onDismissRequest = { },
             title = {
@@ -303,6 +335,7 @@ fun FirstRunScreen(
 
     // Diálogo para preguntar si cargar categorías
     if (showCategoriasDialog) {
+        Log.i("LOG_PRIMER_USO_UI", "[7] Renderizando diálogo de categorías por defecto")
         AlertDialog(
             onDismissRequest = { showCategoriasDialog = false },
             title = {
@@ -317,8 +350,9 @@ fun FirstRunScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        Log.i("LOG_PRIMER_USO_UI", "[8] Botón 'Sí, cargar categorías' presionado")
                         showCategoriasDialog = false
-                        viewModel.cargarSoloCategorias()
+                        showPeriodoDialog = true
                     }
                 ) {
                     Text("Sí, cargar categorías")
@@ -327,6 +361,7 @@ fun FirstRunScreen(
             dismissButton = {
                 TextButton(
                     onClick = {
+                        Log.i("LOG_PRIMER_USO_UI", "[9] Botón 'No, comenzar sin categorías' presionado")
                         showCategoriasDialog = false
                         viewModel.comenzarDesdeCero()
                     }
@@ -336,9 +371,74 @@ fun FirstRunScreen(
             }
         )
     }
+    // Diálogo de selección de periodo para presupuestos
+    if (showPeriodoDialog) {
+        Log.i("LOG_PRIMER_USO_UI", "[10] Renderizando diálogo de selección de periodo")
+        AlertDialog(
+            onDismissRequest = { showPeriodoDialog = false },
+            title = { Text("¿Desde qué periodo deseas insertar los presupuestos?") },
+            text = {
+                Column {
+                    Text("Selecciona el periodo inicial. Se insertarán presupuestos desde ese mes hasta el actual (y 2 meses después).")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    var expanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
+                    ) {
+                        TextField(
+                            value = periodoSeleccionado,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Periodo inicial") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            periodosDisponibles.forEach { periodo ->
+                                DropdownMenuItem(
+                                    text = { Text(periodo) },
+                                    onClick = {
+                                        Log.i("LOG_PRIMER_USO_UI", "[11] Periodo seleccionado: $periodo")
+                                        periodoSeleccionado = periodo
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        Log.i("LOG_PRIMER_USO_UI", "[12] Botón 'Insertar presupuestos' presionado. Periodo seleccionado: $periodoSeleccionado")
+                        showPeriodoDialog = false
+                        viewModel.cargarSoloCategoriasYPresupuestos(periodoSeleccionado, periodosDisponibles)
+                    }
+                ) {
+                    Text("Insertar presupuestos")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        Log.i("LOG_PRIMER_USO_UI", "[13] Botón 'Cancelar' en diálogo de periodo presionado")
+                        showPeriodoDialog = false 
+                    },
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     // Mostrar error si ocurre
     if (uiState is FirstRunUiState.Error) {
+        Log.i("LOG_PRIMER_USO_UI", "[14] Renderizando diálogo de error")
         AlertDialog(
             onDismissRequest = { },
             title = {
@@ -349,7 +449,10 @@ fun FirstRunScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { viewModel.resetError() }
+                    onClick = { 
+                        Log.i("LOG_PRIMER_USO_UI", "[15] Botón 'Aceptar' en diálogo de error presionado")
+                        viewModel.resetError() 
+                    }
                 ) {
                     Text("Aceptar")
                 }

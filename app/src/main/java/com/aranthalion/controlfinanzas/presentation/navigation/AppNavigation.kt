@@ -27,6 +27,7 @@ import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 import com.aranthalion.controlfinanzas.presentation.components.AppShell
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
+import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -88,6 +89,16 @@ fun AppNavigation(navController: NavHostController) {
             composable("import_export") {
                 TransaccionesImportExportScreen(
                     onNavigateBack = { navController.navigateUp() }
+                )
+            }
+            composable("verificacion_compilacion") {
+            }
+            composable("tinder_clasificacion") {
+                TinderClasificacionScreen(
+                    onDismiss = {
+                        navController.popBackStack()
+                        // Opcional: recargar transacciones si es necesario
+                    }
                 )
             }
         }

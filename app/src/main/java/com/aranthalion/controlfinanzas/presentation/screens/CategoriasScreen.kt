@@ -47,7 +47,6 @@ fun CategoriasScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {

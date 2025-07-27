@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Jerarquía de tipografía basada en la guía de diseño FinaVision
+// Jerarquía de tipografía basada en la guía de diseño Finanzas personales
 // Tamaños específicos: 30sp, 24sp, 14sp, 12sp
 // Pesos: 400 (Normal), 500 (Medium), 700 (Bold)
 val Typography = Typography(

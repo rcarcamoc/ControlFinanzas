@@ -118,7 +118,7 @@ fun AppShell(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "FinaVision",
+                            text = "Finanzas personales",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = SidebarForeground
@@ -194,7 +194,7 @@ fun AppShell(
                     ),
                     title = {
                         Text(
-                            text = navItems.find { it.route == currentRoute }?.label ?: "FinaVision",
+                            text = navItems.find { it.route == currentRoute }?.label ?: "Finanzas personales",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )

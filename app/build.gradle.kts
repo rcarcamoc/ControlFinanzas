@@ -7,6 +7,10 @@ plugins {
 }
 
 android {
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     namespace = "com.aranthalion.controlfinanzas"
     compileSdk = 35
 
@@ -21,12 +25,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
+        }
         release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
         }
     }
     compileOptions {
@@ -35,9 +38,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
-    }
-    buildFeatures {
-        compose = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"

@@ -73,7 +73,6 @@ fun CuentasPorCobrarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
             when (uiState) {
                 is CuentasPorCobrarUiState.Loading -> {
@@ -83,7 +82,9 @@ fun CuentasPorCobrarScreen(
                 }
                 is CuentasPorCobrarUiState.Success -> {
                     Column(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
                     ) {
                         // Barra de búsqueda
                         OutlinedTextField(

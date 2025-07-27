@@ -8,5 +8,6 @@ data class CategoriaEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val nombre: String,
-    val tipo: String // "INGRESO" o "GASTO"
+    val tipo: String, // "INGRESO" o "GASTO"
+    val presupuestoMensual: Double? = null
 ) 

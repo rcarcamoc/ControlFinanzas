@@ -30,6 +30,7 @@ object CustomIcons {
     val Star: ImageVector = Icons.Default.Star
     val Warning: ImageVector = Icons.Default.Warning
     val AccountCircle: ImageVector = Icons.Default.AccountCircle
+    val Verification: ImageVector = Icons.Default.Info
     
     // Iconos específicos para navegación (usando iconos disponibles)
     val Dashboard: ImageVector = Icons.Default.Home

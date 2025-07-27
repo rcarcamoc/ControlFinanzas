@@ -338,7 +338,6 @@ fun PresupuestosYCategoriasScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier
-                                .padding(WindowInsets.systemBars.asPaddingValues())
                                 .heightIn(max = 800.dp) // Limitar altura para evitar scroll anidado
                         ) {
                             items(categoriasList) { categoria ->

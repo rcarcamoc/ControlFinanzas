@@ -46,9 +46,10 @@ fun TransaccionesImportExportScreen(
             scope.launch {
                 isLoading = true
                 try {
-                    val file = context.contentResolver.openFileDescriptor(uri, "w")?.fileDescriptor?.let { java.io.File("/proc/self/fd/${it}") }
-                    if (file != null) {
-                        viewModel.exportarPorPeriodo(context, periodoSeleccionado, file)
+                    val pfd = context.contentResolver.openFileDescriptor(uri, "w")
+                    if (pfd != null) {
+                        val outputStream = android.os.ParcelFileDescriptor.AutoCloseOutputStream(pfd)
+                        viewModel.exportarPorPeriodo(context, periodoSeleccionado, outputStream)
                         mensaje = "Exportación exitosa a ${uri.path}"
                     } else {
                         mensaje = "No se pudo acceder al archivo de destino."
@@ -67,9 +68,10 @@ fun TransaccionesImportExportScreen(
             scope.launch {
                 isLoading = true
                 try {
-                    val file = context.contentResolver.openFileDescriptor(uri, "r")?.fileDescriptor?.let { java.io.File("/proc/self/fd/${it}") }
-                    if (file != null) {
-                        viewModel.importarPorPeriodo(context, periodoSeleccionado, file)
+                    val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                    if (pfd != null) {
+                        val inputStream = android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd)
+                        viewModel.importarPorPeriodo(context, periodoSeleccionado, inputStream)
                         mensaje = "Importación exitosa desde ${uri.path}"
                     } else {
                         mensaje = "No se pudo acceder al archivo fuente."

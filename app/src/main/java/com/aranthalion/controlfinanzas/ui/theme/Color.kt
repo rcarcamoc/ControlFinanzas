@@ -2,7 +2,7 @@ package com.aranthalion.controlfinanzas.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta de colores FinaVision basada en el prototipo exacto
+// Paleta de colores Finanzas personales basada en el prototipo exacto
 // Valores HSL convertidos a Color de Compose
 
 // Colores principales del tema naranja
