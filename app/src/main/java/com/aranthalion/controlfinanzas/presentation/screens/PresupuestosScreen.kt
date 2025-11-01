@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.focusRequester
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
@@ -68,7 +69,6 @@ fun PresupuestosScreen(
     
     var showAddDialog by remember { mutableStateOf(false) }
     var presupuestoToEdit by remember { mutableStateOf<PresupuestoCategoriaEntity?>(null) }
-    var showPeriodoSelector by remember { mutableStateOf(false) }
     
     // Cuando cambie el período seleccionado, aplicar lazy copy si es necesario antes de cargar los presupuestos
     LaunchedEffect(periodoSeleccionado) {
@@ -135,40 +135,27 @@ fun PresupuestosScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Button(
+                    onClick = { showAddDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    OutlinedButton(
-                        onClick = { showPeriodoSelector = true },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = "Seleccionar período",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Período")
-                    }
-                    Button(
-                        onClick = { showAddDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Add, 
-                            contentDescription = "Agregar presupuesto",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Nuevo")
-                    }
+                    Icon(
+                        Icons.Default.Add, 
+                        contentDescription = "Agregar presupuesto",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Nuevo")
                 }
             }
         }
+        
+        // Selector de período global
+        PeriodoSelectorGlobal(
+            modifier = Modifier.fillMaxWidth()
+        )
 
         when (uiState) {
             is PresupuestosUiState.Loading -> {
@@ -453,22 +440,7 @@ fun PresupuestosScreen(
         }
     }
 
-    // Diálogo para seleccionar período con animación
-    AnimatedVisibility(
-        visible = showPeriodoSelector,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut()
-    ) {
-        PresupuestosPeriodoSelectorDialog(
-            periodos = periodosDisponibles,
-            periodoSeleccionado = periodoSeleccionado,
-            onDismiss = { showPeriodoSelector = false },
-            onPeriodoSelected = { periodo ->
-                periodoGlobalViewModel.cambiarPeriodo(periodo)
-                showPeriodoSelector = false
-            }
-        )
-    }
+
 }
 
 @Composable
@@ -1334,52 +1306,7 @@ fun PresupuestoEditDialog(
     }
 }
 
-@Composable
-fun PresupuestosPeriodoSelectorDialog(
-    periodos: List<String>,
-    periodoSeleccionado: String,
-    onDismiss: () -> Unit,
-    onPeriodoSelected: (String) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Seleccionar Período",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column {
-                periodos.forEach { periodo ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = periodoSeleccionado == periodo,
-                            onClick = { onPeriodoSelected(periodo) }
-                        )
-                        Text(periodo)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Cerrar")
-            }
-        }
-    )
-}
+
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
 @Composable

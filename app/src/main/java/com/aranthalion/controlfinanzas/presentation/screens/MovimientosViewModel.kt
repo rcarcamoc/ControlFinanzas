@@ -102,7 +102,21 @@ class MovimientosViewModel @Inject constructor(
                     clasificacionUseCase.aprenderPatron(movimiento.descripcion, movimiento.categoriaId)
                 }
                 
-                cargarMovimientos()
+                // Recargar movimientos del período actual en lugar de todos
+                val movimientos = if (movimiento.periodoFacturacion != null) {
+                    gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(movimiento.periodoFacturacion)
+                } else {
+                    gestionarMovimientosUseCase.obtenerMovimientosOptimizado()
+                }
+                
+                val categorias = gestionarMovimientosUseCase.obtenerCategoriasOptimizado()
+                val movimientosOrdenados = movimientos.sortedWith(
+                    compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
+                    .thenByDescending { it.fecha }
+                )
+                
+                _uiState.value = MovimientosUiState.Success(movimientosOrdenados, categorias)
+                calcularTotales(movimientosOrdenados)
             } catch (e: Exception) {
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al agregar movimiento")
             }
@@ -125,7 +139,21 @@ class MovimientosViewModel @Inject constructor(
                     clasificacionUseCase.aprenderPatron(movimiento.descripcion, movimiento.categoriaId)
                 }
                 
-                cargarMovimientos()
+                // Recargar movimientos del período actual en lugar de todos
+                val movimientosActualizados = if (movimiento.periodoFacturacion != null) {
+                    gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(movimiento.periodoFacturacion)
+                } else {
+                    gestionarMovimientosUseCase.obtenerMovimientosOptimizado()
+                }
+                
+                val categorias = gestionarMovimientosUseCase.obtenerCategoriasOptimizado()
+                val movimientosOrdenados = movimientosActualizados.sortedWith(
+                    compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
+                    .thenByDescending { it.fecha }
+                )
+                
+                _uiState.value = MovimientosUiState.Success(movimientosOrdenados, categorias)
+                calcularTotales(movimientosOrdenados)
             } catch (e: Exception) {
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al actualizar movimiento")
             }
@@ -136,7 +164,22 @@ class MovimientosViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 gestionarMovimientosUseCase.eliminarMovimiento(movimiento)
-                cargarMovimientos()
+                
+                // Recargar movimientos del período actual en lugar de todos
+                val movimientos = if (movimiento.periodoFacturacion != null) {
+                    gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(movimiento.periodoFacturacion)
+                } else {
+                    gestionarMovimientosUseCase.obtenerMovimientosOptimizado()
+                }
+                
+                val categorias = gestionarMovimientosUseCase.obtenerCategoriasOptimizado()
+                val movimientosOrdenados = movimientos.sortedWith(
+                    compareBy<MovimientoEntity> { it.categoriaId == null }.reversed()
+                    .thenByDescending { it.fecha }
+                )
+                
+                _uiState.value = MovimientosUiState.Success(movimientosOrdenados, categorias)
+                calcularTotales(movimientosOrdenados)
             } catch (e: Exception) {
                 _uiState.value = MovimientosUiState.Error(e.message ?: "Error al eliminar movimiento")
             }
@@ -191,6 +234,12 @@ class MovimientosViewModel @Inject constructor(
     suspend fun obtenerMovimientos(): List<MovimientoEntity> {
         return withContext(Dispatchers.IO) {
             gestionarMovimientosUseCase.obtenerMovimientos()
+        }
+    }
+    
+    suspend fun obtenerMovimientosPorPeriodo(periodo: String): List<MovimientoEntity> {
+        return withContext(Dispatchers.IO) {
+            gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(periodo)
         }
     }
 }

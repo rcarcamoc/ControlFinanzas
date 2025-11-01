@@ -40,7 +40,6 @@ fun AporteProporcionalScreen(
     val uiState by viewModel.uiState.collectAsState()
     val periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
     val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
-    var periodoSeleccionado by remember { mutableStateOf(periodoGlobal) }
     val periodosDisponibles by viewModel.periodosDisponibles.collectAsState()
     val personasDisponibles by viewModel.personasDisponibles.collectAsState()
     val sueldosActuales by viewModel.sueldosActuales.collectAsState()
@@ -50,13 +49,8 @@ fun AporteProporcionalScreen(
     var showHistorialDialog by remember { mutableStateOf(false) }
     var sueldoToEdit by remember { mutableStateOf<SueldoEntity?>(null) }
 
-    DisposableEffect(periodoGlobal) {
-        periodoSeleccionado = periodoGlobal
-        onDispose { }
-    }
-
-    LaunchedEffect(periodoSeleccionado) {
-        viewModel.calcularAporteProporcional(periodoSeleccionado)
+    LaunchedEffect(periodoGlobal) {
+        viewModel.calcularAporteProporcional(periodoGlobal)
     }
 
     Scaffold(
@@ -128,7 +122,7 @@ fun AporteProporcionalScreen(
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = periodoSeleccionado,
+                                            text = periodoGlobal,
                                             style = MaterialTheme.typography.bodyLarge
                                         )
                                     }
@@ -390,7 +384,7 @@ fun AporteProporcionalScreen(
                                     Text("Corregir")
                                 }
                                 Button(
-                                    onClick = { viewModel.calcularAporteProporcional(periodoSeleccionado) },
+                                    onClick = { viewModel.calcularAporteProporcional(periodoGlobal) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Refresh, contentDescription = null)
@@ -438,7 +432,7 @@ fun AporteProporcionalScreen(
                 },
                 personasDisponibles = personasDisponibles,
                 periodosDisponibles = periodosDisponibles,
-                periodoActual = periodoSeleccionado
+                periodoActual = periodoGlobal
             )
         }
 
@@ -460,7 +454,7 @@ fun AporteProporcionalScreen(
                 onConfirm = { startDate, endDate ->
                     // Convertir fechas a formato de período YYYY-MM
                     val periodo = startDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"))
-                    periodoSeleccionado = periodo
+                    periodoGlobalViewModel.cambiarPeriodo(periodo)
                 }
             )
         }
@@ -480,7 +474,7 @@ fun AporteProporcionalScreen(
             HistorialAportesDialog(
                 onDismiss = { showHistorialDialog = false },
                 onPeriodoSelected = { periodo ->
-                    periodoSeleccionado = periodo
+                    periodoGlobalViewModel.cambiarPeriodo(periodo)
                 }
             )
         }
@@ -630,10 +624,8 @@ fun AgregarSueldoDialog(
     periodoActual: String
 ) {
     var nombrePersona by remember { mutableStateOf(sueldo?.nombrePersona ?: "") }
-    var periodoSeleccionado by remember { mutableStateOf(sueldo?.periodo ?: periodoActual) }
     var sueldoValue by remember { mutableStateOf(sueldo?.sueldo?.toString() ?: "") }
     var showPersonaInput by remember { mutableStateOf(false) }
-    var showPeriodoInput by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -682,45 +674,13 @@ fun AgregarSueldoDialog(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Selector de período
+                // Período (usando período global)
                 Text("Período:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                if (periodosDisponibles.isNotEmpty() && !showPeriodoInput) {
-                    periodosDisponibles.take(5).forEach { periodo ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = periodoSeleccionado == periodo,
-                                onClick = { periodoSeleccionado = periodo }
-                            )
-                            Text(periodo)
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = showPeriodoInput,
-                            onClick = { showPeriodoInput = true }
-                        )
-                        Text("Nuevo período")
-                    }
-                } else {
-                    showPeriodoInput = true
-                }
-                
-                if (showPeriodoInput) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = periodoSeleccionado,
-                        onValueChange = { periodoSeleccionado = it },
-                        label = { Text("Período (YYYY-MM)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                Text(
+                    text = periodoActual,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -743,11 +703,11 @@ fun AgregarSueldoDialog(
             Button(
                 onClick = {
                     val sueldoDouble = sueldoValue.toDoubleOrNull() ?: 0.0
-                    if (nombrePersona.isNotBlank() && periodoSeleccionado.isNotBlank() && sueldoDouble > 0) {
-                        onConfirm(nombrePersona, periodoSeleccionado, sueldoDouble)
+                                    if (nombrePersona.isNotBlank() && periodoActual.isNotBlank() && sueldoDouble > 0) {
+                    onConfirm(nombrePersona, periodoActual, sueldoDouble)
                     }
                 },
-                enabled = nombrePersona.isNotBlank() && periodoSeleccionado.isNotBlank() && sueldoValue.toDoubleOrNull() ?: 0.0 > 0
+                                    enabled = nombrePersona.isNotBlank() && periodoActual.isNotBlank() && sueldoValue.toDoubleOrNull() ?: 0.0 > 0
             ) {
                 Text(if (sueldo == null) "Guardar" else "Actualizar")
             }

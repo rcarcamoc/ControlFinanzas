@@ -93,6 +93,10 @@ fun ImportarExcelScreen(
     var resumenImportacion by remember { mutableStateOf<ResumenImportacion?>(null) }
     var transaccionesConClasificacion by remember { mutableStateOf<List<ExcelTransaction>?>(null) }
     var mostrarTinder by remember { mutableStateOf(false) }
+    var duplicadosSimilares by remember { mutableStateOf<List<ParDuplicadoSimilar>>(emptyList()) }
+    var mostrarDialogoDuplicados by remember { mutableStateOf(false) }
+    var duplicadoActual by remember { mutableStateOf<ParDuplicadoSimilar?>(null) }
+    var indiceDuplicadoActual by remember { mutableStateOf(0) }
     
     // ViewModel del Tinder de clasificación
     val tinderViewModel: TinderClasificacionViewModel = hiltViewModel()
@@ -100,6 +104,58 @@ fun ImportarExcelScreen(
     // Configurar el ExcelProcessor con el caso de uso de clasificación
     LaunchedEffect(clasificacionUseCase) {
         ExcelProcessor.setClasificacionUseCase(clasificacionUseCase)
+    }
+    
+    // Función para continuar con la importación después de procesar duplicados
+    fun continuarImportacion() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val movimientos = resultado ?: return@launch
+                val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(periodoGlobal)
+                val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(periodoGlobal)
+                
+                // Filtrar duplicados confirmados
+                val duplicadosConfirmados = duplicadosSimilares.map { 
+                    ExcelProcessor.generarIdUnico(it.nueva.fecha, it.nueva.monto, it.nueva.descripcion) 
+                }.toSet()
+                val movimientosFiltrados = movimientos.filter { it.idUnico !in duplicadosConfirmados }
+                
+                val nuevos = movimientosFiltrados.filter { it.idUnico !in existentes }
+                val duplicados = movimientos.size - nuevos.size
+                
+                println("🔄 IMPORTACIÓN: Nuevos movimientos: ${nuevos.size}, Duplicados: $duplicados")
+                
+                nuevos.forEach { mov ->
+                    val categoriaAnterior = categoriasPrevias[mov.idUnico]
+                    val movConCategoria = if (categoriaAnterior != null) {
+                        mov.copy(categoriaId = categoriaAnterior)
+                    } else {
+                        mov
+                    }
+                    println("🔄 IMPORTACIÓN: Procesando movimiento: ${mov.descripcion}, idUnico: ${mov.idUnico}")
+                    viewModel.agregarMovimiento(movConCategoria)
+                    println("💾 IMPORTACIÓN: Intento de guardar movimiento: ${movConCategoria.descripcion}, idUnico: ${movConCategoria.idUnico}")
+                }
+                
+                val montoTotal = nuevos.sumOf { it.monto.toDouble() }
+                val clasificadasAutomaticamente = 0
+                val pendientesClasificacion = nuevos.size
+                
+                resumenImportacion = ResumenImportacion(
+                    totalProcesadas = movimientos.size,
+                    nuevas = nuevos.size,
+                    duplicadas = duplicados,
+                    montoTotal = montoTotal.toLong(),
+                    periodo = periodoGlobal ?: "-",
+                    clasificadasAutomaticamente = clasificadasAutomaticamente,
+                    pendientesClasificacion = pendientesClasificacion
+                )
+                
+                exito = true
+            } catch (e: Exception) {
+                error = e.message
+            }
+        }
     }
     
 
@@ -226,7 +282,7 @@ fun ImportarExcelScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Configuración",
+                    text = "Configuración 2027-07-26",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -303,6 +359,20 @@ fun ImportarExcelScreen(
                             
                             val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(periodoGlobal)
                             val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(periodoGlobal)
+                            val movimientosExistentes = viewModel.obtenerMovimientosPorPeriodo(periodoGlobal)
+                            
+                            // Detectar duplicados similares
+                            val duplicadosSimilaresDetectados = ExcelProcessor.detectarDuplicadosSimilares(
+                                transacciones, movimientosExistentes
+                            )
+                            
+                            if (duplicadosSimilaresDetectados.isNotEmpty()) {
+                                duplicadosSimilares = duplicadosSimilaresDetectados
+                                mostrarDialogoDuplicados = true
+                                duplicadoActual = duplicadosSimilaresDetectados.first()
+                                indiceDuplicadoActual = 0
+                                return@launch
+                            }
                             
                             // Para "Estado de cierre", preservar clasificaciones existentes en lugar de eliminar todo
                             if (tipoArchivo == "Estado de cierre") {
@@ -566,7 +636,171 @@ fun ImportarExcelScreen(
                 }
             )
         }
+        
+        // Diálogo de confirmación de duplicados similares
+        if (mostrarDialogoDuplicados && duplicadoActual != null) {
+            DialogoConfirmacionDuplicados(
+                duplicado = duplicadoActual!!,
+                indice = indiceDuplicadoActual,
+                total = duplicadosSimilares.size,
+                onConfirmarDuplicado = {
+                    // Marcar como duplicado y continuar
+                    duplicadosSimilares = duplicadosSimilares.filterIndexed { index, _ -> index != indiceDuplicadoActual }
+                    if (duplicadosSimilares.isEmpty()) {
+                        mostrarDialogoDuplicados = false
+                        // Continuar con la importación normal
+                        continuarImportacion()
+                    } else {
+                        indiceDuplicadoActual = 0
+                        duplicadoActual = duplicadosSimilares.first()
+                    }
+                },
+                onRechazarDuplicado = {
+                    // No es duplicado, continuar con el siguiente
+                    indiceDuplicadoActual++
+                    if (indiceDuplicadoActual >= duplicadosSimilares.size) {
+                        mostrarDialogoDuplicados = false
+                        // Continuar con la importación normal
+                        continuarImportacion()
+                    } else {
+                        duplicadoActual = duplicadosSimilares[indiceDuplicadoActual]
+                    }
+                },
+                onCancelar = {
+                    mostrarDialogoDuplicados = false
+                    duplicadosSimilares = emptyList()
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun DialogoConfirmacionDuplicados(
+    duplicado: ParDuplicadoSimilar,
+    indice: Int,
+    total: Int,
+    onConfirmarDuplicado: () -> Unit,
+    onRechazarDuplicado: () -> Unit,
+    onCancelar: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = {
+            Text(
+                "¿Es un duplicado?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "Se encontró una transacción similar ($indice de $total):",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                // Nueva transacción
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            "Nueva transacción:",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Descripción: ${duplicado.nueva.descripcion}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            "Fecha: ${duplicado.nueva.fecha}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            "Monto: ${FormatUtils.formatMoneyCLP(duplicado.nueva.monto)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                
+                // Transacción existente
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            "Transacción existente:",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Descripción: ${duplicado.existente.descripcion}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            "Fecha: ${duplicado.existente.fecha}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            "Monto: ${FormatUtils.formatMoneyCLP(duplicado.existente.monto)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+                
+                Text(
+                    "Similitud: ${(duplicado.similitud * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Text(
+                    "¿Son la misma transacción?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        },
+        confirmButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onRechazarDuplicado) {
+                    Text("No, es diferente")
+                }
+                Button(onClick = onConfirmarDuplicado) {
+                    Text("Sí, es duplicado")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable

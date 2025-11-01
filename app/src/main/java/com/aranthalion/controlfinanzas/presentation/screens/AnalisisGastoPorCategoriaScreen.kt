@@ -26,16 +26,20 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.clickable
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalisisGastoPorCategoriaScreen(
     navController: NavController,
-    viewModel: AnalisisGastoPorCategoriaViewModel = hiltViewModel()
+    viewModel: AnalisisGastoPorCategoriaViewModel = hiltViewModel(),
+    periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
     
-    LaunchedEffect(Unit) {
+    LaunchedEffect(periodoGlobal) {
         viewModel.cargarAnalisis()
     }
     
@@ -61,6 +65,13 @@ fun AnalisisGastoPorCategoriaScreen(
                 Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
             }
         }
+        }
+        
+        // Selector de período global
+        item {
+            PeriodoSelectorGlobal(
+                modifier = Modifier.fillMaxWidth()
+            )
         }
         
         // Resumen
