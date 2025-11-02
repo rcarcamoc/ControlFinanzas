@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.aranthalion.controlfinanzas.presentation.screens.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -34,7 +36,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarMovimientoDialog(
     movimiento: MovimientoEntity,
@@ -71,7 +72,7 @@ fun EditarMovimientoDialog(
             onDismissRequest = onDismiss,
             title = {
                 Text(
-                    text = \"Editar Transacción\",
+                    text = "Editar Transacción",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -90,7 +91,7 @@ fun EditarMovimientoDialog(
                     OutlinedTextField(
                         value = monto,
                         onValueChange = { monto = it },
-                        label = { Text(\"Monto\") },
+                        label = { Text("Monto") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -100,9 +101,9 @@ fun EditarMovimientoDialog(
                         )
                     )
                     
-                    if (tipoSeleccionado == \"GASTO\") {
+                    if (tipoSeleccionado == "GASTO") {
                         Text(
-                            text = \"💡 Para reversas, ingresa negativo (ej: -50000)\",
+                            text = "💡 Para reversas, ingresa negativo (ej: -50000)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -112,7 +113,7 @@ fun EditarMovimientoDialog(
                     OutlinedTextField(
                         value = descripcion,
                         onValueChange = { descripcion = it },
-                        label = { Text(\"Descripción\") },
+                        label = { Text("Descripción") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -155,9 +156,9 @@ fun EditarMovimientoDialog(
                     onClick = {
                         val montoDouble = monto.toDoubleOrNull() ?: 0.0
                         val isValidAmount = when (tipoSeleccionado) {
-                            \"GASTO\" -> FormatUtils.isValidAmountForGastos(monto)
-                            \"INGRESO\" -> FormatUtils.isValidAmountForIngresos(monto)
-                            \"OMITIR\" -> true
+                            "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                            "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                            "OMITIR" -> true
                             else -> false
                         }
                         if (isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
@@ -174,9 +175,9 @@ fun EditarMovimientoDialog(
                     },
                     enabled = {
                         val isValidAmount = when (tipoSeleccionado) {
-                            \"GASTO\" -> FormatUtils.isValidAmountForGastos(monto)
-                            \"INGRESO\" -> FormatUtils.isValidAmountForIngresos(monto)
-                            \"OMITIR\" -> true
+                            "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                            "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                            "OMITIR" -> true
                             else -> false
                         }
                         isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
@@ -185,7 +186,7 @@ fun EditarMovimientoDialog(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(\"Guardar\")
+                    Text("Guardar")
                 }
             },
             dismissButton = {
@@ -195,7 +196,7 @@ fun EditarMovimientoDialog(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(\"Cancelar\")
+                    Text("Cancelar")
                 }
             }
         )
@@ -210,7 +211,7 @@ private fun FechaSelector(
     onFechaChanged: (Date) -> Unit
 ) {
     val formattedDate = remember(fechaSeleccionada) {
-        SimpleDateFormat(\"dd/MM/yyyy\", Locale.getDefault()).format(fechaSeleccionada)
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(fechaSeleccionada)
     }
     
     Row(
@@ -220,7 +221,7 @@ private fun FechaSelector(
         OutlinedTextField(
             value = formattedDate,
             onValueChange = {},
-            label = { Text(\"Fecha\") },
+            label = { Text("Fecha") },
             readOnly = true,
             modifier = Modifier.weight(1f),
             colors = OutlinedTextFieldDefaults.colors(
@@ -234,7 +235,7 @@ private fun FechaSelector(
         ) {
             Icon(
                 imageVector = Icons.Default.DateRange,
-                contentDescription = \"Seleccionar fecha\",
+                contentDescription = "Seleccionar fecha",
                 tint = MaterialTheme.colorScheme.primary
             )
         }
@@ -258,14 +259,14 @@ private fun FechaSelector(
                         onShowDatePickerChanged(false)
                     }
                 ) {
-                    Text(\"OK\")
+                    Text("OK")
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { onShowDatePickerChanged(false) }
                 ) {
-                    Text(\"Cancelar\")
+                    Text("Cancelar")
                 }
             }
         ) {
@@ -355,7 +356,6 @@ private fun TipoTransaccionButton(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PeriodoSelector(
     periodoSeleccionado: String,
@@ -396,7 +396,6 @@ private fun PeriodoSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoriaSelector(
     categoriaSeleccionada: Categoria?,

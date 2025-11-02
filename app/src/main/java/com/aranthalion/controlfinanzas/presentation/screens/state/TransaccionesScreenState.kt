@@ -26,7 +26,7 @@ data class TransaccionesScreenState(
 fun rememberTransaccionesScreenState(): TransaccionesScreenState {
     val mostrarAddDialog = rememberSaveable { mutableStateOf(false) }
     val mostrarFiltroDialog = rememberSaveable { mutableStateOf(false) }
-    val filtroTipoSeleccionado = rememberSaveable { mutableStateOf("Todos") }
+    val filtroTipoSeleccionado = rememberSaveable { mutableStateOf("") }
     val filtroCategoriaSeleccionada = remember { mutableStateOf<Categoria?>(null) }
     val filtroFechaSeleccionada = remember { mutableStateOf<Date?>(null) }
     val busquedaTexto = rememberSaveable { mutableStateOf("") }

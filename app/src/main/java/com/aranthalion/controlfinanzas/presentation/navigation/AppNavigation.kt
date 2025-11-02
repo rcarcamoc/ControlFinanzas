@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.aranthalion.controlfinanzas.presentation.screens.CategoriasScreen
 import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesScreen
 import com.aranthalion.controlfinanzas.presentation.screens.HomeScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
@@ -13,7 +12,6 @@ import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AnalisisGastoPorCategoriaScreen
-import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosYCategoriasScreen
 import com.aranthalion.controlfinanzas.presentation.screens.FirstRunScreen
 import com.aranthalion.controlfinanzas.presentation.screens.UsuariosScreen
@@ -22,11 +20,8 @@ import com.aranthalion.controlfinanzas.presentation.screens.InsightsAvanzadosScr
 import com.aranthalion.controlfinanzas.presentation.screens.AuditoriaDatabaseScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionAutomaticaDebugScreen
 import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesImportExportScreen
-import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 
 import com.aranthalion.controlfinanzas.presentation.components.AppShell
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.aranthalion.controlfinanzas.presentation.screens.MovimientosViewModel
 import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionScreen
 
 @Composable
@@ -46,7 +41,7 @@ fun AppNavigation(navController: NavHostController) {
                 PresupuestosYCategoriasScreen(navController = navController)
             }
             composable("transacciones") {
-                TransaccionesScreen(navController = navController)
+                TransaccionesScreen()
             }
             composable("importar_excel") { 
                 ImportarExcelScreen() 
@@ -103,4 +98,4 @@ fun AppNavigation(navController: NavHostController) {
             }
         }
     }
-} 
+}

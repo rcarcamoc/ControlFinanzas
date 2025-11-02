@@ -12,12 +12,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class CategoriasViewModel @Inject constructor(
+open class CategoriasViewModel @Inject constructor(
     private val gestionarCategoriasUseCase: GestionarCategoriasUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CategoriasUiState>(CategoriasUiState.Loading)
-    val uiState: StateFlow<CategoriasUiState> = _uiState
+    open val uiState: StateFlow<CategoriasUiState> = _uiState
 
     init {
         viewModelScope.launch {

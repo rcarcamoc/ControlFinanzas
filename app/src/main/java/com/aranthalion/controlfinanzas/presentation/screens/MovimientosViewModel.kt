@@ -17,17 +17,17 @@ import kotlin.math.abs
 import android.util.Log
 
 @HiltViewModel
-class MovimientosViewModel @Inject constructor(
+open class MovimientosViewModel @Inject constructor(
     private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
     private val gestionarCategoriasUseCase: GestionarCategoriasUseCase,
     private val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MovimientosUiState>(MovimientosUiState.Loading)
-    val uiState: StateFlow<MovimientosUiState> = _uiState.asStateFlow()
+    open val uiState: StateFlow<MovimientosUiState> = _uiState.asStateFlow()
 
     private val _totales = MutableStateFlow(Totales(0.0, 0.0, 0.0))
-    val totales: StateFlow<Totales> = _totales.asStateFlow()
+    open val totales: StateFlow<Totales> = _totales.asStateFlow()
 
     init {
         // No cargar movimientos automáticamente, esperar a que se establezca el período
@@ -53,7 +53,7 @@ class MovimientosViewModel @Inject constructor(
         }
     }
 
-    fun cargarMovimientosPorPeriodo(periodo: String) {
+    open fun cargarMovimientosPorPeriodo(periodo: String) {
         viewModelScope.launch {
             try {
                 println("🔍 DEBUG: Cargando movimientos para período: $periodo")
@@ -123,7 +123,7 @@ class MovimientosViewModel @Inject constructor(
         }
     }
 
-    fun actualizarMovimiento(movimiento: MovimientoEntity) {
+    open fun actualizarMovimiento(movimiento: MovimientoEntity) {
         viewModelScope.launch {
             try {
                 // Obtener el movimiento anterior para comparar
@@ -160,7 +160,7 @@ class MovimientosViewModel @Inject constructor(
         }
     }
 
-    fun eliminarMovimiento(movimiento: MovimientoEntity) {
+    open fun eliminarMovimiento(movimiento: MovimientoEntity) {
         viewModelScope.launch {
             try {
                 gestionarMovimientosUseCase.eliminarMovimiento(movimiento)
@@ -257,4 +257,4 @@ sealed class MovimientosUiState {
         val categorias: List<Categoria>
     ) : MovimientosUiState()
     data class Error(val mensaje: String) : MovimientosUiState()
-} 
+}

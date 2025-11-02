@@ -41,10 +41,10 @@ fun AgregarTransaccionDialog(
 ) {
     if (!mostrar) return
     
-    var monto by remember { mutableStateOf(\"\") }
-    var descripcion by remember { mutableStateOf(\"\") }
+    var monto by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
-    var tipoSeleccionado by remember { mutableStateOf(\"GASTO\") }
+    var tipoSeleccionado by remember { mutableStateOf("GASTO") }
     var expandedPeriodo by remember { mutableStateOf(false) }
     var periodoSeleccionado by remember { mutableStateOf(periodoGlobal) }
     
@@ -66,7 +66,7 @@ fun AgregarTransaccionDialog(
             onDismissRequest = onDismiss,
             title = {
                 Text(
-                    text = \"Nueva Transacción\",
+                    text = "Nueva Transacción",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -85,7 +85,7 @@ fun AgregarTransaccionDialog(
                     OutlinedTextField(
                         value = monto,
                         onValueChange = { monto = it },
-                        label = { Text(\"Monto\") },
+                        label = { Text("Monto") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -95,9 +95,9 @@ fun AgregarTransaccionDialog(
                         )
                     )
                     
-                    if (tipoSeleccionado == \"GASTO\") {
+                    if (tipoSeleccionado == "GASTO") {
                         Text(
-                            text = \"💡 Para reversas, ingresa negativo (ej: -50000)\",
+                            text = "💡 Para reversas, ingresa negativo (ej: -50000)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -107,7 +107,7 @@ fun AgregarTransaccionDialog(
                     OutlinedTextField(
                         value = descripcion,
                         onValueChange = { descripcion = it },
-                        label = { Text(\"Descripción\") },
+                        label = { Text("Descripción") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -142,9 +142,9 @@ fun AgregarTransaccionDialog(
                     onClick = {
                         val montoDouble = monto.toDoubleOrNull() ?: 0.0
                         val isValidAmount = when (tipoSeleccionado) {
-                            \"GASTO\" -> FormatUtils.isValidAmountForGastos(monto)
-                            \"INGRESO\" -> FormatUtils.isValidAmountForIngresos(monto)
-                            \"OMITIR\" -> true
+                            "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                            "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                            "OMITIR" -> true
                             else -> false
                         }
                         if (isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
@@ -159,9 +159,9 @@ fun AgregarTransaccionDialog(
                     },
                     enabled = {
                         val isValidAmount = when (tipoSeleccionado) {
-                            \"GASTO\" -> FormatUtils.isValidAmountForGastos(monto)
-                            \"INGRESO\" -> FormatUtils.isValidAmountForIngresos(monto)
-                            \"OMITIR\" -> true
+                            "GASTO" -> FormatUtils.isValidAmountForGastos(monto)
+                            "INGRESO" -> FormatUtils.isValidAmountForIngresos(monto)
+                            "OMITIR" -> true
                             else -> false
                         }
                         isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
@@ -170,7 +170,7 @@ fun AgregarTransaccionDialog(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(\"Guardar\")
+                    Text("Guardar")
                 }
             },
             dismissButton = {
@@ -180,7 +180,7 @@ fun AgregarTransaccionDialog(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(\"Cancelar\")
+                    Text("Cancelar")
                 }
             }
         )
@@ -196,7 +196,7 @@ private fun TipoTransaccionSelector(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = \"Tipo de transacción\",
+            text = "Tipo de transacción",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium
         )
@@ -206,18 +206,18 @@ private fun TipoTransaccionSelector(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             TipoTransaccionButton(
-                text = \"Gasto\",
-                isSelected = tipoSeleccionado == \"GASTO\",
-                onClick = { onTipoChanged(\"GASTO\") },
+                text = "Gasto",
+                isSelected = tipoSeleccionado == "GASTO",
+                onClick = { onTipoChanged("GASTO") },
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 onContainerColor = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f)
             )
             
             TipoTransaccionButton(
-                text = \"Ingreso\",
-                isSelected = tipoSeleccionado == \"INGRESO\",
-                onClick = { onTipoChanged(\"INGRESO\") },
+                text = "Ingreso",
+                isSelected = tipoSeleccionado == "INGRESO",
+                onClick = { onTipoChanged("INGRESO") },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.weight(1f)
@@ -226,9 +226,9 @@ private fun TipoTransaccionSelector(
         
         // Opción Omitir
         TipoTransaccionButton(
-            text = \"Omitir (no afecta cálculos)\",
-            isSelected = tipoSeleccionado == \"OMITIR\",
-            onClick = { onTipoChanged(\"OMITIR\") },
+            text = "Omitir (no afecta cálculos)",
+            isSelected = tipoSeleccionado == "OMITIR",
+            onClick = { onTipoChanged("OMITIR") },
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
             onContainerColor = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.fillMaxWidth()
@@ -281,7 +281,7 @@ private fun PeriodoSelector(
         OutlinedTextField(
             value = periodoSeleccionado,
             onValueChange = {},
-            label = { Text(\"Período de Facturación\") },
+            label = { Text("Período de Facturación") },
             readOnly = true,
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPeriodo) },
@@ -320,9 +320,9 @@ private fun CategoriaSelector(
         onExpandedChange = { expandedCategoria = !expandedCategoria }
     ) {
         OutlinedTextField(
-            value = categoriaSeleccionada?.nombre ?: \"Sin categoría\",
+            value = categoriaSeleccionada?.nombre ?: "Sin categoría",
             onValueChange = {},
-            label = { Text(\"Categoría (opcional)\") },
+            label = { Text("Categoría (opcional)") },
             readOnly = true,
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
@@ -336,7 +336,7 @@ private fun CategoriaSelector(
             onDismissRequest = { expandedCategoria = false }
         ) {
             DropdownMenuItem(
-                text = { Text(\"Sin categoría\") },
+                text = { Text("Sin categoría") },
                 onClick = {
                     onCategoriaChanged(null)
                     expandedCategoria = false
@@ -363,7 +363,7 @@ private fun generarPeriodos(): List<String> {
         cal.add(Calendar.MONTH, -offset)
         val year = cal.get(Calendar.YEAR)
         val month = (cal.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
-        \"$year-$month\"
+        "$year-$month"
     }
 }
 
@@ -376,7 +376,7 @@ private fun obtenerCategorias(categoriasUiState: CategoriasUiState): List<Catego
                     id = domainCategoria.id.toLong(),
                     nombre = domainCategoria.nombre,
                     descripcion = domainCategoria.descripcion,
-                    tipo = \"GASTO\"
+                    tipo = "GASTO"
                 )
             }
         }

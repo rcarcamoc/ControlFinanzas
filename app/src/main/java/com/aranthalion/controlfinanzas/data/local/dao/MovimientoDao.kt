@@ -7,7 +7,7 @@ import java.util.*
 
 @Dao
 interface MovimientoDao {
-    @Query("SELECT * FROM movimientos ORDER BY fecha DESC LIMIT 1000")
+    @Query("SELECT * FROM movimientos ORDER BY fecha DESC")
     suspend fun obtenerMovimientos(): List<MovimientoEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -29,10 +29,10 @@ interface MovimientoDao {
     @Delete
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity)
 
-    @Query("SELECT * FROM movimientos WHERE tipo = :tipo ORDER BY fecha DESC LIMIT 500")
+    @Query("SELECT * FROM movimientos WHERE tipo = :tipo ORDER BY fecha DESC")
     fun getMovimientosByTipo(tipo: String): Flow<List<MovimientoEntity>>
 
-    @Query("SELECT * FROM movimientos WHERE fecha BETWEEN :fechaInicio AND :fechaFin ORDER BY fecha DESC LIMIT 1000")
+    @Query("SELECT * FROM movimientos WHERE fecha BETWEEN :fechaInicio AND :fechaFin ORDER BY fecha DESC")
     suspend fun obtenerMovimientosPorPeriodo(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity>
 
     @Query("DELETE FROM movimientos")
@@ -117,7 +117,7 @@ interface MovimientoDao {
     suspend fun contarMovimientosConCategoria(): Int
     
     // Consulta optimizada por período usando campos normalizados
-    @Query("SELECT * FROM movimientos WHERE fecha BETWEEN :fechaInicio AND :fechaFin ORDER BY fecha DESC LIMIT 1000")
+    @Query("SELECT * FROM movimientos WHERE fecha BETWEEN :fechaInicio AND :fechaFin ORDER BY fecha DESC")
     suspend fun obtenerMovimientosPorPeriodoOptimizado(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity>
 
     data class IdUnicoCategoria(

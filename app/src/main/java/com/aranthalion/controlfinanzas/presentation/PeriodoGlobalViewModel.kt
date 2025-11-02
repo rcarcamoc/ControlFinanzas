@@ -13,15 +13,15 @@ import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
-class PeriodoGlobalViewModel @Inject constructor(
+open class PeriodoGlobalViewModel @Inject constructor(
     private val configuracionPreferences: ConfiguracionPreferences
 ) : ViewModel() {
     
     private val _periodoSeleccionado = MutableStateFlow(obtenerPeriodoInicial())
-    val periodoSeleccionado: StateFlow<String> = _periodoSeleccionado.asStateFlow()
+    open val periodoSeleccionado: StateFlow<String> = _periodoSeleccionado.asStateFlow()
     
     private val _periodosDisponibles = MutableStateFlow(generarPeriodosDisponibles())
-    val periodosDisponibles: StateFlow<List<String>> = _periodosDisponibles.asStateFlow()
+    open val periodosDisponibles: StateFlow<List<String>> = _periodosDisponibles.asStateFlow()
     
     init {
         // Cargar período guardado en preferencias

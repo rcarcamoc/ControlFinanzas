@@ -2,18 +2,22 @@ package com.aranthalion.controlfinanzas.presentation.screens.ml
 
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
+import com.aranthalion.controlfinanzas.domain.clasificacion.ResultadoClasificacion
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Servicio de clasificación automática con Machine Learning.
  * Separado de la lógica de UI para facilitar testing y reutilización.
- * 
+ *
  * RESPONSABILIDADES:
  * - Clasificar transacciones sin categoría
  * - Llamar al UseCase de ML
  * - Procesar resultados
  * - Manejo de errores específicos de ML
  */
-class ClasificacionMLService(
+@Singleton
+class ClasificacionMLService @Inject constructor(
     private val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
 ) {
     /**
@@ -24,11 +28,13 @@ class ClasificacionMLService(
      */
     suspend fun obtenerSugerenciaCategoria(movimiento: MovimientoEntity): Long? {
         return try {
-            clasificacionUseCase(
-                descripcion = movimiento.descripcion,
-                monto = movimiento.monto,
-                tipo = movimiento.tipo
-            )
+            val resultado = clasificacionUseCase.obtenerSugerenciaMejorada(movimiento.descripcion)
+            when (resultado) {
+                is ResultadoClasificacion.AltaConfianza -> {
+                    resultado.categoriaId
+                }
+                else -> null
+            }
         } catch (e: Exception) {
             null
         }
@@ -61,11 +67,7 @@ class ClasificacionMLService(
     suspend fun esModeloDisponible(): Boolean {
         return try {
             // Prueba simple para verificar disponibilidad
-            clasificacionUseCase(
-                descripcion = "test",
-                monto = 0.0,
-                tipo = "GASTO"
-            )
+            clasificacionUseCase.obtenerSugerenciaMejorada("test")
             true
         } catch (e: Exception) {
             false

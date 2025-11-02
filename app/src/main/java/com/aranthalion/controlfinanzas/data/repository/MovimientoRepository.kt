@@ -29,9 +29,7 @@ class MovimientoRepository @Inject constructor(
 
     // Métodos optimizados del HITO 1
     suspend fun obtenerMovimientosOptimizado(): List<MovimientoEntity> {
-        return cacheService.getMovimientosSinCategoria {
-            movimientoDao.obtenerMovimientosSinCategoriaOptimizado()
-        }
+        return movimientoDao.obtenerMovimientos()
     }
     
     suspend fun obtenerMovimientosPorPeriodoOptimizado(periodo: String): List<MovimientoEntity> {
@@ -670,4 +668,4 @@ class MovimientoRepository @Inject constructor(
         
         return Pair(fechaInicio, fechaFin)
     }
-} 
+}
