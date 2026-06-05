@@ -14,6 +14,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -23,7 +24,7 @@ import javax.inject.Singleton
 class SyncService @Inject constructor(
     private val db: AppDatabase,
     private val config: ConfiguracionPreferences,
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     private val gson = Gson()
     private val client = OkHttpClient.Builder()
@@ -108,7 +109,7 @@ class SyncService @Inject constructor(
                         "reason" to d.motivo,
                         "status" to d.estado,
                         "billingPeriod" to (d.periodoCobro ?: ""),
-                        "notes" to (d.notes ?: ""),
+                        "notes" to (d.notas ?: ""),
                         "createdAt" to d.fechaCreacion,
                         "updatedAt" to d.fechaActualizacion
                     )
@@ -153,7 +154,7 @@ class SyncService @Inject constructor(
 
                 // Resolver Categorías locales e inyectar nuevas si no existen
                 val currentCategories = db.categoriaDao().obtenerCategorias().toMutableList()
-                val getOrCreateLocalCategoryId = { name: String ->
+                val getOrCreateLocalCategoryId: suspend (String) -> Long? = { name: String ->
                     if (name.isBlank()) null
                     else {
                         val match = currentCategories.find { it.nombre.equals(name, ignoreCase = true) }
@@ -173,7 +174,7 @@ class SyncService @Inject constructor(
 
                 // Resolver Usuarios locales e inyectar nuevos
                 val currentUsers = db.usuarioDao().obtenerTodosLosUsuarios().toMutableList()
-                val getOrCreateLocalUserId = { name: String ->
+                val getOrCreateLocalUserId: suspend (String) -> Long = { name: String ->
                     val match = currentUsers.find { "${it.nombre} ${it.apellido}".trim().equals(name, ignoreCase = true) }
                     if (match != null) {
                         match.id
