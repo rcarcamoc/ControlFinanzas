@@ -35,6 +35,7 @@ class ConfiguracionPreferences @Inject constructor(
         private const val KEY_SYNC_HOUSEHOLD_ID = "sync_household_id"
         private const val KEY_SYNC_EMAIL = "sync_email"
         private const val KEY_SYNC_PASSWORD = "sync_password"
+        private const val KEY_SYNC_OVERWRITE_ACTION = "sync_overwrite_action"
     }
 
     var geminiApiKey: String
@@ -76,6 +77,10 @@ class ConfiguracionPreferences @Inject constructor(
     var syncPassword: String
         get() = prefs.getString(KEY_SYNC_PASSWORD, "") ?: ""
         set(value) = prefs.edit().putString(KEY_SYNC_PASSWORD, value).apply()
+
+    var syncOverwriteAction: String
+        get() = prefs.getString(KEY_SYNC_OVERWRITE_ACTION, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SYNC_OVERWRITE_ACTION, value).apply()
 
     fun obtenerTema(): Flow<TemaApp> = context.configuracionDataStore.data.map { preferences: Preferences ->
         when (preferences[TEMA_KEY]) {

@@ -57,10 +57,13 @@ class SyncService @Inject constructor(
             val categoryIdToName = localCategories.associate { it.id to it.nombre }
             val userIdToName = localUsers.associate { it.id to "${it.nombre} ${it.apellido}".trim() }
 
+            val overwriteServer = config.syncOverwriteAction == "overwrite_server"
+
             // 2. Preparar el Payload JSON para enviar al servidor web
             val payload = mapOf(
                 "householdId" to config.syncHouseholdId,
                 "lastSyncTimestamp" to config.lastSyncTimestamp.toString(),
+                "overwrite" to overwriteServer,
                 "transactions" to localTxs.map { tx ->
                     mapOf(
                         "idUnico" to tx.idUnico,
@@ -290,6 +293,7 @@ class SyncService @Inject constructor(
 
                 // Guardar la marca de tiempo de sincronización exitosa
                 config.lastSyncTimestamp = serverTimestamp
+                config.syncOverwriteAction = ""
                 Log.d(TAG, "✅ Sincronización exitosa. Marca de tiempo: $serverTimestamp")
                 return@withContext Result.success("Sincronización completada exitosamente")
             }

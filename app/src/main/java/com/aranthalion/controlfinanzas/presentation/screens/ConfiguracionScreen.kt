@@ -324,11 +324,12 @@ fun ConfiguracionScreen(
                 val isSyncing by viewModel.isSyncing.collectAsState()
                 val syncStatus by viewModel.syncStatus.collectAsState()
 
-                var localSyncEnabled by remember(syncEnabled) { mutableStateOf(syncEnabled) }
                 var localSyncUrl by remember(syncServerUrl) { mutableStateOf(syncServerUrl) }
                 var localHouseholdId by remember(syncHouseholdId) { mutableStateOf(syncHouseholdId) }
                 var localEmail by remember(syncEmail) { mutableStateOf(syncEmail) }
                 var localPassword by remember(syncPassword) { mutableStateOf(syncPassword) }
+
+                val context = androidx.compose.ui.platform.LocalContext.current
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -367,79 +368,102 @@ fun ConfiguracionScreen(
                                     )
                                 }
                             }
-                            Switch(
-                                checked = localSyncEnabled,
-                                onCheckedChange = {
-                                    localSyncEnabled = it
-                                    viewModel.guardarSyncConfig(it, localSyncUrl, localHouseholdId, localEmail, localPassword)
-                                }
-                            )
                         }
 
-                        if (localSyncEnabled) {
-                            HorizontalDivider()
+                        HorizontalDivider()
 
-                            OutlinedTextField(
-                                value = localSyncUrl,
-                                onValueChange = {
-                                    localSyncUrl = it
-                                    viewModel.guardarSyncConfig(localSyncEnabled, it, localHouseholdId, localEmail, localPassword)
-                                },
-                                label = { Text("URL del Servidor de Sincronización") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            OutlinedTextField(
-                                value = localHouseholdId,
-                                onValueChange = {
-                                    localHouseholdId = it
-                                    viewModel.guardarSyncConfig(localSyncEnabled, localSyncUrl, it, localEmail, localPassword)
-                                },
-                                label = { Text("Hogar ID (Household CUID)") },
-                                placeholder = { Text("c... ") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            OutlinedTextField(
-                                value = localEmail,
-                                onValueChange = {
-                                    localEmail = it
-                                    viewModel.guardarSyncConfig(localSyncEnabled, localSyncUrl, localHouseholdId, it, localPassword)
-                                },
-                                label = { Text("Email de Usuario Zen Finanzas") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            OutlinedTextField(
-                                value = localPassword,
-                                onValueChange = {
-                                    localPassword = it
-                                    viewModel.guardarSyncConfig(localSyncEnabled, localSyncUrl, localHouseholdId, localEmail, it)
-                                },
-                                label = { Text("Contraseña de Usuario") },
-                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                        if (localEmail.isBlank() || localHouseholdId.isBlank()) {
+                            Text(
+                                text = "Vincular tu dispositivo te permite compartir transacciones, presupuestos y deudas en tiempo real con el portal Zen Finanzas.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             Button(
-                                onClick = { viewModel.ejecutarSincronizacion() },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !isSyncing && localHouseholdId.isNotBlank() && localSyncUrl.isNotBlank() && localEmail.isNotBlank() && localPassword.isNotBlank()
-                            ) {
-                                if (isSyncing) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
+                                onClick = {
+                                    val intent = android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse("http://161.153.219.141/finanzas/dashboard/link-device")
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Sincronizando...")
-                                } else {
-                                    Text("Sincronizar Ahora")
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Vincular Cuenta desde la Web")
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4CAF50),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Dispositivo Vinculado",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "Usuario: $localEmail",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Text(
+                                        text = "Hogar ID: ${localHouseholdId.take(12)}...",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+
+                            if (localPassword.isBlank()) {
+                                Text(
+                                    text = "Introduce la contraseña de tu cuenta Zen Finanzas para activar la sincronización automática en este dispositivo.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+
+                                OutlinedTextField(
+                                    value = localPassword,
+                                    onValueChange = {
+                                        localPassword = it
+                                        viewModel.guardarSyncConfig(true, localSyncUrl, localHouseholdId, localEmail, it)
+                                    },
+                                    label = { Text("Contraseña de Usuario") },
+                                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                            } else {
+                                Button(
+                                    onClick = { viewModel.ejecutarSincronizacion() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = !isSyncing
+                                ) {
+                                    if (isSyncing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Sincronizando...")
+                                    } else {
+                                        Text("Sincronizar Ahora")
+                                    }
                                 }
                             }
 
@@ -459,6 +483,24 @@ fun ConfiguracionScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+
+                            OutlinedButton(
+                                onClick = { 
+                                    viewModel.desvincular()
+                                    localPassword = ""
+                                    localEmail = ""
+                                    localHouseholdId = ""
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Desvincular Dispositivo")
                             }
                         }
                     }

@@ -44,10 +44,14 @@ class MainActivity : ComponentActivity() {
             if (uri.scheme == "controlfinanzas" && uri.host == "sync") {
                 val email = uri.getQueryParameter("email")
                 val householdId = uri.getQueryParameter("householdId")
+                val password = uri.getQueryParameter("password")
+                val action = uri.getQueryParameter("action")
                 if (email != null && householdId != null) {
                     val configPrefs = ConfiguracionPreferences(this)
                     configPrefs.syncEmail = email
                     configPrefs.syncHouseholdId = householdId
+                    if (password != null) configPrefs.syncPassword = password
+                    if (action != null) configPrefs.syncOverwriteAction = action
                     configPrefs.syncEnabled = true
                     pendingDeepLinkUrl = uri.toString()
                 }
@@ -114,10 +118,14 @@ class MainActivity : ComponentActivity() {
             if (uri.scheme == "controlfinanzas" && uri.host == "sync") {
                 val email = uri.getQueryParameter("email")
                 val householdId = uri.getQueryParameter("householdId")
+                val password = uri.getQueryParameter("password")
+                val action = uri.getQueryParameter("action")
                 if (email != null && householdId != null) {
                     val configPrefs = ConfiguracionPreferences(this)
                     configPrefs.syncEmail = email
                     configPrefs.syncHouseholdId = householdId
+                    if (password != null) configPrefs.syncPassword = password
+                    if (action != null) configPrefs.syncOverwriteAction = action
                     configPrefs.syncEnabled = true
                     pendingDeepLinkUrl = uri.toString()
                 }

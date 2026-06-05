@@ -114,6 +114,22 @@ class ConfiguracionViewModel @Inject constructor(
         _aiProvider.value = prefs.aiProvider
     }
 
+    fun desvincular() {
+        prefs.syncEnabled = false
+        prefs.syncHouseholdId = ""
+        prefs.syncEmail = ""
+        prefs.syncPassword = ""
+        prefs.lastSyncTimestamp = 0L
+        prefs.syncOverwriteAction = ""
+
+        _syncEnabled.value = false
+        _syncHouseholdId.value = ""
+        _syncEmail.value = ""
+        _syncPassword.value = ""
+        _lastSyncTimestamp.value = 0L
+        _syncStatus.value = "Desvinculado con éxito."
+    }
+
     fun ejecutarSincronizacion() {
         viewModelScope.launch {
             _isSyncing.value = true
