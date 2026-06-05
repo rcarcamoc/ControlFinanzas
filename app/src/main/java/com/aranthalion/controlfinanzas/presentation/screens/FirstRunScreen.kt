@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import android.util.Log
+import com.aranthalion.controlfinanzas.presentation.screens.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,7 +193,7 @@ fun FirstRunScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
-                        // Opción 1: Cargar datos históricos
+                        // Opción 1: Sincronizar con Zen Finanzas (Recomendado)
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -207,14 +208,14 @@ fun FirstRunScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.List,
+                                        imageVector = Icons.Default.Refresh,
                                         contentDescription = null,
                                         modifier = Modifier.size(32.dp),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
-                                        text = "Cargar datos de ejemplo",
+                                        text = "Vincular con Zen Finanzas",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -224,9 +225,73 @@ fun FirstRunScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 
                                 Text(
-                                    text = "Incluye categorías predefinidas, patrones de clasificación automática y datos históricos de ejemplo para que puedas explorar todas las funcionalidades de la app.",
+                                    text = "Recomendado. Conecta esta aplicación con tu portal web Zen Finanzas para importar tus categorías, presupuestos, deudas y transacciones mediante un asistente guiado.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                val context = androidx.compose.ui.platform.LocalContext.current
+                                Button(
+                                    onClick = {
+                                        val intent = android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse("http://161.153.219.141/finanzas/dashboard/link-device")
+                                        )
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Share,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Iniciar Vinculación Web")
+                                }
+                            }
+                        }
+                        
+                        // Opción 2: Cargar datos históricos
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.List,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp),
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Cargar datos de ejemplo",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Text(
+                                    text = "Incluye categorías predefinidas, patrones de clasificación automática y datos históricos de ejemplo para que puedas explorar todas las funcionalidades de la app.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                                 
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -308,155 +373,45 @@ fun FirstRunScreen(
         }
     }
 
-    // Diálogo de carga
-    if (showLoadingDialog) {
-        Log.i("LOG_PRIMER_USO_UI", "[6] Renderizando loading dialog")
-        AlertDialog(
-            onDismissRequest = { },
-            title = {
-                Text("Cargando datos...")
-            },
-            text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(16.dp)
-                    )
-                    Text(
-                        text = "Configurando tu aplicación con datos de ejemplo...",
-                        textAlign = TextAlign.Center
-                    )
-                }
-            },
-            confirmButton = { }
-        )
-    }
+    // Diálogos de configuración inicial extraídos a FirstRunComponents
+    FirstRunLoadingDialog(show = showLoadingDialog)
 
-    // Diálogo para preguntar si cargar categorías
-    if (showCategoriasDialog) {
-        Log.i("LOG_PRIMER_USO_UI", "[7] Renderizando diálogo de categorías por defecto")
-        AlertDialog(
-            onDismissRequest = { showCategoriasDialog = false },
-            title = {
-                Text("¿Cargar categorías por defecto?")
-            },
-            text = {
-                Text(
-                    "¿Deseas cargar categorías predefinidas como 'Arriendo', 'Supermercado', 'Bencina', etc.? " +
-                    "Esto te ayudará a comenzar más rápido, pero siempre podrás crear tus propias categorías después."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        Log.i("LOG_PRIMER_USO_UI", "[8] Botón 'Sí, cargar categorías' presionado")
-                        showCategoriasDialog = false
-                        showPeriodoDialog = true
-                    }
-                ) {
-                    Text("Sí, cargar categorías")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        Log.i("LOG_PRIMER_USO_UI", "[9] Botón 'No, comenzar sin categorías' presionado")
-                        showCategoriasDialog = false
-                        viewModel.comenzarDesdeCero()
-                    }
-                ) {
-                    Text("No, comenzar sin categorías")
-                }
-            }
-        )
-    }
-    // Diálogo de selección de periodo para presupuestos
-    if (showPeriodoDialog) {
-        Log.i("LOG_PRIMER_USO_UI", "[10] Renderizando diálogo de selección de periodo")
-        AlertDialog(
-            onDismissRequest = { showPeriodoDialog = false },
-            title = { Text("¿Desde qué periodo deseas insertar los presupuestos?") },
-            text = {
-                Column {
-                    Text("Selecciona el periodo inicial. Se insertarán presupuestos desde ese mes hasta el actual (y 2 meses después).")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    var expanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        TextField(
-                            value = periodoSeleccionado,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Periodo inicial") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier.menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            periodosDisponibles.forEach { periodo ->
-                                DropdownMenuItem(
-                                    text = { Text(periodo) },
-                                    onClick = {
-                                        Log.i("LOG_PRIMER_USO_UI", "[11] Periodo seleccionado: $periodo")
-                                        periodoSeleccionado = periodo
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        Log.i("LOG_PRIMER_USO_UI", "[12] Botón 'Insertar presupuestos' presionado. Periodo seleccionado: $periodoSeleccionado")
-                        showPeriodoDialog = false
-                        viewModel.cargarSoloCategoriasYPresupuestos(periodoSeleccionado, periodosDisponibles)
-                    }
-                ) {
-                    Text("Insertar presupuestos")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { 
-                        Log.i("LOG_PRIMER_USO_UI", "[13] Botón 'Cancelar' en diálogo de periodo presionado")
-                        showPeriodoDialog = false 
-                    },
-                ) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
+    FirstRunCategoriasDialog(
+        show = showCategoriasDialog,
+        onDismissRequest = { showCategoriasDialog = false },
+        onCargarCategorias = {
+            Log.i("LOG_PRIMER_USO_UI", "[8] Botón 'Sí, cargar categorías' presionado")
+            showCategoriasDialog = false
+            showPeriodoDialog = true
+        },
+        onComenzarSinCategorias = {
+            Log.i("LOG_PRIMER_USO_UI", "[9] Botón 'No, comenzar sin categorías' presionado")
+            showCategoriasDialog = false
+            viewModel.comenzarDesdeCero()
+        }
+    )
 
-    // Mostrar error si ocurre
-    if (uiState is FirstRunUiState.Error) {
-        Log.i("LOG_PRIMER_USO_UI", "[14] Renderizando diálogo de error")
-        AlertDialog(
-            onDismissRequest = { },
-            title = {
-                Text("Error")
-            },
-            text = {
-                Text((uiState as FirstRunUiState.Error).mensaje)
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { 
-                        Log.i("LOG_PRIMER_USO_UI", "[15] Botón 'Aceptar' en diálogo de error presionado")
-                        viewModel.resetError() 
-                    }
-                ) {
-                    Text("Aceptar")
-                }
-            }
-        )
-    }
+    FirstRunPeriodoDialog(
+        show = showPeriodoDialog,
+        onDismissRequest = { showPeriodoDialog = false },
+        periodosDisponibles = periodosDisponibles,
+        periodoInicial = periodoSeleccionado,
+        onConfirmar = { periodo ->
+            Log.i("LOG_PRIMER_USO_UI", "[12] Botón 'Insertar presupuestos' presionado. Periodo seleccionado: $periodo")
+            showPeriodoDialog = false
+            viewModel.cargarSoloCategoriasYPresupuestos(periodo, periodosDisponibles)
+        },
+        onCancelar = {
+            Log.i("LOG_PRIMER_USO_UI", "[13] Botón 'Cancelar' en diálogo de periodo presionado")
+            showPeriodoDialog = false
+        }
+    )
+
+    FirstRunErrorDialog(
+        mensajeError = (uiState as? FirstRunUiState.Error)?.mensaje,
+        onAceptar = {
+            Log.i("LOG_PRIMER_USO_UI", "[15] Botón 'Aceptar' en diálogo de error presionado")
+            viewModel.resetError()
+        }
+    )
 } 

@@ -22,6 +22,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        resConfigs("es")
     }
 
     buildTypes {
@@ -29,6 +30,12 @@ android {
             buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
         }
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
         }
     }
@@ -82,9 +89,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     
-    // Gráficos y visualizaciones
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
-    implementation("com.github.tehras:charts:0.2.4-alpha")
+    // Gráficos y visualizaciones (removidas librerías externas no utilizadas; se usan composables propios Canvas)
     
     // Testing
     testImplementation(libs.junit)

@@ -1,16 +1,15 @@
 package com.aranthalion.controlfinanzas.presentation.screens
 
-import android.app.Activity
-import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.provider.OpenableColumns
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.*
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,44 +17,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
-import java.util.*
-import android.widget.Toast
-import com.aranthalion.controlfinanzas.data.util.ExcelProcessor
-import com.aranthalion.controlfinanzas.data.util.ExcelTransaction
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.data.util.ExcelProcessor
+import com.aranthalion.controlfinanzas.data.util.ExcelTransaction
+import com.aranthalion.controlfinanzas.data.util.FormatUtils
+import com.aranthalion.controlfinanzas.data.util.ParDuplicadoSimilar
+import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import com.aranthalion.controlfinanzas.presentation.screens.components.*
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import androidx.compose.material3.AlertDialog
-import kotlinx.coroutines.withContext
-import com.aranthalion.controlfinanzas.data.util.FormatUtils
-import androidx.compose.ui.window.DialogProperties
-import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
-import javax.inject.Inject
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
-import androidx.compose.runtime.DisposableEffect
-import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Info
-import com.aranthalion.controlfinanzas.di.ClasificacionUseCaseEntryPoint
-import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionScreen
-import com.aranthalion.controlfinanzas.presentation.screens.TinderClasificacionViewModel
-import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
-import com.aranthalion.controlfinanzas.data.util.ParDuplicadoSimilar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,16 +51,18 @@ fun ImportarExcelScreen(
     val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
     val periodosDisponibles by periodoGlobalViewModel.periodosDisponibles.collectAsState()
     val tipos = listOf("Estado de cierre", "Últimos movimientos")
+    
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         archivoUri = uri
         archivoNombre = uri?.let {
             val cursor = context.contentResolver.query(it, null, null, null, null)
             cursor?.use { c ->
-                val nameIndex = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val nameIndex = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                 if (c.moveToFirst() && nameIndex >= 0) c.getString(nameIndex) else ""
             } ?: ""
         } ?: ""
     }
+    
     var resultado by remember { mutableStateOf<List<MovimientoEntity>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var exito by remember { mutableStateOf(false) }
@@ -97,9 +73,6 @@ fun ImportarExcelScreen(
     var mostrarDialogoDuplicados by remember { mutableStateOf(false) }
     var duplicadoActual by remember { mutableStateOf<ParDuplicadoSimilar?>(null) }
     var indiceDuplicadoActual by remember { mutableStateOf(0) }
-    
-    // ViewModel del Tinder de clasificación
-    val tinderViewModel: TinderClasificacionViewModel = hiltViewModel()
     
     // Configurar el ExcelProcessor con el caso de uso de clasificación
     LaunchedEffect(clasificacionUseCase) {
@@ -158,12 +131,9 @@ fun ImportarExcelScreen(
         }
     }
     
-
-    
     Column(
         modifier = Modifier
             .fillMaxSize()
-            
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -205,116 +175,19 @@ fun ImportarExcelScreen(
         }
         
         // Selector de archivo
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Archivo",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                
-                OutlinedButton(
-                    onClick = { launcher.launch("application/vnd.ms-excel") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (archivoNombre.isNotEmpty()) archivoNombre else "Seleccionar archivo Excel"
-                    )
-                }
-                
-                if (archivoNombre.isNotEmpty()) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Archivo seleccionado",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        PanelSelectorArchivo(
+            archivoNombre = archivoNombre,
+            onSeleccionarArchivo = { launcher.launch("application/vnd.ms-excel") }
+        )
         
         // Configuración
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Configuración 2027-07-26",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                
-                ExposedDropdownMenuBox(expanded = expandedTipo, onExpandedChange = { expandedTipo = !expandedTipo }) {
-                    OutlinedTextField(
-                        value = tipoArchivo,
-                        onValueChange = {},
-                        label = { Text("Tipo de archivo") },
-                        readOnly = true,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTipo) }
-                    )
-                    ExposedDropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
-                        tipos.forEach { tipo ->
-                            DropdownMenuItem(
-                                text = { Text(tipo) },
-                                onClick = {
-                                    tipoArchivo = tipo
-                                    expandedTipo = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                PeriodoSelectorGlobal(
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "Mes de ciclo de facturación"
-                )
-            }
-        }
+        PanelConfiguracionImportacion(
+            tipoArchivo = tipoArchivo,
+            tipos = tipos,
+            expandedTipo = expandedTipo,
+            onExpandedTipoChange = { expandedTipo = it },
+            onTipoArchivoChange = { tipoArchivo = it }
+        )
         
         // Botón de importar
         Button(
@@ -333,104 +206,81 @@ fun ImportarExcelScreen(
                                     else -> emptyList()
                                 }
                             
-                            transaccionesConClasificacion = transacciones
+                                transaccionesConClasificacion = transacciones
                             
-                            val movimientos = transacciones.filter {
-                                it.descripcion.trim().uppercase() != "MONTO CANCELADO"
-                            }.mapNotNull { t ->
-                                if (t.fecha == null) return@mapNotNull null
-                                // Todos los movimientos de tarjeta son gastos (incluyendo reversas)
-                                val tipo = "GASTO"
-                                // Mantener el monto original (negativo para reversas)
-                                val montoFinal = t.monto
-                                MovimientoEntity(
-                                    tipo = tipo,
-                                    monto = montoFinal,
-                                    descripcion = t.descripcion,
-                                    fecha = t.fecha,
-                                    periodoFacturacion = t.periodoFacturacion ?: periodoGlobal,
-                                    categoriaId = null, // IMPORTANTE: SIEMPRE null - el usuario debe decidir
-                                    tipoTarjeta = t.tipoTarjeta,
-                                    idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
-                                )
-                            }
-                            
-                            resultado = movimientos
-                            
-                            val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(periodoGlobal)
-                            val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(periodoGlobal)
-                            val movimientosExistentes = viewModel.obtenerMovimientosPorPeriodo(periodoGlobal)
-                            
-                            // Detectar duplicados similares
-                            val duplicadosSimilaresDetectados = ExcelProcessor.detectarDuplicadosSimilares(
-                                transacciones, movimientosExistentes
-                            )
-                            
-                            if (duplicadosSimilaresDetectados.isNotEmpty()) {
-                                duplicadosSimilares = duplicadosSimilaresDetectados
-                                mostrarDialogoDuplicados = true
-                                duplicadoActual = duplicadosSimilaresDetectados.first()
-                                indiceDuplicadoActual = 0
-                                return@launch
-                            }
-                            
-                            // Para "Estado de cierre", preservar clasificaciones existentes en lugar de eliminar todo
-                            if (tipoArchivo == "Estado de cierre") {
-                                // En lugar de eliminar todo el período, solo actualizar movimientos existentes
-                                // y agregar los nuevos, preservando las clasificaciones manuales
-                                println("🔄 IMPORTACIÓN: Preservando clasificaciones manuales para Estado de cierre")
-                            }
-                            
-                            val nuevos = movimientos.filter { it.idUnico !in existentes }
-                            val duplicados = movimientos.size - nuevos.size
-                            
-                            println("🔄 IMPORTACIÓN: Nuevos movimientos: ${nuevos.size}, Duplicados: $duplicados")
-                            
-                            nuevos.forEach { mov ->
-                                val categoriaAnterior = categoriasPrevias[mov.idUnico]
-                                val movConCategoria = if (categoriaAnterior != null) {
-                                    mov.copy(categoriaId = categoriaAnterior)
-                                } else {
-                                    mov
+                                val movimientos = transacciones.filter {
+                                    it.descripcion.trim().uppercase() != "MONTO CANCELADO"
+                                }.mapNotNull { t ->
+                                    if (t.fecha == null) return@mapNotNull null
+                                    val tipo = "GASTO"
+                                    val montoFinal = t.monto
+                                    MovimientoEntity(
+                                        tipo = tipo,
+                                        monto = montoFinal,
+                                        descripcion = t.descripcion,
+                                        fecha = t.fecha,
+                                        periodoFacturacion = t.periodoFacturacion ?: periodoGlobal,
+                                        categoriaId = null,
+                                        tipoTarjeta = t.tipoTarjeta,
+                                        idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
+                                    )
                                 }
-                                println("🔄 IMPORTACIÓN: Procesando movimiento: ${mov.descripcion}, idUnico: ${mov.idUnico}")
-                                viewModel.agregarMovimiento(movConCategoria)
-                                println("💾 IMPORTACIÓN: Intento de guardar movimiento: ${movConCategoria.descripcion}, idUnico: ${movConCategoria.idUnico}")
+                            
+                                resultado = movimientos
+                            
+                                val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(periodoGlobal)
+                                val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(periodoGlobal)
+                                val movimientosExistentes = viewModel.obtenerMovimientosPorPeriodo(periodoGlobal)
+                            
+                                // Detectar duplicados similares
+                                val duplicadosSimilaresDetectados = ExcelProcessor.detectarDuplicadosSimilares(
+                                    transacciones, movimientosExistentes
+                                )
+                            
+                                if (duplicadosSimilaresDetectados.isNotEmpty()) {
+                                    duplicadosSimilares = duplicadosSimilaresDetectados
+                                    mostrarDialogoDuplicados = true
+                                    duplicadoActual = duplicadosSimilaresDetectados.first()
+                                    indiceDuplicadoActual = 0
+                                    return@launch
+                                }
+                            
+                                val nuevos = movimientos.filter { it.idUnico !in existentes }
+                                val duplicados = movimientos.size - nuevos.size
+                            
+                                println("🔄 IMPORTACIÓN: Nuevos movimientos: ${nuevos.size}, Duplicados: $duplicados")
+                            
+                                nuevos.forEach { mov ->
+                                    val categoriaAnterior = categoriasPrevias[mov.idUnico]
+                                    val movConCategoria = if (categoriaAnterior != null) {
+                                        mov.copy(categoriaId = categoriaAnterior)
+                                    } else {
+                                        mov
+                                    }
+                                    println("🔄 IMPORTACIÓN: Procesando movimiento: ${mov.descripcion}, idUnico: ${mov.idUnico}")
+                                    viewModel.agregarMovimiento(movConCategoria)
+                                    println("💾 IMPORTACIÓN: Intento de guardar movimiento: ${movConCategoria.descripcion}, idUnico: ${movConCategoria.idUnico}")
+                                }
+                            
+                                val montoTotal = nuevos.sumOf { it.monto.toDouble() }
+                                val clasificadasAutomaticamente = 0
+                                val pendientesClasificacion = nuevos.size
+                            
+                                resumenImportacion = ResumenImportacion(
+                                    totalProcesadas = movimientos.size,
+                                    nuevas = nuevos.size,
+                                    duplicadas = duplicados,
+                                    montoTotal = montoTotal.toLong(),
+                                    periodo = periodoGlobal ?: "-",
+                                    clasificadasAutomaticamente = clasificadasAutomaticamente,
+                                    pendientesClasificacion = pendientesClasificacion
+                                )
+                            
+                                exito = true
                             }
-                            
-                            // Aprender de las clasificaciones manuales preservadas
-                            // Nota: Las clasificaciones se preservan automáticamente en el proceso de importación
-                            
-                            val montoTotal = nuevos.sumOf { it.monto.toDouble() }
-                            val clasificadasAutomaticamente = 0 // IMPORTANTE: Ya no hay clasificación automática
-                            val pendientesClasificacion = nuevos.size // Todas las transacciones necesitan clasificación manual
-                            
-                            resumenImportacion = ResumenImportacion(
-                                totalProcesadas = movimientos.size,
-                                nuevas = nuevos.size,
-                                duplicadas = duplicados,
-                                montoTotal = montoTotal.toLong(),
-                                periodo = periodoGlobal ?: "-",
-                                clasificadasAutomaticamente = clasificadasAutomaticamente,
-                                pendientesClasificacion = pendientesClasificacion
-                            )
-                            
-                            // Procesar TODAS las transacciones para el Tinder de clasificación
-                            // ya que ninguna tiene categoría asignada automáticamente
-                            if (transacciones.isNotEmpty()) {
-                                println("🎯 IMPORTACIÓN: Pasando ${transacciones.size} transacciones al Tinder")
-                                // Pasar las transacciones importadas directamente al Tinder
-                                // mostrarTinder = true // Deshabilitado el lanzamiento automático de la ventana Tinder
-                                // tinderViewModel.cargarTransaccionesEspecificas(transacciones) // Deshabilitado
-                            } else {
-                                println("⚠️ IMPORTACIÓN: No hay transacciones para pasar al Tinder")
-                            }
-                            
-                            exito = true
+                        } catch (e: Exception) {
+                            error = e.message
                         }
-                    } catch (e: Exception) {
-                        error = e.message
-                    }
                     }
                 }
             },
@@ -453,76 +303,9 @@ fun ImportarExcelScreen(
             )
         }
         
-        // Resultados
+        // Vista previa de resultados
         if (resultado != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Vista previa",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Text(
-                        text = "Movimientos a importar: ${resultado!!.size}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    
-                    resultado!!.take(5).forEachIndexed { i, t ->
-                        val clasificacionInfo = if (t.categoriaId != null) "✓ Clasificado" else "⚠ Pendiente"
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "#${i+1}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = t.descripcion,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 1
-                                    )
-                                    Text(
-                                        text = "${t.fecha} • ${FormatUtils.formatMoneyCLP(t.monto)}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Text(
-                                    text = clasificacionInfo,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (t.categoriaId != null) 
-                                        MaterialTheme.colorScheme.primary 
-                                    else 
-                                        MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            PanelVistaPreviaImportacion(resultado!!)
         }
         
         if (exito) {
@@ -614,7 +397,7 @@ fun ImportarExcelScreen(
                             ResumenItem("Duplicadas (omitidas)", "${resumen.duplicadas}")
                             ResumenItem("Clasificadas automáticamente", "${resumen.clasificadasAutomaticamente}")
                             ResumenItem("Pendientes de clasificación", "${resumen.pendientesClasificacion}")
-                            Divider(modifier = Modifier.padding(vertical = 8.dp))
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                             ResumenItem("Monto total importado", FormatUtils.formatMoneyCLP(resumen.montoTotal.toDouble()))
                             ResumenItem("Periodo", resumen.periodo)
                         }
@@ -644,11 +427,9 @@ fun ImportarExcelScreen(
                 indice = indiceDuplicadoActual,
                 total = duplicadosSimilares.size,
                 onConfirmarDuplicado = {
-                    // Marcar como duplicado y continuar
                     duplicadosSimilares = duplicadosSimilares.filterIndexed { index, _ -> index != indiceDuplicadoActual }
                     if (duplicadosSimilares.isEmpty()) {
                         mostrarDialogoDuplicados = false
-                        // Continuar con la importación normal
                         continuarImportacion()
                     } else {
                         indiceDuplicadoActual = 0
@@ -656,11 +437,9 @@ fun ImportarExcelScreen(
                     }
                 },
                 onRechazarDuplicado = {
-                    // No es duplicado, continuar con el siguiente
                     indiceDuplicadoActual++
                     if (indiceDuplicadoActual >= duplicadosSimilares.size) {
                         mostrarDialogoDuplicados = false
-                        // Continuar con la importación normal
                         continuarImportacion()
                     } else {
                         duplicadoActual = duplicadosSimilares[indiceDuplicadoActual]
@@ -674,160 +453,3 @@ fun ImportarExcelScreen(
         }
     }
 }
-
-@Composable
-fun DialogoConfirmacionDuplicados(
-    duplicado: ParDuplicadoSimilar,
-    indice: Int,
-    total: Int,
-    onConfirmarDuplicado: () -> Unit,
-    onRechazarDuplicado: () -> Unit,
-    onCancelar: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onCancelar,
-        title = {
-            Text(
-                "¿Es un duplicado?",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    "Se encontró una transacción similar ($indice de $total):",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                
-                // Nueva transacción
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            "Nueva transacción:",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Descripción: ${duplicado.nueva.descripcion}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            "Fecha: ${duplicado.nueva.fecha}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            "Monto: ${FormatUtils.formatMoneyCLP(duplicado.nueva.monto)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-                
-                // Transacción existente
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            "Transacción existente:",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Descripción: ${duplicado.existente.descripcion}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            "Fecha: ${duplicado.existente.fecha}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            "Monto: ${FormatUtils.formatMoneyCLP(duplicado.existente.monto)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-                
-                Text(
-                    "Similitud: ${(duplicado.similitud * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                Text(
-                    "¿Son la misma transacción?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        },
-        confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(onClick = onRechazarDuplicado) {
-                    Text("No, es diferente")
-                }
-                Button(onClick = onConfirmarDuplicado) {
-                    Text("Sí, es duplicado")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onCancelar) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
-@Composable
-private fun ResumenItem(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-data class ResumenImportacion(
-    val totalProcesadas: Int,
-    val nuevas: Int,
-    val duplicadas: Int,
-    val montoTotal: Long,
-    val periodo: String,
-    val clasificadasAutomaticamente: Int,
-    val pendientesClasificacion: Int
-) 

@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                     if (password != null) configPrefs.syncPassword = password
                     if (action != null) configPrefs.syncOverwriteAction = action
                     configPrefs.syncEnabled = true
+                    configPrefs.markFirstRunComplete()
                     pendingDeepLinkUrl = uri.toString()
                 }
             }
@@ -75,9 +76,15 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("configuracion") {
                                 popUpTo("home") { inclusive = false }
                             }
+                            val hasPassword = it.contains("password=")
+                            val message = if (hasPassword) {
+                                "¡Hogar vinculado y sincronización configurada con éxito!"
+                            } else {
+                                "¡Hogar vinculado! Introduce tu contraseña para activar la sincronización."
+                            }
                             android.widget.Toast.makeText(
                                 this@MainActivity,
-                                "¡Hogar vinculado! Introduce tu contraseña para activar la sincronización.",
+                                message,
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                             pendingDeepLinkUrl = null
@@ -127,6 +134,7 @@ class MainActivity : ComponentActivity() {
                     if (password != null) configPrefs.syncPassword = password
                     if (action != null) configPrefs.syncOverwriteAction = action
                     configPrefs.syncEnabled = true
+                    configPrefs.markFirstRunComplete()
                     pendingDeepLinkUrl = uri.toString()
                 }
             }

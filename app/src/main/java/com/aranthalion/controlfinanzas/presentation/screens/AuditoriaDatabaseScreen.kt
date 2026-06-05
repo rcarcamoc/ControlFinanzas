@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.aranthalion.controlfinanzas.data.local.entity.AuditoriaEntity
 import com.aranthalion.controlfinanzas.presentation.screens.AuditoriaDatabaseUiState
 import com.aranthalion.controlfinanzas.presentation.screens.AuditoriaDatabaseData
-import com.aranthalion.controlfinanzas.presentation.components.ErrorCard
+import com.aranthalion.controlfinanzas.presentation.screens.components.ErrorCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

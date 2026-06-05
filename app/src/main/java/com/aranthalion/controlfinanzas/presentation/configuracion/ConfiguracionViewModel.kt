@@ -112,6 +112,11 @@ class ConfiguracionViewModel @Inject constructor(
         _groqApiKey.value = prefs.groqApiKey
         _geminiApiKey.value = prefs.geminiApiKey
         _aiProvider.value = prefs.aiProvider
+
+        // Si acabamos de vincular por deep link (tenemos overwrite action pendiente), sincronizamos de inmediato
+        if (prefs.syncEnabled && prefs.syncEmail.isNotBlank() && prefs.syncHouseholdId.isNotBlank() && prefs.syncPassword.isNotBlank() && prefs.syncOverwriteAction.isNotBlank()) {
+            ejecutarSincronizacion()
+        }
     }
 
     fun desvincular() {
