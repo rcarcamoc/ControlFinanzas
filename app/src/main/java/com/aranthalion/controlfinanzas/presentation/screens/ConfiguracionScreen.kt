@@ -33,6 +33,10 @@ fun ConfiguracionScreen(
     navController: NavHostController,
     viewModel: ConfiguracionViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.cargarConfiguracion()
+    }
+
     val temaSeleccionado by viewModel.temaSeleccionado.collectAsState()
 
     Scaffold(

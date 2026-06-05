@@ -32,10 +32,28 @@ class MainActivity : ComponentActivity() {
     
     @Inject
     lateinit var migracionInicialService: MigracionInicialService
+
+    private var pendingDeepLinkUrl by mutableStateOf<String?>(null)
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // Handle deep link on cold start
+        intent?.data?.let { uri ->
+            if (uri.scheme == "controlfinanzas" && uri.host == "sync") {
+                val email = uri.getQueryParameter("email")
+                val householdId = uri.getQueryParameter("householdId")
+                if (email != null && householdId != null) {
+                    val configPrefs = ConfiguracionPreferences(this)
+                    configPrefs.syncEmail = email
+                    configPrefs.syncHouseholdId = householdId
+                    configPrefs.syncEnabled = true
+                    pendingDeepLinkUrl = uri.toString()
+                }
+            }
+        }
+
         setContent {
             val configuracionViewModel: ConfiguracionViewModel = hiltViewModel()
             val tema by configuracionViewModel.temaSeleccionado.collectAsState()
@@ -47,6 +65,21 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     var isFirstRun by remember { mutableStateOf(true) }
                     
+                    // Handle deep link navigation
+                    LaunchedEffect(pendingDeepLinkUrl) {
+                        pendingDeepLinkUrl?.let {
+                            navController.navigate("configuracion") {
+                                popUpTo("home") { inclusive = false }
+                            }
+                            android.widget.Toast.makeText(
+                                this@MainActivity,
+                                "¡Hogar vinculado! Introduce tu contraseña para activar la sincronización.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                            pendingDeepLinkUrl = null
+                        }
+                    }
+
                     // Verificar si es la primera ejecución
                     LaunchedEffect(Unit) {
                         val configPrefs = ConfiguracionPreferences(this@MainActivity)
@@ -62,7 +95,6 @@ class MainActivity : ComponentActivity() {
                     // Iniciar precarga de transacciones Tinder en segundo plano
                     LaunchedEffect(Unit) {
                         // La precarga se iniciará automáticamente cuando se necesite
-                        // No podemos usar hiltViewModel() aquí
                     }
                     
                     // Iniciar migración de datos normalizados (HITO 1.1)
@@ -71,6 +103,23 @@ class MainActivity : ComponentActivity() {
                     }
                     
                     AppNavigation(navController = navController)
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let { uri ->
+            if (uri.scheme == "controlfinanzas" && uri.host == "sync") {
+                val email = uri.getQueryParameter("email")
+                val householdId = uri.getQueryParameter("householdId")
+                if (email != null && householdId != null) {
+                    val configPrefs = ConfiguracionPreferences(this)
+                    configPrefs.syncEmail = email
+                    configPrefs.syncHouseholdId = householdId
+                    configPrefs.syncEnabled = true
+                    pendingDeepLinkUrl = uri.toString()
                 }
             }
         }

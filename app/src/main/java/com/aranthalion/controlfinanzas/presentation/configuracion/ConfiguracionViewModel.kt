@@ -101,6 +101,19 @@ class ConfiguracionViewModel @Inject constructor(
         _syncPassword.value = password.trim()
     }
 
+    fun cargarConfiguracion() {
+        _syncEnabled.value = prefs.syncEnabled
+        _syncServerUrl.value = prefs.syncServerUrl
+        _syncHouseholdId.value = prefs.syncHouseholdId
+        _syncEmail.value = prefs.syncEmail
+        _syncPassword.value = prefs.syncPassword
+        _lastSyncTimestamp.value = prefs.lastSyncTimestamp
+        _aiEnabled.value = prefs.aiEnabled
+        _groqApiKey.value = prefs.groqApiKey
+        _geminiApiKey.value = prefs.geminiApiKey
+        _aiProvider.value = prefs.aiProvider
+    }
+
     fun ejecutarSincronizacion() {
         viewModelScope.launch {
             _isSyncing.value = true
