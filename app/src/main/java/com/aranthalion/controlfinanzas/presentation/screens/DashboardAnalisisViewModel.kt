@@ -1,106 +1,312 @@
 package com.aranthalion.controlfinanzas.presentation.screens
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.data.remote.ai.AiAnalisisService
+import com.aranthalion.controlfinanzas.data.remote.ai.DatosAnalisisMes
+import com.aranthalion.controlfinanzas.data.remote.ai.ResumenIa
 import com.aranthalion.controlfinanzas.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 import kotlin.math.abs
 
-// Datos de prueba para desarrollo
-data class CategoriaPrueba(
-    val nombreCategoria: String,
-    val totalGastado: Double,
-    val porcentajeDelTotal: Double,
-    val promedioDiario: Double,
-    val tendencia: String
+enum class GranularidadTendencia {
+    MENSUAL, SEMANAL
+}
+
+data class GastoHormigaItem(
+    val descripcion: String,
+    val totalAcumulado: Double,
+    val cantidadCompras: Int,
+    val promedioCompra: Double
 )
 
-data class PrediccionPrueba(
-    val nombreCategoria: String,
-    val prediccion: Double,
-    val intervaloConfianza: Pair<Double, Double>,
-    val confiabilidad: Double
+data class ItemTendencia(
+    val etiqueta: String,
+    val ingresos: Double,
+    val gastos: Double,
+    val balance: Double
+)
+
+enum class TipoAlerta {
+    INFO, WARNING, DANGER, SUCCESS
+}
+
+data class AlertaAnalisis(
+    val tipo: TipoAlerta,
+    val titulo: String,
+    val descripcion: String
 )
 
 sealed class DashboardAnalisisUiState {
     object Loading : DashboardAnalisisUiState()
     data class Success(
-        val kpis: List<KPIFinanciero>,
-        val tendencias: List<TendenciaMensual>,
-        val analisisCategorias: List<AnalisisCategoria>,
-        val predicciones: List<PrediccionGasto>,
-        val analisisTendenciaTemporal: List<AnalisisTendenciaTemporal>,
-        val analisisVolatilidad: List<AnalisisVolatilidad>,
-        val comparacionPeriodo: ComparacionPeriodo?,
-        val gastosInusuales: List<GastoInusual>,
-        val metricasRendimiento: MetricasRendimiento?,
-        val resumenFinanciero: ResumenFinanciero?,
-        val historicoCategorias: List<ResumenHistoricoCategoria>,
-        val presupuestosConBrecha: List<PresupuestoConBrecha>
+        val periodo: String,
+        val resumenIa: ResumenIa?,
+        val cargandoResumenIa: Boolean,
+        val errorResumenIa: String?,
+        
+        // Dónde gasto
+        val distribucionCategorias: List<AnalisisCategoria>,
+        
+        // Presupuestos
+        val presupuestosConBrecha: List<PresupuestoConBrecha>,
+        
+        // Ritmo de gasto
+        val diaActual: Int,
+        val diasTotales: Int,
+        val presupuestoTotal: Double,
+        val gastoActual: Double,
+        val proyeccionFinMes: Double,
+        val porcentajePresupuestoGastado: Double,
+        val porcentajePeriodoTranscurrido: Double,
+        val diferenciaRitmo: Double,
+        
+        // Gastos Hormiga
+        val gastosHormiga: List<GastoHormigaItem>,
+        val gastosHormigaTotal: Double,
+        
+        // Tendencia
+        val tendenciaMensual: List<ItemTendencia>,
+        val tendenciaSemanal: List<ItemTendencia>,
+        val granularidadTendencia: GranularidadTendencia = GranularidadTendencia.MENSUAL,
+        
+        // Alertas
+        val alertas: List<AlertaAnalisis>,
+
+        // Movimientos para drill-down
+        val movimientos: List<MovimientoEntity> = emptyList()
     ) : DashboardAnalisisUiState()
     data class Error(val mensaje: String, val onRetry: () -> Unit) : DashboardAnalisisUiState()
 }
 
 @HiltViewModel
 class DashboardAnalisisViewModel @Inject constructor(
-    private val analisisFinancieroUseCase: AnalisisFinancieroUseCase
+    private val analisisFinancieroUseCase: AnalisisFinancieroUseCase,
+    private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
+    private val aiAnalisisService: AiAnalisisService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardAnalisisUiState>(DashboardAnalisisUiState.Loading)
     val uiState: StateFlow<DashboardAnalisisUiState> = _uiState.asStateFlow()
 
     private var lastPeriodo: String? = null
-    private var lastSuccessState: DashboardAnalisisUiState.Success? = null
+    private var currentGranularidad = GranularidadTendencia.MENSUAL
 
     fun cargarAnalisis(periodo: String, force: Boolean = false) {
-        if (!force && lastPeriodo == periodo && lastSuccessState != null) {
-            _uiState.value = lastSuccessState!!
+        if (!force && lastPeriodo == periodo && _uiState.value is DashboardAnalisisUiState.Success) {
             return
         }
+        
         viewModelScope.launch {
             try {
                 _uiState.value = DashboardAnalisisUiState.Loading
                 lastPeriodo = periodo
-                // Cargar todos los análisis en paralelo para mejor rendimiento
-                val kpis = analisisFinancieroUseCase.obtenerKPIsJerarquicos(periodo)
-                val tendencias = analisisFinancieroUseCase.obtenerTendenciasMensuales(6)
-                val analisisCategorias = analisisFinancieroUseCase.obtenerAnalisisCategorias(periodo)
-                val predicciones = analisisFinancieroUseCase.obtenerPrediccionesGasto(periodo)
-                val analisisTendenciaTemporal = analisisFinancieroUseCase.obtenerAnalisisTendenciaTemporal(meses = 6)
-                val analisisVolatilidad = analisisFinancieroUseCase.obtenerAnalisisVolatilidad(periodo)
-                val comparacionPeriodo = analisisFinancieroUseCase.obtenerComparacionPeriodo(periodo)
-                val gastosInusuales = analisisFinancieroUseCase.obtenerGastosInusuales(periodo)
-                val metricasRendimiento = analisisFinancieroUseCase.obtenerMetricasRendimiento(periodo)
-                val resumenFinanciero = analisisFinancieroUseCase.obtenerResumenFinancieroPorPeriodo(periodo)
-                val historicoCategorias = analisisFinancieroUseCase.obtenerHistoricoGasto(periodo)
-                val presupuestosConBrecha = analisisFinancieroUseCase.obtenerPresupuestosConBrecha(periodo)
+                
+                // 1. Cargar datos básicos en paralelo
+                val resumenDeferred = async { analisisFinancieroUseCase.obtenerResumenFinancieroPorPeriodo(periodo) }
+                val categoriasDeferred = async { analisisFinancieroUseCase.obtenerAnalisisCategorias(periodo) }
+                val presupuestosDeferred = async { analisisFinancieroUseCase.obtenerPresupuestosConBrecha(periodo) }
+                val movimientosPeriodoDeferred = async { gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(periodo) }
+                val tendenciasMensualesDeferred = async { analisisFinancieroUseCase.obtenerTendenciasMensuales(6) }
+                val todosMovimientosDeferred = async { gestionarMovimientosUseCase.obtenerMovimientos() }
 
-                val success = DashboardAnalisisUiState.Success(
-                    kpis = kpis,
-                    tendencias = tendencias,
-                    analisisCategorias = analisisCategorias,
-                    predicciones = predicciones,
-                    analisisTendenciaTemporal = analisisTendenciaTemporal,
-                    analisisVolatilidad = analisisVolatilidad,
-                    comparacionPeriodo = comparacionPeriodo,
-                    gastosInusuales = gastosInusuales,
-                    metricasRendimiento = metricasRendimiento,
-                    resumenFinanciero = resumenFinanciero,
-                    historicoCategorias = historicoCategorias,
-                    presupuestosConBrecha = presupuestosConBrecha
+                val resumen = resumenDeferred.await()
+                val analisisCategorias = categoriasDeferred.await()
+                val presupuestosConBrecha = presupuestosDeferred.await()
+                val movimientosPeriodo = movimientosPeriodoDeferred.await()
+                val tendenciasMensuales = tendenciasMensualesDeferred.await()
+                val todosMovimientos = todosMovimientosDeferred.await()
+
+                // 2. Calcular días transcurridos y restantes
+                val partes = periodo.split("-")
+                val anio = partes[0].toInt()
+                val mes = partes[1].toInt()
+                val calendar = Calendar.getInstance()
+                val esPeriodoActual = calendar.get(Calendar.YEAR) == anio && (calendar.get(Calendar.MONTH) + 1) == mes
+
+                val diasTotales = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val diaActual = if (esPeriodoActual) {
+                    calendar.get(Calendar.DAY_OF_MONTH)
+                } else {
+                    diasTotales
+                }
+
+                // 3. Ritmo de gasto
+                val presupuestoTotal = presupuestosConBrecha.sumOf { it.presupuesto }
+                val gastoActual = abs(resumen.gastos)
+                
+                val dailyRate = if (diaActual > 0) gastoActual / diaActual else 0.0
+                val proyeccionFinMes = dailyRate * diasTotales
+
+                val porcentajePeriodoTranscurrido = (diaActual.toDouble() / diasTotales) * 100
+                val porcentajePresupuestoGastado = if (presupuestoTotal > 0) (gastoActual / presupuestoTotal) * 100 else 0.0
+                val diferenciaRitmo = porcentajePresupuestoGastado - porcentajePeriodoTranscurrido
+
+                // 4. Gastos Hormiga
+                // Transacciones <= 10.000 CLP, repetidas >= 3 veces en el período
+                val gastosDelPeriodo = movimientosPeriodo.filter { 
+                    it.tipo == "GASTO" && 
+                    abs(it.monto) <= 10000 && 
+                    it.tipo != "OMITIR" 
+                }
+                
+                val groupedHormiga = gastosDelPeriodo.groupBy { it.descripcionNormalizada.lowercase().trim() }
+                val gastosHormiga = groupedHormiga.map { (desc, txs) ->
+                    val total = txs.sumOf { abs(it.monto) }
+                    val count = txs.size
+                    val prom = total / count
+                    GastoHormigaItem(
+                        descripcion = txs.firstOrNull()?.descripcion ?: desc,
+                        totalAcumulado = total,
+                        cantidadCompras = count,
+                        promedioCompra = prom
+                    )
+                }.filter { it.cantidadCompras >= 3 }
+                 .sortedByDescending { it.totalAcumulado }
+
+                val gastosHormigaTotal = gastosHormiga.sumOf { it.totalAcumulado }
+
+                // 5. Tendencia Mensual
+                val mesesEsp = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+                val tendenciasMensualesMapeadas = tendenciasMensuales.map {
+                    val pPartes = it.periodo.split("-")
+                    val pAnio = pPartes[0].substring(2)
+                    val pMesIdx = pPartes[1].toInt() - 1
+                    val etiqueta = "${mesesEsp[pMesIdx]} $pAnio"
+                    ItemTendencia(
+                        etiqueta = etiqueta,
+                        ingresos = it.ingresos,
+                        gastos = abs(it.gastos),
+                        balance = it.balance
+                    )
+                }
+
+                // 6. Tendencia Semanal (Lunes a Domingo, 6 semanas, etiquetas compactas)
+                val cal = Calendar.getInstance()
+                cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                while (cal.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY) {
+                    cal.add(Calendar.DAY_OF_YEAR, -1)
+                }
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+
+                val semanas = mutableListOf<Pair<Date, Date>>()
+                for (i in 0 until 6) {
+                    val inicioSemana = cal.time
+                    val calFin = cal.clone() as Calendar
+                    calFin.add(Calendar.DAY_OF_YEAR, 7)
+                    calFin.add(Calendar.MILLISECOND, -1)
+                    val finSemana = calFin.time
+                    
+                    semanas.add(Pair(inicioSemana, finSemana))
+                    cal.add(Calendar.WEEK_OF_YEAR, -1)
+                }
+                
+                val etiquetasRelativas = listOf(
+                    "Hace 5s",
+                    "Hace 4s",
+                    "Hace 3s",
+                    "Hace 2s",
+                    "Sem ant",
+                    "Esta sem"
                 )
-                lastSuccessState = success
-                _uiState.value = success
+                
+                val semanasCronologicas = semanas.reversed()
+                
+                val tendenciasSemanales = semanasCronologicas.mapIndexed { index, (inicio, fin) ->
+                    val movsSemana = todosMovimientos.filter { 
+                        it.fecha.time >= inicio.time && it.fecha.time <= fin.time &&
+                        it.tipo != "OMITIR" 
+                    }
+                    val ingresosSemana = movsSemana.filter { it.tipo == "INGRESO" }.sumOf { it.monto }
+                    val gastosSemana = movsSemana.filter { it.tipo == "GASTO" }.sumOf { abs(it.monto) }
+                    
+                    ItemTendencia(
+                        etiqueta = etiquetasRelativas.getOrElse(index) { "Sem" },
+                        ingresos = ingresosSemana,
+                        gastos = gastosSemana,
+                        balance = ingresosSemana - gastosSemana
+                    )
+                }
+
+                // 7. Alertas
+                val alertas = mutableListOf<AlertaAnalisis>()
+                
+                // Presupuestos excedidos
+                val excedidos = presupuestosConBrecha.filter { it.gastoActual > it.presupuesto }
+                if (excedidos.isNotEmpty()) {
+                    val cats = excedidos.joinToString(", ") { it.nombreCategoria }
+                    alertas.add(
+                        AlertaAnalisis(
+                            tipo = TipoAlerta.DANGER,
+                            titulo = "Presupuestos Excedidos",
+                            descripcion = "Te has pasado del límite mensual en: $cats."
+                        )
+                    )
+                }
+
+                // Ritmo de gasto muy alto
+                if (diferenciaRitmo > 15) {
+                    alertas.add(
+                        AlertaAnalisis(
+                            tipo = TipoAlerta.WARNING,
+                            titulo = "Ritmo Acelerado de Gasto",
+                            descripcion = "Llevas el ${porcentajePeriodoTranscurrido.toInt()}% del mes transcurrido y has consumido el ${porcentajePresupuestoGastado.toInt()}% del presupuesto total."
+                        )
+                    )
+                }
+
+                // Tasa de ahorro baja
+                if (resumen.tasaAhorro < 10 && resumen.ingresos > 0) {
+                    alertas.add(
+                        AlertaAnalisis(
+                            tipo = TipoAlerta.INFO,
+                            titulo = "Tasa de Ahorro Baja",
+                            descripcion = "Tu tasa de ahorro actual es de ${resumen.tasaAhorro.toInt()}%. Intenta recortar algunos gastos no esenciales."
+                        )
+                    )
+                }
+
+                val successState = DashboardAnalisisUiState.Success(
+                    periodo = periodo,
+                    resumenIa = null,
+                    cargandoResumenIa = true,
+                    errorResumenIa = null,
+                    distribucionCategorias = analisisCategorias.take(5),
+                    presupuestosConBrecha = presupuestosConBrecha,
+                    diaActual = diaActual,
+                    diasTotales = diasTotales,
+                    presupuestoTotal = presupuestoTotal,
+                    gastoActual = gastoActual,
+                    proyeccionFinMes = proyeccionFinMes,
+                    porcentajePresupuestoGastado = porcentajePresupuestoGastado,
+                    porcentajePeriodoTranscurrido = porcentajePeriodoTranscurrido,
+                    diferenciaRitmo = diferenciaRitmo,
+                    gastosHormiga = gastosHormiga,
+                    gastosHormigaTotal = gastosHormigaTotal,
+                    tendenciaMensual = tendenciasMensualesMapeadas,
+                    tendenciaSemanal = tendenciasSemanales,
+                    granularidadTendencia = currentGranularidad,
+                    alertas = alertas,
+                    movimientos = movimientosPeriodo
+                )
+                
+                _uiState.value = successState
+
+                // 8. Cargar Resumen de IA asíncronamente
+                cargarResumenIa(successState, resumen.ingresos, analisisCategorias, presupuestosConBrecha, gastosHormigaTotal, gastosHormiga.size)
+
             } catch (e: Exception) {
                 _uiState.value = DashboardAnalisisUiState.Error(
                     mensaje = e.message ?: "Error al cargar análisis financiero",
@@ -110,168 +316,64 @@ class DashboardAnalisisViewModel @Inject constructor(
         }
     }
 
-    fun cargarAnalisisTendenciaCategoria(categoriaId: Long, meses: Int = 6) {
+    private fun cargarResumenIa(
+        state: DashboardAnalisisUiState.Success,
+        ingresos: Double,
+        analisisCategorias: List<AnalisisCategoria>,
+        presupuestosConBrecha: List<PresupuestoConBrecha>,
+        gastosHormigaTotal: Double,
+        gastosHormigaCantidad: Int
+    ) {
         viewModelScope.launch {
             try {
-                val tendenciaCategoria = analisisFinancieroUseCase.obtenerAnalisisTendenciaTemporal(categoriaId, meses)
+                val topCat = analisisCategorias.firstOrNull()
+                val excedidosList = presupuestosConBrecha.filter { it.gastoActual > it.presupuesto }.map { it.nombreCategoria }
+                val tasaAhorro = if (ingresos > 0) ((ingresos - state.gastoActual) / ingresos) * 100 else 0.0
+
+                val datosIa = DatosAnalisisMes(
+                    periodo = state.periodo,
+                    diaActual = state.diaActual,
+                    diasTotales = state.diasTotales,
+                    presupuestoTotal = state.presupuestoTotal,
+                    gastoActual = state.gastoActual,
+                    ingresos = ingresos,
+                    proyeccionFinMes = state.proyeccionFinMes,
+                    categoriaMasAlta = topCat?.nombreCategoria ?: "",
+                    cambioCategoriaMasAlta = topCat?.porcentajeDelTotal ?: 0.0,
+                    gastosHormigaTotal = gastosHormigaTotal,
+                    gastosHormigaCantidad = gastosHormigaCantidad,
+                    tendenciaVsMesAnterior = 0.0,
+                    presupuestosExcedidos = excedidosList,
+                    tasaAhorro = tasaAhorro
+                )
+
+                val resumenIa = aiAnalisisService.generarResumenMes(datosIa)
                 
-                // Actualizar el estado actual con la nueva tendencia de categoría
                 val currentState = _uiState.value
-                if (currentState is DashboardAnalisisUiState.Success) {
+                if (currentState is DashboardAnalisisUiState.Success && currentState.periodo == state.periodo) {
                     _uiState.value = currentState.copy(
-                        analisisTendenciaTemporal = tendenciaCategoria
+                        resumenIa = resumenIa,
+                        cargandoResumenIa = false,
+                        errorResumenIa = null
                     )
                 }
             } catch (e: Exception) {
-                // Manejar error sin cambiar el estado principal
-                println("Error al cargar tendencia de categoría: ${e.message}")
+                val currentState = _uiState.value
+                if (currentState is DashboardAnalisisUiState.Success && currentState.periodo == state.periodo) {
+                    _uiState.value = currentState.copy(
+                        cargandoResumenIa = false,
+                        errorResumenIa = e.message ?: "Error al generar resumen con IA"
+                    )
+                }
             }
         }
     }
 
-    fun obtenerInsightsFinancieros(): List<String> {
+    fun cambiarGranularidadTendencia(granularidad: GranularidadTendencia) {
+        currentGranularidad = granularidad
         val currentState = _uiState.value
-        if (currentState !is DashboardAnalisisUiState.Success) return emptyList()
-
-        val insights = mutableListOf<String>()
-
-        // 1. INSIGHTS DE BRECHA VS PRESUPUESTO (PRIORIDAD ALTA)
-        currentState.presupuestosConBrecha.forEach { presupuesto ->
-            val diffPct = (presupuesto.gastoActual - presupuesto.presupuesto) / presupuesto.presupuesto * 100
-            when {
-                diffPct > 0 -> {
-                    val montoFaltante = presupuesto.presupuesto - presupuesto.gastoActual
-                    insights.add(
-                        "Estás gastando un ${"%.1f".format(diffPct)}% sobre el presupuesto en '${presupuesto.nombreCategoria}'. " +
-                        "Necesitas recortar ${"%.0f".format(abs(montoFaltante))} para no pasarte."
-                    )
-                }
-                diffPct < -20 -> {
-                    val excedente = abs(presupuesto.brechaPresupuesto)
-                    insights.add(
-                        "Llevas un ${"%.1f".format(-diffPct)}% por debajo del presupuesto en '${presupuesto.nombreCategoria}'. " +
-                        "Tienes ${"%.0f".format(excedente)} disponibles para invertir o reasignar."
-                    )
-                }
-            }
+        if (currentState is DashboardAnalisisUiState.Success) {
+            _uiState.value = currentState.copy(granularidadTendencia = granularidad)
         }
-
-        // 2. INSIGHTS DE RITMO HISTÓRICO
-        currentState.historicoCategorias.forEach { historico ->
-            val presupuestoActual = currentState.presupuestosConBrecha.find { it.categoriaId == historico.categoriaId }
-            if (presupuestoActual != null) {
-                val ritmo = presupuestoActual.ritmoHistorico
-                if (ritmo > 110) {
-                    insights.add(
-                        "Este mes tu gasto en '${historico.nombreCategoria}' va un ${"%.1f".format(ritmo)}% " +
-                        "sobre el promedio de los últimos ${historico.mesesAnalizados} meses. Revisa si hay compras excepcionales."
-                    )
-                }
-            }
-        }
-
-        // 3. INSIGHTS DE PROYECCIÓN MENSUAL
-        currentState.presupuestosConBrecha.forEach { presupuesto ->
-            if (presupuesto.proyeccionMensual > presupuesto.presupuesto * 1.1) {
-                val exceso = presupuesto.proyeccionMensual - presupuesto.presupuesto
-                insights.add(
-                    "Proyección: '${presupuesto.nombreCategoria}' se pasará ${"%.0f".format(exceso)} " +
-                    "del presupuesto si mantienes el ritmo actual. Ajusta tus gastos."
-                )
-            }
-        }
-
-        // 4. INSIGHTS DE TASA DE AHORRO (mantener los buenos)
-        currentState.resumenFinanciero?.let { resumen ->
-            when {
-                resumen.tasaAhorro > 20 -> insights.add("¡Excelente! Tu tasa de ahorro del ${resumen.tasaAhorro.toInt()}% está por encima del objetivo recomendado.")
-                resumen.tasaAhorro > 10 -> insights.add("Buena tasa de ahorro del ${resumen.tasaAhorro.toInt()}%. Considera aumentar un 5% más para mayor seguridad financiera.")
-                else -> insights.add("Tu tasa de ahorro del ${resumen.tasaAhorro.toInt()}% está por debajo del recomendado. Revisa tus gastos no esenciales.")
-            }
-        }
-
-        // 5. INSIGHTS DE GASTOS INUSUALES (mantener)
-        if (currentState.gastosInusuales.isNotEmpty()) {
-            val gastoMasInusual = currentState.gastosInusuales.first()
-            insights.add("Detectamos un gasto inusual: ${gastoMasInusual.descripcion} por ${gastoMasInusual.monto.toInt()}. Revisa si fue necesario.")
-        }
-
-        return insights.take(5) // Máximo 5 insights, priorizando presupuesto > riesgo > ahorro
     }
-
-    fun obtenerRecomendaciones(): List<String> {
-        val currentState = _uiState.value
-        if (currentState !is DashboardAnalisisUiState.Success) return emptyList()
-
-        val recomendaciones = mutableListOf<String>()
-
-        // 1. RECOMENDACIONES BASADAS EN BRECHA DE PRESUPUESTO
-        currentState.presupuestosConBrecha.forEach { presupuesto ->
-            val diffPct = (presupuesto.gastoActual - presupuesto.presupuesto) / presupuesto.presupuesto * 100
-            when {
-                diffPct > 10 -> {
-                    val montoFaltante = presupuesto.presupuesto - presupuesto.gastoActual
-                    recomendaciones.add(
-                        "Reduce un ${"%.1f".format(diffPct)}% las compras de '${presupuesto.nombreCategoria}' " +
-                        "esta quincena o agrupa gastos en menos días para no pasarte del presupuesto mensual."
-                    )
-                }
-                diffPct < -30 -> {
-                    val excedente = abs(presupuesto.brechaPresupuesto)
-                    recomendaciones.add(
-                        "Tienes margen para destinar hasta ${"%.0f".format(excedente)} en '${presupuesto.nombreCategoria}'. " +
-                        "¿Quizás invertir en formación o en un fondo de emergencia?"
-                    )
-                }
-            }
-        }
-
-        // 2. RECOMENDACIONES BASADAS EN RITMO HISTÓRICO
-        currentState.historicoCategorias.forEach { historico ->
-            val presupuestoActual = currentState.presupuestosConBrecha.find { it.categoriaId == historico.categoriaId }
-            if (presupuestoActual != null && presupuestoActual.ritmoHistorico > 120) {
-                recomendaciones.add(
-                    "Tu gasto en '${historico.nombreCategoria}' está ${"%.1f".format(presupuestoActual.ritmoHistorico)}% " +
-                    "sobre tu promedio histórico. Considera revisar suscripciones o gastos recurrentes."
-                )
-            }
-        }
-
-        // 3. RECOMENDACIONES BASADAS EN PROYECCIÓN MENSUAL
-        currentState.presupuestosConBrecha.forEach { presupuesto ->
-            if (presupuesto.proyeccionMensual > presupuesto.presupuesto * 1.2) {
-                val exceso = presupuesto.proyeccionMensual - presupuesto.presupuesto
-                recomendaciones.add(
-                    "Si mantienes el ritmo actual, '${presupuesto.nombreCategoria}' se pasará ${"%.0f".format(exceso)}. " +
-                    "Programa un recordatorio para revisar gastos a mitad de mes."
-                )
-            }
-        }
-
-        // 4. RECOMENDACIONES BASADAS EN TASA DE AHORRO
-        currentState.resumenFinanciero?.let { resumen ->
-            when {
-                resumen.tasaAhorro < 10 -> {
-                    recomendaciones.add("Aumenta tu tasa de ahorro estableciendo transferencias automáticas al inicio del mes.")
-                }
-                resumen.tasaAhorro > 25 -> {
-                    recomendaciones.add("Excelente tasa de ahorro. Considera diversificar en inversiones o crear un fondo de emergencia.")
-                }
-            }
-        }
-
-        // 5. RECOMENDACIONES BASADAS EN GASTOS INUSUALES
-        if (currentState.gastosInusuales.size > 2) {
-            recomendaciones.add("Tienes varios gastos inusuales. Revisa si puedes reducir gastos no esenciales o agrupar compras.")
-        }
-
-        // 6. RECOMENDACIONES BASADAS EN VOLATILIDAD
-        val categoriasVolatiles = currentState.analisisVolatilidad.filter { it.nivelVolatilidad == "ALTA" }
-        if (categoriasVolatiles.isNotEmpty()) {
-            val categoriaMasVolatil = categoriasVolatiles.first()
-            recomendaciones.add("Establece presupuestos fijos para '${categoriaMasVolatil.nombreCategoria}' para mejor control.")
-        }
-
-        return recomendaciones.take(4) // Máximo 4 recomendaciones más específicas
-    }
-} 
+}

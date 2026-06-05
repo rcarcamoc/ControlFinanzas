@@ -1,10 +1,15 @@
 package com.aranthalion.controlfinanzas.domain.clasificacion
 
 import android.util.Log
+import com.aranthalion.controlfinanzas.data.remote.ai.GeminiClasificadorService
+import com.aranthalion.controlfinanzas.domain.categoria.CategoriaRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class GestionarClasificacionAutomaticaUseCase @Inject constructor(
-    private val repository: ClasificacionAutomaticaRepository
+    private val repository: ClasificacionAutomaticaRepository,
+    private val geminiClasificadorService: GeminiClasificadorService,
+    private val categoriaRepository: CategoriaRepository
 ) {
     
     /**
@@ -13,7 +18,7 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
     suspend fun aprenderPatron(descripcion: String, categoriaId: Long) {
         Log.d("ClasificacionUseCase", "🔄 Aprendiendo patrón: '$descripcion' -> Categoría ID: $categoriaId")
         val patrones = extraerPatrones(descripcion)
-        Log.d("ClasificacionUseCase", "�� Patrones extraídos (${patrones.size}): $patrones")
+        Log.d("ClasificacionUseCase", " Patrones extraídos (${patrones.size}): $patrones")
         
         if (patrones.isEmpty()) {
             Log.w("ClasificacionUseCase", "⚠️ No se extrajeron patrones válidos de: '$descripcion'")
@@ -55,7 +60,7 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
     
     /**
      * NUEVO MÉTODO: Sistema mejorado de clasificación automática
-     * Usa cache, fuzzy matching y umbrales configurables
+     * Usa cache, fuzzy matching, umbrales configurables y fallback a IA (Gemini)
      */
     suspend fun obtenerSugerenciaMejorada(descripcion: String): ResultadoClasificacion {
         Log.d("ClasificacionUseCase", "🔍 Buscando sugerencia mejorada para: '$descripcion'")
@@ -63,17 +68,26 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
         
         when (resultado) {
             is ResultadoClasificacion.AltaConfianza -> {
-                Log.d("ClasificacionUseCase", "✅ Alta confianza: Categoría ID ${resultado.categoriaId}, Confianza: ${(resultado.confianza * 100).toInt()}%, Tipo: ${resultado.tipoCoincidencia}")
+                Log.d("ClasificacionUseCase", "✅ Alta confianza local: Categoría ID ${resultado.categoriaId}, Confianza: ${(resultado.confianza * 100).toInt()}%")
+                return resultado
             }
-            is ResultadoClasificacion.BajaConfianza -> {
-                Log.d("ClasificacionUseCase", "⚠️ Baja confianza: ${resultado.sugerencias.size} sugerencias, Máxima: ${(resultado.confianzaMaxima * 100).toInt()}%")
-            }
-            is ResultadoClasificacion.SinCoincidencias -> {
-                Log.d("ClasificacionUseCase", "❌ Sin coincidencias: ${resultado.razon}")
+            else -> {
+                Log.d("ClasificacionUseCase", "🤖 Coincidencia local baja o nula. Consultando a Gemini...")
+                try {
+                    val categorias = categoriaRepository.getAllCategorias().first()
+                    if (categorias.isNotEmpty()) {
+                        val resultadoGemini = geminiClasificadorService.obtenerClasificacionIA(descripcion, categorias)
+                        if (resultadoGemini is ResultadoClasificacion.AltaConfianza || resultadoGemini is ResultadoClasificacion.BajaConfianza) {
+                            Log.d("ClasificacionUseCase", "🤖 Gemini sugirió clasificación con éxito")
+                            return resultadoGemini
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("ClasificacionUseCase", "Error en fallback a Gemini", e)
+                }
+                return resultado
             }
         }
-        
-        return resultado
     }
     
     /**

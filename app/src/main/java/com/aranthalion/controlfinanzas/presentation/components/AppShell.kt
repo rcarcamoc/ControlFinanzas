@@ -56,8 +56,6 @@ val navItems = listOf(
     // Análisis
     NavItem("dashboardAnalisis", "Análisis General", CustomIcons.Analytics, "Análisis"),
     NavItem("aporte_proporcional", "Aporte Proporcional", CustomIcons.Group, "Análisis"),
-    NavItem("analisis_gasto_categoria", "Análisis por Categoría", CustomIcons.Assessment, "Análisis"),
-    NavItem("insights_avanzados", "Insights Avanzados", CustomIcons.Lightbulb, "Análisis"),
     
     // Herramientas
     NavItem("auditoria_database", "Auditoría DB", CustomIcons.Storage, "Herramientas"),
@@ -222,8 +220,10 @@ fun AppShell(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 1.dp, start = 1.dp, end = 1.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                         .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+                        .widthIn(max = 1200.dp)
+                        .align(Alignment.CenterHorizontally)
                 ) {
                     content()
                 }

@@ -114,7 +114,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(1.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -135,7 +135,7 @@ fun HomeScreen(
                 
                 // Filtrar movimientos por período y excluir transacciones omitidas
                 val movimientosFiltrados = movimientos.filter { 
-                    it.periodoFacturacion == periodoActual &&
+                    (periodoGlobal == "Todos" || it.periodoFacturacion == periodoGlobal) &&
                     it.tipo != "OMITIR" // Excluir transacciones omitidas
                 }
                 
@@ -408,24 +408,24 @@ fun HomeScreen(
                                         movimientos.sumOf { FormatUtils.normalizeAmount(it.monto) }
                                     }
                                 
-                                val pieChartData = categorias.mapNotNull { categoria ->
+                                val pieChartData = categorias.mapIndexedNotNull { index, categoria ->
                                     val gasto = gastosPorCategoria[categoria.id] ?: 0.0
-                                    if (gasto > 0) PieChartData(categoria.nombre, gasto.toFloat(), MaterialTheme.colorScheme.primary, categoria.id.toString()) else null
+                                    val color = when (index % 5) {
+                                        0 -> com.aranthalion.controlfinanzas.ui.theme.Chart1
+                                        1 -> com.aranthalion.controlfinanzas.ui.theme.Chart2
+                                        2 -> com.aranthalion.controlfinanzas.ui.theme.Chart3
+                                        3 -> com.aranthalion.controlfinanzas.ui.theme.Chart4
+                                        else -> com.aranthalion.controlfinanzas.ui.theme.Chart5
+                                    }
+                                    if (gasto > 0) PieChartData(categoria.nombre, gasto.toFloat(), color, categoria.id.toString()) else null
                                 }.take(5) // Top 5 categorías
                                 
                                 if (pieChartData.isNotEmpty()) {
-                                    // PieChart(
-                                    //     data = pieChartData,
-                                    //     modifier = Modifier
-                                    //         .fillMaxWidth()
-                                    //         .height(200.dp)
-                                    // )
-                                    Text(
-                                        text = "Gráfico de gastos por categoría",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
+                                    PieChart(
+                                        data = pieChartData,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp)
                                     )
                                 } else {
                                     Text(

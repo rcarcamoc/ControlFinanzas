@@ -25,7 +25,57 @@ class ConfiguracionPreferences @Inject constructor(
         private const val KEY_CLASIFICACION_CARGADA = "clasificacion_cargada"
         private const val KEY_IS_FIRST_RUN = "is_first_run"
         private const val KEY_HISTORICAL_DATA_LOADED = "historical_data_loaded"
+        private const val KEY_GEMINI_API_KEY = "gemini_api_key"
+        private const val KEY_GROQ_API_KEY = "groq_api_key"
+        private const val KEY_AI_ENABLED = "ai_enabled"
+        private const val KEY_AI_PROVIDER = "ai_provider" // "groq" | "gemini" | "local"
+        private const val KEY_SYNC_SERVER_URL = "sync_server_url"
+        private const val KEY_LAST_SYNC_TIMESTAMP = "last_sync_timestamp"
+        private const val KEY_SYNC_ENABLED = "sync_enabled"
+        private const val KEY_SYNC_HOUSEHOLD_ID = "sync_household_id"
+        private const val KEY_SYNC_EMAIL = "sync_email"
+        private const val KEY_SYNC_PASSWORD = "sync_password"
     }
+
+    var geminiApiKey: String
+        get() = prefs.getString(KEY_GEMINI_API_KEY, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_GEMINI_API_KEY, value).apply()
+
+    var groqApiKey: String
+        get() = prefs.getString(KEY_GROQ_API_KEY, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_GROQ_API_KEY, value).apply()
+
+    var aiEnabled: Boolean
+        get() = prefs.getBoolean(KEY_AI_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_AI_ENABLED, value).apply()
+
+    var aiProvider: String
+        get() = prefs.getString(KEY_AI_PROVIDER, "groq") ?: "groq"
+        set(value) = prefs.edit().putString(KEY_AI_PROVIDER, value).apply()
+
+    var syncServerUrl: String
+        get() = prefs.getString(KEY_SYNC_SERVER_URL, "http://161.153.219.141/finanzas/api/sync") ?: "http://161.153.219.141/finanzas/api/sync"
+        set(value) = prefs.edit().putString(KEY_SYNC_SERVER_URL, value).apply()
+
+    var lastSyncTimestamp: Long
+        get() = prefs.getLong(KEY_LAST_SYNC_TIMESTAMP, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_SYNC_TIMESTAMP, value).apply()
+
+    var syncEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SYNC_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_SYNC_ENABLED, value).apply()
+
+    var syncHouseholdId: String
+        get() = prefs.getString(KEY_SYNC_HOUSEHOLD_ID, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SYNC_HOUSEHOLD_ID, value).apply()
+
+    var syncEmail: String
+        get() = prefs.getString(KEY_SYNC_EMAIL, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SYNC_EMAIL, value).apply()
+
+    var syncPassword: String
+        get() = prefs.getString(KEY_SYNC_PASSWORD, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SYNC_PASSWORD, value).apply()
 
     fun obtenerTema(): Flow<TemaApp> = context.configuracionDataStore.data.map { preferences: Preferences ->
         when (preferences[TEMA_KEY]) {
@@ -87,5 +137,27 @@ class ConfiguracionPreferences @Inject constructor(
     
     fun obtenerClasificacionCargada(): Boolean {
         return prefs.getBoolean(KEY_CLASIFICACION_CARGADA, false)
+    }
+
+    fun guardarEmailConfig(config: com.aranthalion.controlfinanzas.data.remote.email.EmailConfig) {
+        prefs.edit().apply {
+            putString("email_host", config.host)
+            putInt("email_port", config.port)
+            putString("email_username", config.username)
+            putString("email_password", config.password)
+            putString("email_protocol", config.protocol)
+            putBoolean("email_use_ssl", config.useSSL)
+        }.apply()
+    }
+
+    fun obtenerEmailConfig(): com.aranthalion.controlfinanzas.data.remote.email.EmailConfig {
+        return com.aranthalion.controlfinanzas.data.remote.email.EmailConfig(
+            host = prefs.getString("email_host", "mail.recc.001webhospedaje.com") ?: "mail.recc.001webhospedaje.com",
+            port = prefs.getInt("email_port", 993),
+            username = prefs.getString("email_username", "recibemail@recc.001webhospedaje.com") ?: "recibemail@recc.001webhospedaje.com",
+            password = prefs.getString("email_password", "Gatochuchu") ?: "Gatochuchu",
+            protocol = prefs.getString("email_protocol", "imaps") ?: "imaps",
+            useSSL = prefs.getBoolean("email_use_ssl", true)
+        )
     }
 } 

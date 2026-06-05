@@ -150,7 +150,317 @@ fun ConfiguracionScreen(
                     }
                 }
             }
-            
+
+            item {
+                val enabled by viewModel.aiEnabled.collectAsState()
+                val groqKey by viewModel.groqApiKey.collectAsState()
+                val geminiKey by viewModel.geminiApiKey.collectAsState()
+                val provider by viewModel.aiProvider.collectAsState()
+
+                var localEnabled by remember(enabled) { mutableStateOf(enabled) }
+                var localGroqKey by remember(groqKey) { mutableStateOf(groqKey) }
+                var localGeminiKey by remember(geminiKey) { mutableStateOf(geminiKey) }
+                var localProvider by remember(provider) { mutableStateOf(provider) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Inteligencia Artificial",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Resúmenes inteligentes del mes",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = localEnabled,
+                                onCheckedChange = {
+                                    localEnabled = it
+                                    viewModel.guardarAiConfig(it, localGroqKey, localGeminiKey, localProvider)
+                                }
+                            )
+                        }
+
+                        if (localEnabled) {
+                            HorizontalDivider()
+
+                            Text(
+                                text = "Proveedor Preferido",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clickable {
+                                        localProvider = "groq"
+                                        viewModel.guardarAiConfig(localEnabled, localGroqKey, localGeminiKey, "groq")
+                                    }
+                                ) {
+                                    RadioButton(
+                                        selected = localProvider == "groq",
+                                        onClick = {
+                                            localProvider = "groq"
+                                            viewModel.guardarAiConfig(localEnabled, localGroqKey, localGeminiKey, "groq")
+                                        }
+                                    )
+                                    Text("Groq (Llama 3)", style = MaterialTheme.typography.bodyMedium)
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clickable {
+                                        localProvider = "gemini"
+                                        viewModel.guardarAiConfig(localEnabled, localGroqKey, localGeminiKey, "gemini")
+                                    }
+                                ) {
+                                    RadioButton(
+                                        selected = localProvider == "gemini",
+                                        onClick = {
+                                            localProvider = "gemini"
+                                            viewModel.guardarAiConfig(localEnabled, localGroqKey, localGeminiKey, "gemini")
+                                        }
+                                    )
+                                    Text("Gemini", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = localGroqKey,
+                                onValueChange = {
+                                    localGroqKey = it
+                                    viewModel.guardarAiConfig(localEnabled, it, localGeminiKey, localProvider)
+                                },
+                                label = { Text("Groq API Key") },
+                                placeholder = { Text("gsk_...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                trailingIcon = {
+                                    if (localGroqKey.isNotBlank()) {
+                                        IconButton(onClick = {
+                                            localGroqKey = ""
+                                            viewModel.guardarAiConfig(localEnabled, "", localGeminiKey, localProvider)
+                                        }) {
+                                            Icon(Icons.Default.Clear, contentDescription = "Limpiar")
+                                        }
+                                    }
+                                }
+                            )
+
+                            OutlinedTextField(
+                                value = localGeminiKey,
+                                onValueChange = {
+                                    localGeminiKey = it
+                                    viewModel.guardarAiConfig(localEnabled, localGroqKey, it, localProvider)
+                                },
+                                label = { Text("Gemini API Key") },
+                                placeholder = { Text("AIzaSy...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                trailingIcon = {
+                                    if (localGeminiKey.isNotBlank()) {
+                                        IconButton(onClick = {
+                                            localGeminiKey = ""
+                                            viewModel.guardarAiConfig(localEnabled, localGroqKey, "", localProvider)
+                                        }) {
+                                            Icon(Icons.Default.Clear, contentDescription = "Limpiar")
+                                        }
+                                    }
+                                }
+                            )
+
+                            Text(
+                                text = "Nota: Si ambos proveedores fallan o no tienen API keys, se usarán plantillas de análisis locales.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                val syncEnabled by viewModel.syncEnabled.collectAsState()
+                val syncServerUrl by viewModel.syncServerUrl.collectAsState()
+                val syncHouseholdId by viewModel.syncHouseholdId.collectAsState()
+                val syncEmail by viewModel.syncEmail.collectAsState()
+                val syncPassword by viewModel.syncPassword.collectAsState()
+                val lastSyncTimestamp by viewModel.lastSyncTimestamp.collectAsState()
+                val isSyncing by viewModel.isSyncing.collectAsState()
+                val syncStatus by viewModel.syncStatus.collectAsState()
+
+                var localSyncEnabled by remember(syncEnabled) { mutableStateOf(syncEnabled) }
+                var localSyncUrl by remember(syncServerUrl) { mutableStateOf(syncServerUrl) }
+                var localHouseholdId by remember(syncHouseholdId) { mutableStateOf(syncHouseholdId) }
+                var localEmail by remember(syncEmail) { mutableStateOf(syncEmail) }
+                var localPassword by remember(syncPassword) { mutableStateOf(syncPassword) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Sincronización Web",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Conecta con tu portal Zen Finanzas",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = localSyncEnabled,
+                                onCheckedChange = {
+                                    localSyncEnabled = it
+                                    viewModel.guardarSyncConfig(it, localSyncUrl, localHouseholdId, localEmail, localPassword)
+                                }
+                            )
+                        }
+
+                        if (localSyncEnabled) {
+                            HorizontalDivider()
+
+                            OutlinedTextField(
+                                value = localSyncUrl,
+                                onValueChange = {
+                                    localSyncUrl = it
+                                    viewModel.guardarSyncConfig(localSyncEnabled, it, localHouseholdId, localEmail, localPassword)
+                                },
+                                label = { Text("URL del Servidor de Sincronización") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = localHouseholdId,
+                                onValueChange = {
+                                    localHouseholdId = it
+                                    viewModel.guardarSyncConfig(localSyncEnabled, localSyncUrl, it, localEmail, localPassword)
+                                },
+                                label = { Text("Hogar ID (Household CUID)") },
+                                placeholder = { Text("c... ") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = localEmail,
+                                onValueChange = {
+                                    localEmail = it
+                                    viewModel.guardarSyncConfig(localSyncEnabled, localSyncUrl, localHouseholdId, it, localPassword)
+                                },
+                                label = { Text("Email de Usuario Zen Finanzas") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = localPassword,
+                                onValueChange = {
+                                    localPassword = it
+                                    viewModel.guardarSyncConfig(localSyncEnabled, localSyncUrl, localHouseholdId, localEmail, it)
+                                },
+                                label = { Text("Contraseña de Usuario") },
+                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            Button(
+                                onClick = { viewModel.ejecutarSincronizacion() },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isSyncing && localHouseholdId.isNotBlank() && localSyncUrl.isNotBlank() && localEmail.isNotBlank() && localPassword.isNotBlank()
+                            ) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Sincronizando...")
+                                } else {
+                                    Text("Sincronizar Ahora")
+                                }
+                            }
+
+                            if (syncStatus.isNotBlank()) {
+                                Text(
+                                    text = syncStatus,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (syncStatus.startsWith("Error")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            if (lastSyncTimestamp > 0L) {
+                                val dateStr = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(lastSyncTimestamp))
+                                Text(
+                                    text = "Última sincronización: $dateStr",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -226,7 +536,14 @@ fun ConfiguracionScreen(
                             subtitle = "Información de la aplicación",
                             onClick = { /* TODO */ }
                         )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        ConfiguracionItem(
+                            icon = Icons.Default.Email,
+                            title = "Consultar Correos",
+                            subtitle = "Configurar e importar movimientos de tu correo",
+                            onClick = { navController.navigate("email_sync") }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         ConfiguracionItem(
                             icon = Icons.Default.List,
                             title = "Auditoría de Base de Datos",

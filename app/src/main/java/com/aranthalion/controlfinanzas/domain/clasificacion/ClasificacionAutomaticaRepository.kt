@@ -48,7 +48,8 @@ sealed class ResultadoClasificacion {
         val categoriaId: Long,
         val confianza: Double,
         val patron: String,
-        val tipoCoincidencia: TipoCoincidencia
+        val tipoCoincidencia: TipoCoincidencia,
+        val sugerenciasAlternativas: List<SugerenciaClasificacion> = emptyList()
     ) : ResultadoClasificacion()
     
     data class BajaConfianza(

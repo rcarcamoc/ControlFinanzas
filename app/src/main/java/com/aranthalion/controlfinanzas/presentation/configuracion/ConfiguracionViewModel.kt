@@ -18,10 +18,48 @@ enum class TemaApp {
 
 @HiltViewModel
 class ConfiguracionViewModel @Inject constructor(
-    private val prefs: ConfiguracionPreferences
+    private val prefs: ConfiguracionPreferences,
+    private val syncService: SyncService
 ) : ViewModel() {
     private val _temaSeleccionado = MutableStateFlow(TemaApp.NARANJA)
     val temaSeleccionado: StateFlow<TemaApp> = _temaSeleccionado.asStateFlow()
+
+    private val _aiEnabled = MutableStateFlow(prefs.aiEnabled)
+    val aiEnabled: StateFlow<Boolean> = _aiEnabled.asStateFlow()
+
+    private val _groqApiKey = MutableStateFlow(prefs.groqApiKey)
+    val groqApiKey: StateFlow<String> = _groqApiKey.asStateFlow()
+
+    private val _geminiApiKey = MutableStateFlow(prefs.geminiApiKey)
+    val geminiApiKey: StateFlow<String> = _geminiApiKey.asStateFlow()
+
+    private val _aiProvider = MutableStateFlow(prefs.aiProvider)
+    val aiProvider: StateFlow<String> = _aiProvider.asStateFlow()
+
+    // Sync state flows
+    private val _syncEnabled = MutableStateFlow(prefs.syncEnabled)
+    val syncEnabled: StateFlow<Boolean> = _syncEnabled.asStateFlow()
+
+    private val _syncServerUrl = MutableStateFlow(prefs.syncServerUrl)
+    val syncServerUrl: StateFlow<String> = _syncServerUrl.asStateFlow()
+
+    private val _syncHouseholdId = MutableStateFlow(prefs.syncHouseholdId)
+    val syncHouseholdId: StateFlow<String> = _syncHouseholdId.asStateFlow()
+
+    private val _syncEmail = MutableStateFlow(prefs.syncEmail)
+    val syncEmail: StateFlow<String> = _syncEmail.asStateFlow()
+
+    private val _syncPassword = MutableStateFlow(prefs.syncPassword)
+    val syncPassword: StateFlow<String> = _syncPassword.asStateFlow()
+
+    private val _lastSyncTimestamp = MutableStateFlow(prefs.lastSyncTimestamp)
+    val lastSyncTimestamp: StateFlow<Long> = _lastSyncTimestamp.asStateFlow()
+
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _syncStatus = MutableStateFlow("")
+    val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
     init {
         prefs.obtenerTema().onEach { tema ->
@@ -33,6 +71,47 @@ class ConfiguracionViewModel @Inject constructor(
         viewModelScope.launch {
             prefs.guardarTema(tema)
             _temaSeleccionado.value = tema
+        }
+    }
+
+    fun guardarAiConfig(enabled: Boolean, groqKey: String, geminiKey: String, provider: String) {
+        prefs.aiEnabled = enabled
+        prefs.groqApiKey = groqKey.trim()
+        prefs.geminiApiKey = geminiKey.trim()
+        prefs.aiProvider = provider
+
+        _aiEnabled.value = enabled
+        _groqApiKey.value = groqKey.trim()
+        _geminiApiKey.value = geminiKey.trim()
+        _aiProvider.value = provider
+    }
+
+    fun guardarSyncConfig(enabled: Boolean, url: String, householdId: String, email: String, password: String) {
+        prefs.syncEnabled = enabled
+        prefs.syncServerUrl = url.trim()
+        prefs.syncHouseholdId = householdId.trim()
+        prefs.syncEmail = email.trim()
+        prefs.syncPassword = password.trim()
+
+        _syncEnabled.value = enabled
+        _syncServerUrl.value = url.trim()
+        _syncHouseholdId.value = householdId.trim()
+        _syncEmail.value = email.trim()
+        _syncPassword.value = password.trim()
+    }
+
+    fun ejecutarSincronizacion() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            _syncStatus.value = "Sincronizando..."
+            val result = syncService.sincronizar()
+            _isSyncing.value = false
+            result.onSuccess { msg ->
+                _syncStatus.value = msg
+                _lastSyncTimestamp.value = prefs.lastSyncTimestamp
+            }.onFailure { err ->
+                _syncStatus.value = "Error: ${err.message ?: "Falló la conexión"}"
+            }
         }
     }
 

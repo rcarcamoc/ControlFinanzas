@@ -22,4 +22,7 @@ interface PresupuestoCategoriaDao {
 
     @Query("SELECT SUM(monto) FROM presupuesto_categoria WHERE periodo = :periodo")
     suspend fun obtenerSumaTotalPresupuesto(periodo: String): Double?
+
+    @Query("SELECT * FROM presupuesto_categoria ORDER BY periodo DESC")
+    suspend fun obtenerTodosLosPresupuestos(): List<PresupuestoCategoriaEntity>
 } 

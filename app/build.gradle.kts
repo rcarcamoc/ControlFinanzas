@@ -33,11 +33,18 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/NOTICE.md"
+        }
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
@@ -99,4 +106,14 @@ dependencies {
     // DataStore Preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Google Generative AI (Gemini) SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // OkHttp para llamadas HTTP a APIs de IA (Groq, etc.)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // JavaMail / Jakarta Mail compatible with Android
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
 }

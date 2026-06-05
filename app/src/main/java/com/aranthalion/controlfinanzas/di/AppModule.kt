@@ -44,6 +44,7 @@ import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificaci
 import com.aranthalion.controlfinanzas.domain.movimiento.GestionarMovimientosManualesUseCase
 import com.aranthalion.controlfinanzas.domain.categoria.GestionarCategoriasUseCase
 import com.aranthalion.controlfinanzas.domain.usecase.InsightsAvanzadosUseCase
+import com.aranthalion.controlfinanzas.data.remote.ai.AiAnalisisService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -315,9 +316,15 @@ abstract class AppModule {
         @Provides
         @Singleton
         fun provideGestionarClasificacionAutomaticaUseCase(
-            clasificacionRepository: ClasificacionAutomaticaRepository
+            clasificacionRepository: ClasificacionAutomaticaRepository,
+            geminiClasificadorService: com.aranthalion.controlfinanzas.data.remote.ai.GeminiClasificadorService,
+            categoriaRepository: CategoriaRepository
         ): GestionarClasificacionAutomaticaUseCase {
-            return GestionarClasificacionAutomaticaUseCase(clasificacionRepository)
+            return GestionarClasificacionAutomaticaUseCase(
+                clasificacionRepository,
+                geminiClasificadorService,
+                categoriaRepository
+            )
         }
 
         @Provides

@@ -11,12 +11,10 @@ import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
-import com.aranthalion.controlfinanzas.presentation.screens.AnalisisGastoPorCategoriaScreen
 import com.aranthalion.controlfinanzas.presentation.screens.PresupuestosYCategoriasScreen
 import com.aranthalion.controlfinanzas.presentation.screens.FirstRunScreen
 import com.aranthalion.controlfinanzas.presentation.screens.UsuariosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.CuentasPorCobrarScreen
-import com.aranthalion.controlfinanzas.presentation.screens.InsightsAvanzadosScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AuditoriaDatabaseScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ClasificacionAutomaticaDebugScreen
 import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesImportExportScreen
@@ -40,14 +38,28 @@ fun AppNavigation(navController: NavHostController) {
             composable("categorias") {
                 PresupuestosYCategoriasScreen(navController = navController)
             }
-            composable("transacciones") {
-                TransaccionesScreen()
+            composable(
+                route = "transacciones?categoriaId={categoriaId}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("categoriaId") {
+                        type = androidx.navigation.NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                val catId = backStackEntry.arguments?.getLong("categoriaId") ?: -1L
+                TransaccionesScreen(categoriaId = if (catId == -1L) null else catId)
             }
             composable("importar_excel") { 
                 ImportarExcelScreen() 
             }
             composable("configuracion") {
                 ConfiguracionScreen(navController = navController)
+            }
+            composable("email_sync") {
+                com.aranthalion.controlfinanzas.presentation.screens.email.EmailSyncScreen(
+                    onNavigateBack = { navController.navigateUp() }
+                )
             }
 
             composable("dashboardAnalisis") {
@@ -59,17 +71,11 @@ fun AppNavigation(navController: NavHostController) {
             composable("presupuestos") {
                 PresupuestosYCategoriasScreen(navController = navController)
             }
-            composable("analisis_gasto_categoria") {
-                AnalisisGastoPorCategoriaScreen(navController = navController)
-            }
             composable("usuarios") {
                 UsuariosScreen(navController = navController)
             }
             composable("cuentas_por_cobrar") {
                 CuentasPorCobrarScreen(navController = navController)
-            }
-            composable("insights_avanzados") {
-                InsightsAvanzadosScreen(navController = navController)
             }
             composable("auditoria_database") {
                 AuditoriaDatabaseScreen(

@@ -153,10 +153,11 @@ object ClasificacionNormalizer {
      */
     fun buscarCoincidenciaParcial(descripcion: String, historial: Map<String, Long>): Pair<Long, Double>? {
         val normalizada = normalizarDescripcion(descripcion)
+        if (normalizada.isBlank()) return null
         
         // Buscar si la descripción contiene algún patrón del historial
         for ((patron, categoriaId) in historial) {
-            if (normalizada.contains(patron) || patron.contains(normalizada)) {
+            if (patron.isNotBlank() && (normalizada.contains(patron) || patron.contains(normalizada))) {
                 Log.d("ClasificacionNormalizer", "🎯 Coincidencia parcial: '$descripcion' contiene '$patron'")
                 return categoriaId to UMBRAL_COINCIDENCIA_PARCIAL
             }
@@ -170,10 +171,12 @@ object ClasificacionNormalizer {
      */
     fun buscarCoincidenciaFuzzy(descripcion: String, historial: Map<String, Long>): Pair<Long, Double>? {
         val normalizada = normalizarDescripcion(descripcion)
+        if (normalizada.isBlank()) return null
         var mejorCoincidencia: Pair<Long, Double>? = null
         var mejorSimilitud = 0.0
         
         for ((patron, categoriaId) in historial) {
+            if (patron.isBlank()) continue
             val similitud = calcularSimilitud(normalizada, patron)
             if (similitud > mejorSimilitud && similitud >= UMBRAL_FUZZY_MEDIA) {
                 mejorSimilitud = similitud

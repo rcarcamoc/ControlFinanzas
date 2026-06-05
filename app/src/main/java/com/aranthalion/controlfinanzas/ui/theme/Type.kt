@@ -37,30 +37,30 @@ val Typography = Typography(
         letterSpacing = 0.sp
     ),
     
-    // Título grande - 18sp, Bold
+    // Título grande - 22sp, SemiBold
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    
+    // Título medio - 18sp, SemiBold
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.sp
     ),
     
-    // Título medio - 16sp, Bold
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.sp
-    ),
-    
-    // Título pequeño - 14sp, Bold
+    // Título pequeño - 16sp, Bold
     headlineSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
         letterSpacing = 0.sp
     ),
     
@@ -118,13 +118,13 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     ),
     
-    // Texto de Input - 14sp, Normal
+    // Texto de Input - 16sp, Normal
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.sp
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.15.sp
     ),
     
     // Descripción de Tarjeta/Página - 14sp, Normal, color muted-foreground
