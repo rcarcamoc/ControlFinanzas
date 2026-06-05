@@ -7,121 +7,6 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import java.util.*
 import javax.inject.Inject
 import kotlin.math.abs
-import kotlin.math.sqrt
-import kotlin.math.pow
-
-data class ResumenFinanciero(
-    val ingresos: Double,
-    val gastos: Double,
-    val balance: Double,
-    val cantidadTransacciones: Int,
-    val tasaAhorro: Double
-)
-
-data class TendenciaMensual(
-    val periodo: String,
-    val ingresos: Double,
-    val gastos: Double,
-    val balance: Double,
-    val tasaAhorro: Double
-)
-
-data class AnalisisCategoria(
-    val categoriaId: Long,
-    val nombreCategoria: String,
-    val totalGastado: Double,
-    val porcentajeDelTotal: Double,
-    val promedioDiario: Double,
-    val tendencia: String // "AUMENTO", "DISMINUCION", "ESTABLE"
-)
-
-data class PrediccionGasto(
-    val categoriaId: Long,
-    val nombreCategoria: String,
-    val prediccion: Double,
-    val intervaloConfianza: Pair<Double, Double>,
-    val confiabilidad: Double
-)
-
-data class KPIFinanciero(
-    val nivel: Int, // 1: Resumen ejecutivo, 2: Tendencias, 3: Detalle
-    val titulo: String,
-    val valor: String,
-    val descripcion: String,
-    val tendencia: String? = null,
-    val color: String = "primary"
-)
-
-// Nuevas estructuras para análisis avanzado
-data class AnalisisTendenciaTemporal(
-    val periodo: String,
-    val valor: Double,
-    val movingAverage: Double,
-    val tendencia: String,
-    val volatilidad: Double,
-    val esOutlier: Boolean
-)
-
-data class AnalisisVolatilidad(
-    val categoriaId: Long,
-    val nombreCategoria: String,
-    val desviacionEstandar: Double,
-    val coeficienteVariacion: Double,
-    val nivelVolatilidad: String // "BAJA", "MEDIA", "ALTA"
-)
-
-data class ComparacionPeriodo(
-    val periodoActual: String,
-    val periodoAnterior: String,
-    val cambioIngresos: Double,
-    val cambioGastos: Double,
-    val cambioBalance: Double,
-    val cambioTasaAhorro: Double,
-    val tendencia: String
-)
-
-data class GastoInusual(
-    val movimientoId: Long,
-    val descripcion: String,
-    val monto: Double,
-    val categoria: String,
-    val fecha: Date,
-    val desviacion: Double,
-    val factorInusual: Double
-)
-
-data class MetricasRendimiento(
-    val ratioLiquidez: Double,
-    val ratioGastosFijos: Double,
-    val ratioAhorro: Double,
-    val indiceEstabilidad: Double,
-    val scoreFinanciero: Int // 0-100
-)
-
-// Nuevo modelo para análisis histórico
-data class ResumenHistoricoCategoria(
-    val categoriaId: Long,
-    val nombreCategoria: String,
-    val gastoPromedioMensual: Double,
-    val desviacionEstandar: Double,
-    val gastoMaximo: Double,
-    val gastoMinimo: Double,
-    val mesesAnalizados: Int,
-    val tendencia: String // "AUMENTO", "DISMINUCION", "ESTABLE"
-)
-
-// Modelo para presupuesto con análisis de brecha
-data class PresupuestoConBrecha(
-    val categoriaId: Long,
-    val nombreCategoria: String,
-    val presupuesto: Double,
-    val gastoActual: Double,
-    val porcentajeGastado: Double,
-    val brechaPresupuesto: Double, // Diferencia vs presupuesto
-    val ritmoHistorico: Double, // % vs promedio histórico
-    val diasRestantes: Int, // Días restantes en el mes
-    val proyeccionMensual: Double // Proyección basada en ritmo actual
-)
 
 class AnalisisFinancieroUseCase @Inject constructor(
     private val movimientoRepository: MovimientoRepository,
@@ -130,25 +15,8 @@ class AnalisisFinancieroUseCase @Inject constructor(
     
     suspend fun obtenerResumenFinanciero(fechaInicio: Date, fechaFin: Date): ResumenFinanciero {
         val movimientos = movimientoRepository.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
-        
-        // Excluir transacciones de tipo OMITIR de todos los cálculos
         val movimientosFiltrados = movimientos.filter { it.tipo != TipoMovimiento.OMITIR.name }
-        
-        val ingresos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
-        // Para gastos, sumamos todos los valores (positivos y negativos)
-        // Los negativos representan reversas y reducen el gasto total
-        val gastos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
-        val balance = ingresos - abs(gastos)
-        val cantidadTransacciones = movimientosFiltrados.size
-        val tasaAhorro = if (ingresos > 0) (balance / ingresos) * 100 else 0.0
-        
-        return ResumenFinanciero(
-            ingresos = ingresos,
-            gastos = gastos,
-            balance = balance,
-            cantidadTransacciones = cantidadTransacciones,
-            tasaAhorro = tasaAhorro
-        )
+        return AnalisisFinancieroHelper.calcularResumen(movimientosFiltrados)
     }
 
     /**
@@ -193,7 +61,7 @@ class AnalisisFinancieroUseCase @Inject constructor(
         
         val totalGastos = gastosDelPeriodo.sumOf { abs(it.monto) }
         
-        val analisisPorCategoria = gastosDelPeriodo
+        return gastosDelPeriodo
             .groupBy { it.categoriaId }
             .map { (categoriaId, movimientos) ->
                 val categoria = categorias.find { it.id == categoriaId }
@@ -211,8 +79,6 @@ class AnalisisFinancieroUseCase @Inject constructor(
                 )
             }
             .sortedByDescending { it.totalGastado }
-        
-        return analisisPorCategoria
     }
 
     /**
@@ -220,14 +86,15 @@ class AnalisisFinancieroUseCase @Inject constructor(
      */
     suspend fun obtenerPrediccionesGasto(periodoActual: String): List<PrediccionGasto> {
         val categorias = movimientoRepository.obtenerCategorias()
+        val movimientos = movimientoRepository.obtenerMovimientos()
         val predicciones = mutableListOf<PrediccionGasto>()
         
         for (categoria in categorias) {
-            val historial = obtenerHistorialCategoria(categoria.id, 3) // Últimos 3 meses
+            val historial = AnalisisFinancieroHelper.extraerHistorialCategoria(movimientos, categoria.id, 3) // Últimos 3 meses
             if (historial.isNotEmpty()) {
-                val prediccion = calcularPrediccionLineal(historial)
-                val intervalo = calcularIntervaloConfianza(historial, prediccion)
-                val confiabilidad = calcularConfiabilidad(historial)
+                val prediccion = AnalisisFinancieroHelper.calcularPrediccionLineal(historial)
+                val intervalo = AnalisisFinancieroHelper.calcularIntervaloConfianza(historial, prediccion)
+                val confiabilidad = AnalisisFinancieroHelper.calcularConfiabilidad(historial)
                 
                 predicciones.add(
                     PrediccionGasto(
@@ -269,7 +136,7 @@ class AnalisisFinancieroUseCase @Inject constructor(
         // Nivel 2: Tendencias
         val tendencias = obtenerTendenciasMensuales(3)
         if (tendencias.size >= 2) {
-            val tendenciaGastos = calcularTendencia(tendencias.map { it.gastos })
+            val tendenciaGastos = AnalisisFinancieroHelper.calcularTendencia(tendencias.map { it.gastos })
             kpis.add(KPIFinanciero(2, "Tendencia Gastos", 
                 tendenciaGastos, 
                 "Evolución de gastos últimos 3 meses",
@@ -291,8 +158,6 @@ class AnalisisFinancieroUseCase @Inject constructor(
         return kpis
     }
 
-    // NUEVOS MÉTODOS PARA ANÁLISIS AVANZADO
-
     /**
      * Analiza tendencias temporales con moving averages y detección de outliers
      */
@@ -302,15 +167,17 @@ class AnalisisFinancieroUseCase @Inject constructor(
     ): List<AnalisisTendenciaTemporal> {
         val historial = mutableListOf<AnalisisTendenciaTemporal>()
         val calendar = Calendar.getInstance()
+        val movimientos = movimientoRepository.obtenerMovimientos()
         
         for (i in 0 until meses) {
-            calendar.add(Calendar.MONTH, -i)
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH) + 1
+            val cal = calendar.clone() as Calendar
+            cal.add(Calendar.MONTH, -i)
+            val year = cal.get(Calendar.YEAR)
+            val month = cal.get(Calendar.MONTH) + 1
             val periodo = String.format("%04d-%02d", year, month)
             
             val valor = if (categoriaId != null) {
-                obtenerGastoCategoriaPeriodo(categoriaId, periodo)
+                AnalisisFinancieroHelper.extraerGastoCategoriaPeriodo(movimientos, categoriaId, periodo)
             } else {
                 obtenerResumenFinancieroPorPeriodo(periodo).gastos
             }
@@ -328,16 +195,16 @@ class AnalisisFinancieroUseCase @Inject constructor(
         }
         
         val valores = historial.map { it.valor }
-        val movingAverage = calcularMovingAverage(valores, 3)
-        val volatilidad = calcularVolatilidad(valores)
-        val outliers = detectarOutliers(valores)
+        val movingAverage = AnalisisFinancieroHelper.calcularMovingAverage(valores, 3)
+        val volatilidad = AnalisisFinancieroHelper.calcularVolatilidad(valores)
+        val outliers = AnalisisFinancieroHelper.detectarOutliers(valores)
         
         return historial.mapIndexed { index, item ->
             item.copy(
                 movingAverage = movingAverage.getOrNull(index) ?: item.valor,
                 volatilidad = volatilidad,
                 esOutlier = outliers.contains(index),
-                tendencia = calcularTendencia(valores.take(index + 1))
+                tendencia = AnalisisFinancieroHelper.calcularTendencia(valores.take(index + 1))
             )
         }.reversed()
     }
@@ -347,12 +214,13 @@ class AnalisisFinancieroUseCase @Inject constructor(
      */
     suspend fun obtenerAnalisisVolatilidad(periodo: String): List<AnalisisVolatilidad> {
         val categorias = movimientoRepository.obtenerCategorias()
+        val movimientos = movimientoRepository.obtenerMovimientos()
         val analisis = mutableListOf<AnalisisVolatilidad>()
         
         for (categoria in categorias) {
-            val historial = obtenerHistorialCategoria(categoria.id, 6) // Últimos 6 meses
+            val historial = AnalisisFinancieroHelper.extraerHistorialCategoria(movimientos, categoria.id, 6) // Últimos 6 meses
             if (historial.size >= 3) {
-                val desviacionEstandar = calcularDesviacionEstandar(historial)
+                val desviacionEstandar = AnalisisFinancieroHelper.calcularDesviacionEstandar(historial)
                 val promedio = historial.average()
                 val coeficienteVariacion = if (promedio > 0) desviacionEstandar / promedio else 0.0
                 
@@ -380,7 +248,9 @@ class AnalisisFinancieroUseCase @Inject constructor(
      */
     suspend fun obtenerComparacionPeriodo(periodoActual: String): ComparacionPeriodo? {
         val calendar = Calendar.getInstance()
-        val (year, month) = parsePeriodo(periodoActual)
+        val partes = periodoActual.split("-")
+        val year = partes[0].toInt()
+        val month = partes[1].toInt()
         
         calendar.set(year, month - 2, 1) // Mes anterior
         val periodoAnterior = String.format("%04d-%02d", 
@@ -391,9 +261,9 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val resumenActual = obtenerResumenFinancieroPorPeriodo(periodoActual)
         val resumenAnterior = obtenerResumenFinancieroPorPeriodo(periodoAnterior)
         
-        val cambioIngresos = calcularCambioPorcentual(resumenAnterior.ingresos, resumenActual.ingresos)
-        val cambioGastos = calcularCambioPorcentual(resumenAnterior.gastos, resumenActual.gastos)
-        val cambioBalance = calcularCambioPorcentual(resumenAnterior.balance, resumenActual.balance)
+        val cambioIngresos = AnalisisFinancieroHelper.calcularCambioPorcentual(resumenAnterior.ingresos, resumenActual.ingresos)
+        val cambioGastos = AnalisisFinancieroHelper.calcularCambioPorcentual(resumenAnterior.gastos, resumenActual.gastos)
+        val cambioBalance = AnalisisFinancieroHelper.calcularCambioPorcentual(resumenAnterior.balance, resumenActual.balance)
         val cambioTasaAhorro = resumenActual.tasaAhorro - resumenAnterior.tasaAhorro
         
         return ComparacionPeriodo(
@@ -427,11 +297,11 @@ class AnalisisFinancieroUseCase @Inject constructor(
         
         for (gasto in gastosDelPeriodo) {
             val categoria = categorias.find { it.id == gasto.categoriaId }
-            val historialCategoria = obtenerHistorialCategoria(gasto.categoriaId ?: 0, 3)
+            val historialCategoria = AnalisisFinancieroHelper.extraerHistorialCategoria(movimientos, gasto.categoriaId ?: 0, 3)
             
             if (historialCategoria.isNotEmpty()) {
                 val promedio = historialCategoria.average()
-                val desviacion = calcularDesviacionEstandar(historialCategoria)
+                val desviacion = AnalisisFinancieroHelper.calcularDesviacionEstandar(historialCategoria)
                 val montoAbsoluto = abs(gasto.monto)
                 val zScore = if (desviacion > 0) (montoAbsoluto - promedio) / desviacion else 0.0
                 
@@ -465,7 +335,7 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val ratioLiquidez = if (resumen.gastos > 0) resumen.ingresos / resumen.gastos else 0.0
         
         // Ratio de gastos fijos (gastos en categorías esenciales / ingresos)
-        val gastosFijos = presupuestos.filter { it.categoriaId in listOf(1L, 2L, 3L) } // Ejemplo: vivienda, alimentación, transporte
+        val gastosFijos = presupuestos.filter { it.categoriaId in listOf(1L, 2L, 3L) }
             .sumOf { it.monto }
         val ratioGastosFijos = if (resumen.ingresos > 0) gastosFijos / resumen.ingresos else 0.0
         
@@ -475,12 +345,12 @@ class AnalisisFinancieroUseCase @Inject constructor(
         // Índice de estabilidad (basado en volatilidad de gastos)
         val tendencias = obtenerTendenciasMensuales(3)
         val volatilidad = if (tendencias.size >= 2) {
-            calcularVolatilidad(tendencias.map { it.gastos })
+            AnalisisFinancieroHelper.calcularVolatilidad(tendencias.map { it.gastos })
         } else 0.0
         val indiceEstabilidad = (1 - volatilidad).coerceIn(0.0, 1.0)
         
         // Score financiero (0-100)
-        val scoreFinanciero = calcularScoreFinanciero(
+        val scoreFinanciero = AnalisisFinancieroHelper.calcularScoreFinanciero(
             ratioLiquidez, ratioGastosFijos, ratioAhorro, indiceEstabilidad
         )
         
@@ -493,23 +363,11 @@ class AnalisisFinancieroUseCase @Inject constructor(
         )
     }
 
-    // Métodos auxiliares privados
     suspend fun obtenerResumenFinancieroPorPeriodo(periodo: String): ResumenFinanciero {
         val movimientos = movimientoRepository.obtenerMovimientos()
         val movimientosDelPeriodo = movimientos.filter { it.periodoFacturacion == periodo }
-        
-        // Excluir transacciones de tipo OMITIR de todos los cálculos
         val movimientosFiltrados = movimientosDelPeriodo.filter { it.tipo != TipoMovimiento.OMITIR.name }
-        
-        val ingresos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.INGRESO.name }.sumOf { it.monto }
-        // Para gastos, sumamos todos los valores (positivos y negativos)
-        // Los negativos representan reversas y reducen el gasto total
-        val gastos = movimientosFiltrados.filter { it.tipo == TipoMovimiento.GASTO.name }.sumOf { it.monto }
-        val balance = ingresos - abs(gastos)
-        val cantidadTransacciones = movimientosFiltrados.size
-        val tasaAhorro = if (ingresos > 0) (balance / ingresos) * 100 else 0.0
-        
-        return ResumenFinanciero(ingresos, gastos, balance, cantidadTransacciones, tasaAhorro)
+        return AnalisisFinancieroHelper.calcularResumen(movimientosFiltrados)
     }
 
     /**
@@ -530,7 +388,7 @@ class AnalisisFinancieroUseCase @Inject constructor(
             
             // Obtener gastos de los últimos N meses
             for (i in 0 until mesesHistorico) {
-                val periodo = calcularPeriodoAnterior(periodoActual, i)
+                val periodo = AnalisisFinancieroHelper.calcularPeriodoAnterior(periodoActual, i)
                 val gastosDelPeriodo = movimientos.filter { 
                     it.periodoFacturacion == periodo &&
                     it.categoriaId == categoria.id &&
@@ -547,10 +405,10 @@ class AnalisisFinancieroUseCase @Inject constructor(
             
             if (gastosCategoria.isNotEmpty()) {
                 val promedio = gastosCategoria.average()
-                val desviacion = calcularDesviacionEstandar(gastosCategoria)
+                val desviacion = AnalisisFinancieroHelper.calcularDesviacionEstandar(gastosCategoria)
                 val maximo = gastosCategoria.maxOrNull() ?: 0.0
                 val minimo = gastosCategoria.minOrNull() ?: 0.0
-                val tendencia = calcularTendenciaHistorica(gastosCategoria)
+                val tendencia = AnalisisFinancieroHelper.calcularTendenciaHistorica(gastosCategoria)
                 
                 historico.add(
                     ResumenHistoricoCategoria(
@@ -574,14 +432,14 @@ class AnalisisFinancieroUseCase @Inject constructor(
      * Obtiene presupuestos con análisis de brecha vs gasto actual
      */
     suspend fun obtenerPresupuestosConBrecha(periodo: String): List<PresupuestoConBrecha> {
-        val presupuestos = presupuestoRepository.obtenerPresupuestosPorPeriodo(periodo)
+        val budgets = presupuestoRepository.obtenerPresupuestosPorPeriodo(periodo)
         val categorias = movimientoRepository.obtenerCategorias()
         val movimientos = movimientoRepository.obtenerMovimientos()
         val historico = obtenerHistoricoGasto(periodo)
         
-        val presupuestosConBrecha = mutableListOf<PresupuestoConBrecha>()
+        val result = mutableListOf<PresupuestoConBrecha>()
         
-        for (presupuesto in presupuestos) {
+        for (presupuesto in budgets) {
             val categoria = categorias.find { it.id == presupuesto.categoriaId }
             if (categoria != null) {
                 // Calcular gasto actual
@@ -606,13 +464,13 @@ class AnalisisFinancieroUseCase @Inject constructor(
                 } else 100.0
                 
                 // Calcular días restantes y proyección
-                val diasRestantes = calcularDiasRestantes(periodo)
+                val diasRestantes = AnalisisFinancieroHelper.calcularDiasRestantes(periodo)
                 val diasTranscurridos = 30 - diasRestantes
                 val proyeccionMensual = if (diasTranscurridos > 0) {
                     (gastoActual / diasTranscurridos) * 30
                 } else gastoActual
                 
-                presupuestosConBrecha.add(
+                result.add(
                     PresupuestoConBrecha(
                         categoriaId = presupuesto.categoriaId,
                         nombreCategoria = categoria.nombre,
@@ -628,234 +486,10 @@ class AnalisisFinancieroUseCase @Inject constructor(
             }
         }
         
-        return presupuestosConBrecha.sortedByDescending { it.porcentajeGastado }
+        return result.sortedByDescending { it.porcentajeGastado }
     }
 
-    // Métodos auxiliares privados
     private suspend fun calcularTendenciaCategoria(categoriaId: Long?, periodo: String): String {
-        // Implementación simplificada - en producción usar análisis estadístico
         return "ESTABLE"
-    }
-
-    private suspend fun obtenerHistorialCategoria(categoriaId: Long, meses: Int): List<Double> {
-        val historial = mutableListOf<Double>()
-        val calendar = Calendar.getInstance()
-        
-        for (i in 0 until meses) {
-            calendar.add(Calendar.MONTH, -i)
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH) + 1
-            val periodo = String.format("%04d-%02d", year, month)
-            
-            val movimientos = movimientoRepository.obtenerMovimientos()
-            val gastosCategoria = movimientos.filter { 
-                it.categoriaId == categoriaId && 
-                it.tipo == TipoMovimiento.GASTO.name && 
-                it.periodoFacturacion == periodo 
-            }
-            
-            // Excluir transacciones de tipo OMITIR de todos los cálculos
-            val gastosCategoriaFiltrados = gastosCategoria.filter { it.tipo != TipoMovimiento.OMITIR.name }
-            
-            // Para gastos, sumamos todos los valores (positivos y negativos)
-            // Los negativos representan reversas y reducen el gasto total
-            val gastoTotal = gastosCategoriaFiltrados.sumOf { it.monto }
-            historial.add(abs(gastoTotal))
-        }
-        
-        return historial.reversed()
-    }
-
-    private fun calcularPrediccionLineal(historial: List<Double>): Double {
-        if (historial.size < 2) return historial.lastOrNull() ?: 0.0
-        
-        // Regresión lineal simple
-        val n = historial.size
-        val sumX = (0 until n).sum()
-        val sumY = historial.sum()
-        val sumXY = historial.mapIndexed { index, value -> index * value }.sum()
-        val sumX2 = (0 until n).map { it * it }.sum()
-        
-        val pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX).toDouble()
-        val intercepto = (sumY - pendiente * sumX) / n
-        
-        return pendiente * n + intercepto
-    }
-
-    private fun calcularIntervaloConfianza(historial: List<Double>, prediccion: Double): Pair<Double, Double> {
-        val desviacion = sqrt(historial.map { Math.pow(it - historial.average(), 2.0) }.average())
-        val margen = desviacion * 1.96 // 95% de confianza
-        return Pair(prediccion - margen, prediccion + margen)
-    }
-
-    private fun calcularConfiabilidad(historial: List<Double>): Double {
-        if (historial.size < 2) return 0.0
-        
-        val promedio = historial.average()
-        val variabilidad = historial.map { abs(it - promedio) / promedio }.average()
-        return (1 - variabilidad).coerceIn(0.0, 1.0)
-    }
-
-    private fun calcularTendencia(valores: List<Double>): String {
-        if (valores.size < 2) return "ESTABLE"
-        
-        val primerValor = valores.first()
-        val ultimoValor = valores.last()
-        val cambio = ((ultimoValor - primerValor) / primerValor) * 100
-        
-        return when {
-            cambio > 10 -> "AUMENTO"
-            cambio < -10 -> "DISMINUCION"
-            else -> "ESTABLE"
-        }
-    }
-
-    // NUEVOS MÉTODOS AUXILIARES PARA ANÁLISIS AVANZADO
-
-    private suspend fun obtenerGastoCategoriaPeriodo(categoriaId: Long, periodo: String): Double {
-        val movimientos = movimientoRepository.obtenerMovimientos()
-        val gastosCategoria = movimientos.filter { 
-            it.categoriaId == categoriaId && 
-            it.tipo == TipoMovimiento.GASTO.name && 
-            it.periodoFacturacion == periodo 
-        }
-        
-        // Excluir transacciones de tipo OMITIR de todos los cálculos
-        val gastosCategoriaFiltrados = gastosCategoria.filter { it.tipo != TipoMovimiento.OMITIR.name }
-        
-        // Para gastos, sumamos todos los valores (positivos y negativos)
-        // Los negativos representan reversas y reducen el gasto total
-        val gastoTotal = gastosCategoriaFiltrados.sumOf { it.monto }
-        return abs(gastoTotal)
-    }
-
-    private fun calcularMovingAverage(valores: List<Double>, ventana: Int): List<Double> {
-        if (valores.size < ventana) return valores
-        
-        val movingAverages = mutableListOf<Double>()
-        for (i in 0 until valores.size) {
-            val inicio = maxOf(0, i - ventana + 1)
-            val fin = i + 1
-            val promedio = valores.subList(inicio, fin).average()
-            movingAverages.add(promedio)
-        }
-        return movingAverages
-    }
-
-    private fun calcularVolatilidad(valores: List<Double>): Double {
-        if (valores.size < 2) return 0.0
-        val promedio = valores.average()
-        val varianza = valores.map { (it - promedio).pow(2) }.average()
-        return sqrt(varianza)
-    }
-
-    private fun detectarOutliers(valores: List<Double>): Set<Int> {
-        if (valores.size < 3) return emptySet()
-        
-        val promedio = valores.average()
-        val desviacion = calcularDesviacionEstandar(valores)
-        val outliers = mutableSetOf<Int>()
-        
-        valores.forEachIndexed { index, valor ->
-            val zScore = abs(valor - promedio) / desviacion
-            if (zScore > 2.0) { // Más de 2 desviaciones estándar
-                outliers.add(index)
-            }
-        }
-        
-        return outliers
-    }
-
-    private fun calcularDesviacionEstandar(valores: List<Double>): Double {
-        if (valores.size < 2) return 0.0
-        val promedio = valores.average()
-        val varianza = valores.map { (it - promedio).pow(2) }.average()
-        return sqrt(varianza)
-    }
-
-    private fun parsePeriodo(periodo: String): Pair<Int, Int> {
-        val partes = periodo.split("-")
-        return Pair(partes[0].toInt(), partes[1].toInt())
-    }
-
-    private fun calcularCambioPorcentual(valorAnterior: Double, valorActual: Double): Double {
-        return if (valorAnterior > 0) {
-            ((valorActual - valorAnterior) / valorAnterior) * 100
-        } else 0.0
-    }
-
-    private fun calcularScoreFinanciero(
-        ratioLiquidez: Double,
-        ratioGastosFijos: Double,
-        ratioAhorro: Double,
-        indiceEstabilidad: Double
-    ): Int {
-        var score = 0
-        
-        // Ratio de liquidez (0-25 puntos)
-        score += when {
-            ratioLiquidez >= 1.5 -> 25
-            ratioLiquidez >= 1.2 -> 20
-            ratioLiquidez >= 1.0 -> 15
-            ratioLiquidez >= 0.8 -> 10
-            else -> 5
-        }
-        
-        // Ratio de gastos fijos (0-25 puntos) - menor es mejor
-        score += when {
-            ratioGastosFijos <= 0.3 -> 25
-            ratioGastosFijos <= 0.5 -> 20
-            ratioGastosFijos <= 0.7 -> 15
-            ratioGastosFijos <= 0.9 -> 10
-            else -> 5
-        }
-        
-        // Ratio de ahorro (0-25 puntos)
-        score += when {
-            ratioAhorro >= 0.2 -> 25
-            ratioAhorro >= 0.15 -> 20
-            ratioAhorro >= 0.1 -> 15
-            ratioAhorro >= 0.05 -> 10
-            else -> 5
-        }
-        
-        // Índice de estabilidad (0-25 puntos)
-        score += (indiceEstabilidad * 25).toInt()
-        
-        return score.coerceIn(0, 100)
-    }
-
-    private fun calcularPeriodoAnterior(periodoActual: String, mesesAtras: Int): String {
-        val formato = java.text.SimpleDateFormat("yyyy-MM")
-        val fecha = formato.parse(periodoActual)
-        val calendar = java.util.Calendar.getInstance()
-        calendar.time = fecha
-        calendar.add(java.util.Calendar.MONTH, -mesesAtras)
-        return formato.format(calendar.time)
-    }
-
-    private fun calcularTendenciaHistorica(gastos: List<Double>): String {
-        if (gastos.size < 2) return "ESTABLE"
-        
-        val promedioPrimeraMitad = gastos.take(gastos.size / 2).average()
-        val promedioSegundaMitad = gastos.takeLast(gastos.size / 2).average()
-        
-        val diferencia = ((promedioSegundaMitad - promedioPrimeraMitad) / promedioPrimeraMitad) * 100
-        
-        return when {
-            diferencia > 10 -> "AUMENTO"
-            diferencia < -10 -> "DISMINUCION"
-            else -> "ESTABLE"
-        }
-    }
-
-    private fun calcularDiasRestantes(periodo: String): Int {
-        val formato = java.text.SimpleDateFormat("yyyy-MM")
-        val fecha = formato.parse(periodo)
-        val calendar = java.util.Calendar.getInstance()
-        calendar.time = fecha
-        val ultimoDia = calendar.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
-        val diaActual = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
-        return maxOf(0, ultimoDia - diaActual)
     }
 }

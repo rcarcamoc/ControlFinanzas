@@ -1,5 +1,7 @@
 package com.aranthalion.controlfinanzas.domain.usecase
 
+import com.aranthalion.controlfinanzas.data.local.entity.Categoria
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepository
 import com.aranthalion.controlfinanzas.domain.movimiento.TipoMovimiento
@@ -7,125 +9,6 @@ import java.util.*
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.sqrt
-
-// Modelos para insights avanzados
-data class InsightComportamiento(
-    val tipo: TipoInsight,
-    val titulo: String,
-    val descripcion: String,
-    val valor: Double,
-    val unidad: String,
-    val severidad: SeveridadInsight,
-    val accionRecomendada: String,
-    val categoriaId: Long? = null,
-    val categoriaNombre: String? = null
-)
-
-enum class TipoInsight {
-    GASTO_RECURRENTE,
-    GASTO_INUSUAL,
-    TENDENCIA_NEGATIVA,
-    TENDENCIA_POSITIVA,
-    OPORTUNIDAD_AHORRO,
-    RIESGO_PRESUPUESTO,
-    PATRON_TEMPORAL,
-    COMPARACION_HISTORICA,
-    AGRUPACION_SIMILAR,
-    ANOMALIA_DETECTADA
-}
-
-enum class SeveridadInsight {
-    BAJA,      // Verde - Información
-    MEDIA,     // Amarillo - Advertencia
-    ALTA,      // Rojo - Crítico
-    POSITIVA   // Azul - Bueno
-}
-
-data class AgrupacionTransacciones(
-    val nombre: String,
-    val tipo: TipoAgrupacion,
-    val transacciones: List<TransaccionAgrupada>,
-    val total: Double,
-    val cantidad: Int,
-    val promedio: Double,
-    val patron: String? = null,
-    val categoriaId: Long? = null,
-    val categoriaNombre: String? = null
-)
-
-enum class TipoAgrupacion {
-    POR_DESCRIPCION_SIMILAR,
-    POR_MONTO_RANGO,
-    POR_DIA_SEMANA,
-    POR_HORA_DIA,
-    POR_CATEGORIA,
-    POR_PATRON_TEMPORAL,
-    POR_FRECUENCIA,
-    POR_ESTABLECIMIENTO
-}
-
-data class TransaccionAgrupada(
-    val id: Long,
-    val descripcion: String,
-    val descripcionLimpia: String?,
-    val monto: Double,
-    val fecha: Date,
-    val categoriaId: Long?,
-    val categoriaNombre: String?
-)
-
-data class AnalisisPatronTemporal(
-    val patron: String,
-    val frecuencia: Int,
-    val montoPromedio: Double,
-    val diasSemana: List<Int>,
-    val horasDia: List<Int>,
-    val tendencia: String,
-    val categoriaId: Long?,
-    val categoriaNombre: String?
-)
-
-data class RecomendacionPersonalizada(
-    val tipo: TipoRecomendacion,
-    val titulo: String,
-    val descripcion: String,
-    val impactoEstimado: Double,
-    val dificultad: DificultadImplementacion,
-    val prioridad: PrioridadRecomendacion,
-    val accionConcreta: String,
-    val categoriaId: Long? = null
-)
-
-enum class TipoRecomendacion {
-    REDUCIR_GASTO,
-    OPTIMIZAR_PRESUPUESTO,
-    CAMBIAR_HABITO,
-    APROVECHAR_OPORTUNIDAD,
-    PLANIFICAR_MEJOR,
-    DIVERSIFICAR_GASTOS
-}
-
-enum class DificultadImplementacion {
-    FACIL,      // Cambio inmediato
-    MEDIA,      // Requiere planificación
-    DIFICIL     // Cambio de hábito
-}
-
-enum class PrioridadRecomendacion {
-    BAJA,       // Mejora menor
-    MEDIA,      // Mejora significativa
-    ALTA        // Impacto importante
-}
-
-data class ResumenInsights(
-    val insightsGenerados: Int,
-    val insightsCriticos: Int,
-    val agrupacionesEncontradas: Int,
-    val recomendacionesGeneradas: Int,
-    val scoreComportamiento: Int, // 0-100
-    val areasMejora: List<String>,
-    val fortalezas: List<String>
-)
 
 class InsightsAvanzadosUseCase @Inject constructor(
     private val movimientoRepository: MovimientoRepository,
@@ -183,29 +66,7 @@ class InsightsAvanzadosUseCase @Inject constructor(
             it.tipo != TipoMovimiento.OMITIR.name
         }
         
-        val agrupaciones = mutableListOf<AgrupacionTransacciones>()
-        
-        // 1. Agrupación por descripción similar
-        val agrupacionesDescripcion = agruparPorDescripcionSimilar(gastosDelPeriodo, categorias)
-        agrupaciones.addAll(agrupacionesDescripcion)
-        
-        // 2. Agrupación por rango de montos
-        val agrupacionesMonto = agruparPorRangoMontos(gastosDelPeriodo, categorias)
-        agrupaciones.addAll(agrupacionesMonto)
-        
-        // 3. Agrupación por día de la semana
-        val agrupacionesDiaSemana = agruparPorDiaSemana(gastosDelPeriodo, categorias)
-        agrupaciones.addAll(agrupacionesDiaSemana)
-        
-        // 4. Agrupación por hora del día
-        val agrupacionesHora = agruparPorHoraDia(gastosDelPeriodo, categorias)
-        agrupaciones.addAll(agrupacionesHora)
-        
-        // 5. Agrupación por frecuencia
-        val agrupacionesFrecuencia = agruparPorFrecuencia(gastosDelPeriodo, categorias)
-        agrupaciones.addAll(agrupacionesFrecuencia)
-        
-        return agrupaciones.sortedByDescending { it.total }
+        return InsightsGroupingHelper.generarAgrupaciones(gastosDelPeriodo, categorias)
     }
     
     /**
@@ -222,21 +83,11 @@ class InsightsAvanzadosUseCase @Inject constructor(
             it.tipo != TipoMovimiento.OMITIR.name
         }
         
-        val recomendaciones = mutableListOf<RecomendacionPersonalizada>()
-        
-        // 1. Recomendaciones basadas en presupuestos
-        val recomendacionesPresupuesto = generarRecomendacionesPresupuesto(gastosDelPeriodo, presupuestos, categorias)
-        recomendaciones.addAll(recomendacionesPresupuesto)
-        
-        // 2. Recomendaciones basadas en patrones
-        val recomendacionesPatrones = generarRecomendacionesPatrones(gastosDelPeriodo, categorias)
-        recomendaciones.addAll(recomendacionesPatrones)
-        
-        // 3. Recomendaciones basadas en oportunidades
-        val recomendacionesOportunidades = generarRecomendacionesOportunidades(gastosDelPeriodo, categorias)
-        recomendaciones.addAll(recomendacionesOportunidades)
-        
-        return recomendaciones.sortedByDescending { it.prioridad.ordinal }
+        return InsightsRecommendationsHelper.generarRecomendacionesPersonalizadas(
+            gastosDelPeriodo,
+            presupuestos,
+            categorias
+        )
     }
     
     /**
@@ -285,8 +136,8 @@ class InsightsAvanzadosUseCase @Inject constructor(
     // Métodos privados de análisis
     
     private fun detectarGastosRecurrentes(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
+        gastos: List<MovimientoEntity>,
+        categorias: List<Categoria>
     ): List<InsightComportamiento> {
         val insights = mutableListOf<InsightComportamiento>()
         
@@ -319,8 +170,8 @@ class InsightsAvanzadosUseCase @Inject constructor(
     }
     
     private fun detectarGastosInusuales(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
+        gastos: List<MovimientoEntity>,
+        categorias: List<Categoria>
     ): List<InsightComportamiento> {
         val insights = mutableListOf<InsightComportamiento>()
         
@@ -363,8 +214,8 @@ class InsightsAvanzadosUseCase @Inject constructor(
     }
     
     private fun analizarTendencias(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
+        gastos: List<MovimientoEntity>,
+        categorias: List<Categoria>
     ): List<InsightComportamiento> {
         val insights = mutableListOf<InsightComportamiento>()
         
@@ -413,8 +264,8 @@ class InsightsAvanzadosUseCase @Inject constructor(
     }
     
     private fun analizarPatronesTemporales(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
+        gastos: List<MovimientoEntity>,
+        categorias: List<Categoria>
     ): List<InsightComportamiento> {
         val insights = mutableListOf<InsightComportamiento>()
         
@@ -452,8 +303,8 @@ class InsightsAvanzadosUseCase @Inject constructor(
     }
     
     private fun detectarOportunidadesAhorro(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
+        gastos: List<MovimientoEntity>,
+        categorias: List<Categoria>
     ): List<InsightComportamiento> {
         val insights = mutableListOf<InsightComportamiento>()
         
@@ -485,342 +336,11 @@ class InsightsAvanzadosUseCase @Inject constructor(
         return insights
     }
     
-    // Métodos de agrupación
-    
-    private fun agruparPorDescripcionSimilar(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<AgrupacionTransacciones> {
-        val agrupaciones = mutableListOf<AgrupacionTransacciones>()
-        
-        // Agrupar por descripción limpia
-        val grupos = gastos.groupBy { it.descripcionLimpia ?: it.descripcion }
-        
-        grupos.forEach { (descripcion, transacciones) ->
-            if (transacciones.size >= 2) {
-                val categoria = categorias.find { it.id == transacciones.first().categoriaId }
-                val total = transacciones.sumOf { abs(it.monto) }
-                val promedio = total / transacciones.size
-                
-                agrupaciones.add(
-                    AgrupacionTransacciones(
-                        nombre = "Transacciones similares: $descripcion",
-                        tipo = TipoAgrupacion.POR_DESCRIPCION_SIMILAR,
-                        transacciones = transacciones.map { 
-                            TransaccionAgrupada(
-                                id = it.id,
-                                descripcion = it.descripcion,
-                                descripcionLimpia = it.descripcionLimpia,
-                                monto = it.monto,
-                                fecha = it.fecha,
-                                categoriaId = it.categoriaId,
-                                categoriaNombre = categoria?.nombre
-                            )
-                        },
-                        total = total,
-                        cantidad = transacciones.size,
-                        promedio = promedio,
-                        patron = descripcion,
-                        categoriaId = categoria?.id,
-                        categoriaNombre = categoria?.nombre
-                    )
-                )
-            }
-        }
-        
-        return agrupaciones
-    }
-    
-    private fun agruparPorRangoMontos(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<AgrupacionTransacciones> {
-        val agrupaciones = mutableListOf<AgrupacionTransacciones>()
-        
-        val rangos = listOf(
-            Triple("Gastos pequeños", 0.0, 5000.0),
-            Triple("Gastos medianos", 5000.0, 20000.0),
-            Triple("Gastos grandes", 20000.0, 100000.0),
-            Triple("Gastos muy grandes", 100000.0, Double.MAX_VALUE)
-        )
-        
-        rangos.forEach { (nombre, min, max) ->
-            val transaccionesEnRango = gastos.filter { 
-                val monto = abs(it.monto)
-                monto >= min && monto < max
-            }
-            
-            if (transaccionesEnRango.isNotEmpty()) {
-                val total = transaccionesEnRango.sumOf { abs(it.monto) }
-                val promedio = total / transaccionesEnRango.size
-                
-                agrupaciones.add(
-                    AgrupacionTransacciones(
-                        nombre = nombre,
-                        tipo = TipoAgrupacion.POR_MONTO_RANGO,
-                        transacciones = transaccionesEnRango.map { 
-                            val categoria = categorias.find { cat -> cat.id == it.categoriaId }
-                            TransaccionAgrupada(
-                                id = it.id,
-                                descripcion = it.descripcion,
-                                descripcionLimpia = it.descripcionLimpia,
-                                monto = it.monto,
-                                fecha = it.fecha,
-                                categoriaId = it.categoriaId,
-                                categoriaNombre = categoria?.nombre
-                            )
-                        },
-                        total = total,
-                        cantidad = transaccionesEnRango.size,
-                        promedio = promedio,
-                        patron = "$${min.toInt()}-${if (max == Double.MAX_VALUE) "∞" else max.toInt()}"
-                    )
-                )
-            }
-        }
-        
-        return agrupaciones
-    }
-    
-    private fun agruparPorDiaSemana(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<AgrupacionTransacciones> {
-        val agrupaciones = mutableListOf<AgrupacionTransacciones>()
-        
-        val gastosPorDia = gastos.groupBy { 
-            val calendar = Calendar.getInstance()
-            calendar.time = it.fecha
-            calendar.get(Calendar.DAY_OF_WEEK)
-        }
-        
-        gastosPorDia.forEach { (diaSemana, transacciones) ->
-            val nombreDia = obtenerNombreDia(diaSemana)
-            val total = transacciones.sumOf { abs(it.monto) }
-            val promedio = total / transacciones.size
-            
-            agrupaciones.add(
-                AgrupacionTransacciones(
-                    nombre = "Gastos en $nombreDia",
-                    tipo = TipoAgrupacion.POR_DIA_SEMANA,
-                    transacciones = transacciones.map { 
-                        val categoria = categorias.find { cat -> cat.id == it.categoriaId }
-                        TransaccionAgrupada(
-                            id = it.id,
-                            descripcion = it.descripcion,
-                            descripcionLimpia = it.descripcionLimpia,
-                            monto = it.monto,
-                            fecha = it.fecha,
-                            categoriaId = it.categoriaId,
-                            categoriaNombre = categoria?.nombre
-                        )
-                    },
-                    total = total,
-                    cantidad = transacciones.size,
-                    promedio = promedio,
-                    patron = nombreDia
-                )
-            )
-        }
-        
-        return agrupaciones
-    }
-    
-    private fun agruparPorHoraDia(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<AgrupacionTransacciones> {
-        val agrupaciones = mutableListOf<AgrupacionTransacciones>()
-        
-        val gastosPorHora = gastos.groupBy { 
-            val calendar = Calendar.getInstance()
-            calendar.time = it.fecha
-            calendar.get(Calendar.HOUR_OF_DAY)
-        }
-        
-        gastosPorHora.forEach { (hora, transacciones) ->
-            val nombreHora = when {
-                hora < 6 -> "Madrugada (0-6h)"
-                hora < 12 -> "Mañana (6-12h)"
-                hora < 18 -> "Tarde (12-18h)"
-                else -> "Noche (18-24h)"
-            }
-            
-            val total = transacciones.sumOf { abs(it.monto) }
-            val promedio = total / transacciones.size
-            
-            agrupaciones.add(
-                AgrupacionTransacciones(
-                    nombre = "Gastos en $nombreHora",
-                    tipo = TipoAgrupacion.POR_HORA_DIA,
-                    transacciones = transacciones.map { 
-                        val categoria = categorias.find { cat -> cat.id == it.categoriaId }
-                        TransaccionAgrupada(
-                            id = it.id,
-                            descripcion = it.descripcion,
-                            descripcionLimpia = it.descripcionLimpia,
-                            monto = it.monto,
-                            fecha = it.fecha,
-                            categoriaId = it.categoriaId,
-                            categoriaNombre = categoria?.nombre
-                        )
-                    },
-                    total = total,
-                    cantidad = transacciones.size,
-                    promedio = promedio,
-                    patron = nombreHora
-                )
-            )
-        }
-        
-        return agrupaciones
-    }
-    
-    private fun agruparPorFrecuencia(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<AgrupacionTransacciones> {
-        val agrupaciones = mutableListOf<AgrupacionTransacciones>()
-        
-        val gastosPorCategoria = gastos.groupBy { it.categoriaId }
-        
-        gastosPorCategoria.forEach { (categoriaId, transacciones) ->
-            val categoria = categorias.find { it.id == categoriaId }
-            val total = transacciones.sumOf { abs(it.monto) }
-            val promedio = total / transacciones.size
-            
-            val frecuencia = when {
-                transacciones.size >= 10 -> "Muy frecuente"
-                transacciones.size >= 5 -> "Frecuente"
-                transacciones.size >= 2 -> "Ocasional"
-                else -> "Único"
-            }
-            
-            agrupaciones.add(
-                AgrupacionTransacciones(
-                    nombre = "${categoria?.nombre ?: "Sin categoría"} - $frecuencia",
-                    tipo = TipoAgrupacion.POR_FRECUENCIA,
-                    transacciones = transacciones.map { 
-                        TransaccionAgrupada(
-                            id = it.id,
-                            descripcion = it.descripcion,
-                            descripcionLimpia = it.descripcionLimpia,
-                            monto = it.monto,
-                            fecha = it.fecha,
-                            categoriaId = it.categoriaId,
-                            categoriaNombre = categoria?.nombre
-                        )
-                    },
-                    total = total,
-                    cantidad = transacciones.size,
-                    promedio = promedio,
-                    patron = frecuencia,
-                    categoriaId = categoria?.id,
-                    categoriaNombre = categoria?.nombre
-                )
-            )
-        }
-        
-        return agrupaciones
-    }
-    
-    // Métodos de recomendaciones
-    
-    private fun generarRecomendacionesPresupuesto(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        presupuestos: List<com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<RecomendacionPersonalizada> {
-        val recomendaciones = mutableListOf<RecomendacionPersonalizada>()
-        
-        presupuestos.forEach { presupuesto ->
-            val gastosCategoria = gastos.filter { it.categoriaId == presupuesto.categoriaId }
-            val totalGastado = gastosCategoria.sumOf { abs(it.monto) }
-            val porcentajeGastado = (totalGastado / presupuesto.monto) * 100
-            
-            if (porcentajeGastado > 80) {
-                val categoria = categorias.find { it.id == presupuesto.categoriaId }
-                recomendaciones.add(
-                    RecomendacionPersonalizada(
-                        tipo = TipoRecomendacion.REDUCIR_GASTO,
-                        titulo = "Controlar gastos en ${categoria?.nombre}",
-                        descripcion = "Has gastado el ${porcentajeGastado.toInt()}% del presupuesto. Considera reducir gastos en esta categoría.",
-                        impactoEstimado = presupuesto.monto * 0.2,
-                        dificultad = DificultadImplementacion.MEDIA,
-                        prioridad = if (porcentajeGastado > 90) PrioridadRecomendacion.ALTA else PrioridadRecomendacion.MEDIA,
-                        accionConcreta = "Revisa los últimos gastos en esta categoría y identifica cuáles puedes reducir o eliminar",
-                        categoriaId = presupuesto.categoriaId
-                    )
-                )
-            }
-        }
-        
-        return recomendaciones
-    }
-    
-    private fun generarRecomendacionesPatrones(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<RecomendacionPersonalizada> {
-        val recomendaciones = mutableListOf<RecomendacionPersonalizada>()
-        
-        // Detectar gastos pequeños frecuentes
-        val gastosPequenos = gastos.filter { abs(it.monto) < 3000 }
-        if (gastosPequenos.size >= 8) {
-            val totalPequenos = gastosPequenos.sumOf { abs(it.monto) }
-            recomendaciones.add(
-                RecomendacionPersonalizada(
-                    tipo = TipoRecomendacion.OPTIMIZAR_PRESUPUESTO,
-                    titulo = "Optimizar gastos pequeños",
-                    descripcion = "Tienes ${gastosPequenos.size} gastos pequeños que suman ${totalPequenos.toInt()}. Considera agruparlos.",
-                    impactoEstimado = totalPequenos * 0.15,
-                    dificultad = DificultadImplementacion.FACIL,
-                    prioridad = PrioridadRecomendacion.MEDIA,
-                    accionConcreta = "Planifica tus compras para hacer menos transacciones pero de mayor valor"
-                )
-            )
-        }
-        
-        return recomendaciones
-    }
-    
-    private fun generarRecomendacionesOportunidades(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
-    ): List<RecomendacionPersonalizada> {
-        val recomendaciones = mutableListOf<RecomendacionPersonalizada>()
-        
-        // Detectar categorías con buen comportamiento
-        val gastosPorCategoria = gastos.groupBy { it.categoriaId }
-        val categoriasConBuenComportamiento = gastosPorCategoria.filter { (_, transacciones) ->
-            val promedio = transacciones.map { abs(it.monto) }.average()
-            promedio < 10000 // Promedio bajo
-        }
-        
-        if (categoriasConBuenComportamiento.isNotEmpty()) {
-            val categoria = categorias.find { it.id == categoriasConBuenComportamiento.keys.first() }
-            recomendaciones.add(
-                RecomendacionPersonalizada(
-                    tipo = TipoRecomendacion.APROVECHAR_OPORTUNIDAD,
-                    titulo = "Mantener buen comportamiento",
-                    descripcion = "Excelente control en ${categoria?.nombre}. Mantén este patrón de gasto.",
-                    impactoEstimado = 0.0,
-                    dificultad = DificultadImplementacion.FACIL,
-                    prioridad = PrioridadRecomendacion.BAJA,
-                    accionConcreta = "Continúa con el mismo nivel de gasto en esta categoría",
-                    categoriaId = categoria?.id
-                )
-            )
-        }
-        
-        return recomendaciones
-    }
-    
     // Métodos auxiliares
     
     private fun detectarPatronesTemporales(
-        gastos: List<com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity>,
-        categorias: List<com.aranthalion.controlfinanzas.data.local.entity.Categoria>
+        gastos: List<MovimientoEntity>,
+        categorias: List<Categoria>
     ): List<AnalisisPatronTemporal> {
         val patrones = mutableListOf<AnalisisPatronTemporal>()
         
@@ -915,4 +435,4 @@ class InsightsAvanzadosUseCase @Inject constructor(
             else -> "Desconocido"
         }
     }
-} 
+}

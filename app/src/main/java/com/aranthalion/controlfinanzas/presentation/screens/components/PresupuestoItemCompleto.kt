@@ -22,29 +22,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
-import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.domain.usecase.EstadoPresupuesto
 import com.aranthalion.controlfinanzas.domain.usecase.PresupuestoCategoria
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.presentation.components.PresupuestoProgressBar
-import java.text.NumberFormat
-import java.util.Locale
 
 @Composable
-fun PresupuestoItem(
-    categoria: Categoria,
+fun PresupuestoItemCompleto(
+    presupuestoCompleto: PresupuestoCategoria,
     presupuesto: PresupuestoCategoriaEntity?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onSave: (Double) -> Unit
+    onSave: (Double) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var montoTemporal by remember { mutableStateOf(presupuesto?.monto?.toString() ?: "") }
     val focusRequester = remember { FocusRequester() }
     
+    val colorEstado = when (presupuestoCompleto.estado) {
+        EstadoPresupuesto.NORMAL -> Color(0xFF4CAF50) // Verde
+        EstadoPresupuesto.ADVERTENCIA -> Color(0xFFFF9800) // Naranja
+        EstadoPresupuesto.CRITICO -> Color(0xFFFF5722) // Rojo
+        EstadoPresupuesto.EXCEDIDO -> Color(0xFFD32F2F) // Rojo oscuro
+    }
+    
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
@@ -64,7 +69,7 @@ fun PresupuestoItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = categoria.nombre,
+                        text = presupuestoCompleto.categoria.nombre,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -99,6 +104,18 @@ fun PresupuestoItem(
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Text(
+                                text = "Gastado: ${FormatUtils.formatMoneyCLP(presupuestoCompleto.gastoActual)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (presupuestoCompleto.gastoActual < 0) {
+                                Text(
+                                    text = "💡 Incluye reversas/reembolsos que reducen el gasto",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     } else {
                         if (isEditing) {
@@ -134,19 +151,99 @@ fun PresupuestoItem(
                     }
                 }
                 
-                // Botones de acción
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                // Porcentaje y botones de acción
+                Column(
+                    horizontalAlignment = Alignment.End
                 ) {
-                    if (presupuesto != null) {
-                        if (isEditing) {
-                            IconButton(
-                                onClick = {
-                                    val monto = montoTemporal.toDoubleOrNull()
-                                    if (monto != null && monto > 0) {
-                                        onSave(monto)
+                    if (!isEditing) {
+                        Text(
+                            text = "${String.format("%.1f", presupuestoCompleto.porcentajeGastado)}%",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = colorEstado
+                        )
+                    }
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (presupuesto != null) {
+                            if (isEditing) {
+                                IconButton(
+                                    onClick = {
+                                        val monto = montoTemporal.toDoubleOrNull()
+                                        if (monto != null && monto > 0) {
+                                            onSave(monto)
+                                            isEditing = false
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Guardar",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { 
                                         isEditing = false
-                                    }
+                                        montoTemporal = presupuesto.monto.toString()
+                                    },
+                                    modifier = Modifier.size(36.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Cancelar",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = { 
+                                        isEditing = true
+                                        montoTemporal = presupuesto.monto.toString()
+                                    },
+                                    modifier = Modifier.size(36.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Editar",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { showDeleteDialog = true },
+                                    modifier = Modifier.size(36.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Eliminar",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        } else {
+                            IconButton(
+                                onClick = { 
+                                    isEditing = true
+                                    montoTemporal = ""
                                 },
                                 modifier = Modifier.size(36.dp),
                                 colors = IconButtonDefaults.iconButtonColors(
@@ -154,82 +251,41 @@ fun PresupuestoItem(
                                 )
                             ) {
                                 Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = "Guardar",
+                                    Icons.Default.Add,
+                                    contentDescription = "Agregar presupuesto",
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
-                            IconButton(
-                                onClick = { 
-                                    isEditing = false
-                                    montoTemporal = presupuesto.monto.toString()
-                                },
-                                modifier = Modifier.size(36.dp),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Cancelar",
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else {
-                            IconButton(
-                                onClick = { 
-                                    isEditing = true
-                                    montoTemporal = presupuesto.monto.toString()
-                                },
-                                modifier = Modifier.size(36.dp),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "Editar",
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(
-                                onClick = { showDeleteDialog = true },
-                                modifier = Modifier.size(36.dp),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Eliminar",
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    } else {
-                        IconButton(
-                            onClick = { 
-                                isEditing = true
-                                montoTemporal = ""
-                            },
-                            modifier = Modifier.size(36.dp),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "Agregar presupuesto",
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
                         }
                     }
                 }
+            }
+            
+            // Gráfico de barras solo si no está editando
+            if (!isEditing && presupuesto != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                PresupuestoProgressBar(
+                    porcentaje = presupuestoCompleto.porcentajeGastado,
+                    color = colorEstado,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Estado del presupuesto
+                Text(
+                    text = when (presupuestoCompleto.estado) {
+                        EstadoPresupuesto.NORMAL -> "Normal"
+                        EstadoPresupuesto.ADVERTENCIA -> "Advertencia"
+                        EstadoPresupuesto.CRITICO -> "Crítico"
+                        EstadoPresupuesto.EXCEDIDO -> "Excedido"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorEstado,
+                    fontWeight = FontWeight.Medium
+                )
             }
             
             // Botones de acción cuando está editando y no hay presupuesto previo
@@ -245,7 +301,7 @@ fun PresupuestoItem(
                             val monto = montoTemporal.toDoubleOrNull()
                             if (monto != null && monto > 0) {
                                 onSave(monto)
-                                  isEditing = false
+                                isEditing = false
                             }
                         },
                         enabled = montoTemporal.toDoubleOrNull() ?: 0.0 > 0,
@@ -296,7 +352,7 @@ fun PresupuestoItem(
             },
             text = { 
                 Text(
-                    "¿Estás seguro de que quieres eliminar el presupuesto de '${categoria.nombre}'? Esta acción no se puede deshacer.",
+                    "¿Estás seguro de que quieres eliminar el presupuesto de '${presupuestoCompleto.categoria.nombre}'? Esta acción no se puede deshacer.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -325,18 +381,4 @@ fun PresupuestoItem(
             }
         )
     }
-}
-
-
-fun formatNumberWithSeparators(value: String): String {
-    return try {
-        val number = value.toLongOrNull() ?: 0L
-        NumberFormat.getNumberInstance(Locale("es", "CL")).format(number)
-    } catch (e: Exception) {
-        value
-    }
-}
-
-fun cleanNumberFormat(value: String): String {
-    return value.replace(Regex("[^\\d]"), "")
 }
