@@ -36,6 +36,7 @@ class ConfiguracionPreferences @Inject constructor(
         private const val KEY_SYNC_EMAIL = "sync_email"
         private const val KEY_SYNC_PASSWORD = "sync_password"
         private const val KEY_SYNC_OVERWRITE_ACTION = "sync_overwrite_action"
+        private const val KEY_SYNC_HOUSEHOLD_NAME = "sync_household_name"
     }
 
     var geminiApiKey: String
@@ -55,7 +56,7 @@ class ConfiguracionPreferences @Inject constructor(
         set(value) = prefs.edit().putString(KEY_AI_PROVIDER, value).apply()
 
     var syncServerUrl: String
-        get() = prefs.getString(KEY_SYNC_SERVER_URL, "http://161.153.219.141/finanzas/api/sync") ?: "http://161.153.219.141/finanzas/api/sync"
+        get() = prefs.getString(KEY_SYNC_SERVER_URL, "http://129.151.113.195/finanzas/api/sync") ?: "http://129.151.113.195/finanzas/api/sync"
         set(value) = prefs.edit().putString(KEY_SYNC_SERVER_URL, value).apply()
 
     var lastSyncTimestamp: Long
@@ -69,6 +70,10 @@ class ConfiguracionPreferences @Inject constructor(
     var syncHouseholdId: String
         get() = prefs.getString(KEY_SYNC_HOUSEHOLD_ID, "") ?: ""
         set(value) = prefs.edit().putString(KEY_SYNC_HOUSEHOLD_ID, value).apply()
+
+    var syncHouseholdName: String
+        get() = prefs.getString(KEY_SYNC_HOUSEHOLD_NAME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SYNC_HOUSEHOLD_NAME, value).apply()
 
     var syncEmail: String
         get() = prefs.getString(KEY_SYNC_EMAIL, "") ?: ""

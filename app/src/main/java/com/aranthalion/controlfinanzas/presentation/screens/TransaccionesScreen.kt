@@ -49,20 +49,29 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.style.TextOverflow
 import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
+import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
+import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransaccionesScreen(
     categoriaId: Long? = null,
-    viewModel: TransaccionesViewModel = hiltViewModel()
+    viewModel: TransaccionesViewModel = hiltViewModel(),
+    periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val state = rememberTransaccionesScreenState()
+    val periodoSeleccionado by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
 
     LaunchedEffect(categoriaId) {
         if (categoriaId != null) {
             viewModel.filtrarPorCategoriaId(categoriaId)
         }
     }
+
+    LaunchedEffect(periodoSeleccionado) {
+        viewModel.onEvent(TransaccionesEvent.FilterByPeriodo(periodoSeleccionado))
+    }
+
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var mostrarAsistenteClasificacion by remember { mutableStateOf(false) }
@@ -83,6 +92,13 @@ fun TransaccionesScreen(
                 .fillMaxSize()
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
+            // Selector de período global
+            PeriodoSelectorGlobal(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
             // Buscador estilizado con botón de filtro al lado
             Row(
                 modifier = Modifier

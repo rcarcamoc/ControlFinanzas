@@ -47,6 +47,9 @@ class ConfiguracionViewModel @Inject constructor(
     private val _syncHouseholdId = MutableStateFlow(prefs.syncHouseholdId)
     val syncHouseholdId: StateFlow<String> = _syncHouseholdId.asStateFlow()
 
+    private val _syncHouseholdName = MutableStateFlow(prefs.syncHouseholdName)
+    val syncHouseholdName: StateFlow<String> = _syncHouseholdName.asStateFlow()
+
     private val _syncEmail = MutableStateFlow(prefs.syncEmail)
     val syncEmail: StateFlow<String> = _syncEmail.asStateFlow()
 
@@ -107,6 +110,7 @@ class ConfiguracionViewModel @Inject constructor(
         _syncHouseholdId.value = prefs.syncHouseholdId
         _syncEmail.value = prefs.syncEmail
         _syncPassword.value = prefs.syncPassword
+        _syncHouseholdName.value = prefs.syncHouseholdName
         _lastSyncTimestamp.value = prefs.lastSyncTimestamp
         _aiEnabled.value = prefs.aiEnabled
         _groqApiKey.value = prefs.groqApiKey
@@ -122,6 +126,7 @@ class ConfiguracionViewModel @Inject constructor(
     fun desvincular() {
         prefs.syncEnabled = false
         prefs.syncHouseholdId = ""
+        prefs.syncHouseholdName = ""
         prefs.syncEmail = ""
         prefs.syncPassword = ""
         prefs.lastSyncTimestamp = 0L
@@ -129,6 +134,7 @@ class ConfiguracionViewModel @Inject constructor(
 
         _syncEnabled.value = false
         _syncHouseholdId.value = ""
+        _syncHouseholdName.value = ""
         _syncEmail.value = ""
         _syncPassword.value = ""
         _lastSyncTimestamp.value = 0L

@@ -88,7 +88,7 @@ fun AporteProporcionalScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(bottom = paddingValues.calculateBottomPadding())
                 .padding(16.dp)
         ) {
             when (uiState) {

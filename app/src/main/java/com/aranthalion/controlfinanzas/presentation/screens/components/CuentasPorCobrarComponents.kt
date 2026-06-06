@@ -210,7 +210,7 @@ fun AgregarCuentaDialog(
     onConfirm: (CuentaPorCobrar) -> Unit
 ) {
     var motivo by remember { mutableStateOf(cuenta?.motivo ?: "") }
-    var monto by remember { mutableStateOf(cuenta?.monto?.toString() ?: "") }
+    var monto by remember { mutableStateOf(cuenta?.monto?.toLong()?.toString() ?: "") }
     var usuarioSeleccionado by remember { mutableStateOf(cuenta?.usuarioId ?: 0L) }
     var periodoCobro by remember { mutableStateOf(cuenta?.periodoCobro ?: "") }
     var notas by remember { mutableStateOf(cuenta?.notas ?: "") }
@@ -230,7 +230,10 @@ fun AgregarCuentaDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = monto,
-                    onValueChange = { monto = it },
+                    onValueChange = { input ->
+                        val cleaned = input.replace("[^\\d]".toRegex(), "")
+                        monto = cleaned
+                    },
                     label = { Text("Monto *") },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number

@@ -43,7 +43,7 @@ fun EditarMovimientoDialog(
     onDismiss: () -> Unit,
     onConfirm: (MovimientoEntity) -> Unit
 ) {
-    var monto by remember { mutableStateOf(movimiento.monto.toString()) }
+    var monto by remember { mutableStateOf(movimiento.monto.toLong().toString()) }
     var descripcion by remember { mutableStateOf(movimiento.descripcion) }
     var categoriaSeleccionada by remember {
         mutableStateOf<Categoria?>(obtenerCategorias(categoriasUiState).find { it.id == movimiento.categoriaId })
@@ -90,9 +90,13 @@ fun EditarMovimientoDialog(
                     // Campo de monto
                     OutlinedTextField(
                         value = monto,
-                        onValueChange = { monto = it },
+                        onValueChange = { input ->
+                            if (input.isEmpty() || input == "-" || input.matches(Regex("^-?\\d*$"))) {
+                                monto = input
+                            }
+                        },
                         label = { Text("Monto") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(

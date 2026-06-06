@@ -166,7 +166,7 @@ fun AgregarSueldoDialog(
     periodoActual: String
 ) {
     var nombrePersona by remember { mutableStateOf(sueldo?.nombrePersona ?: "") }
-    var sueldoValue by remember { mutableStateOf(sueldo?.sueldo?.toString() ?: "") }
+    var sueldoValue by remember { mutableStateOf(sueldo?.sueldo?.toLong()?.toString() ?: "") }
     var showPersonaInput by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -228,7 +228,7 @@ fun AgregarSueldoDialog(
                 
                 // Campo de sueldo
                 OutlinedTextField(
-                    value = if (sueldoValue.isNotEmpty()) FormatUtils.formatMoneyCLP(sueldoValue.replace(".", "").replace("$", "").toDoubleOrNull() ?: 0.0) else "",
+                    value = sueldoValue,
                     onValueChange = {
                         val cleaned = it.replace("[^\\d]".toRegex(), "")
                         sueldoValue = cleaned

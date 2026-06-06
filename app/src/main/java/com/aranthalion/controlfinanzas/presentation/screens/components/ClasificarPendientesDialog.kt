@@ -37,6 +37,8 @@ fun ClasificarPendientesDialog(
     clasificacionUseCase: GestionarClasificacionAutomaticaUseCase,
     onDismiss: () -> Unit
 ) {
+    // Tomar un snapshot estático al abrir el diálogo para definir la sesión de clasificación
+    val sessionMovimientos = remember { movimientosSinCategoria }
     var currentIndex by remember { mutableStateOf(0) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -69,17 +71,17 @@ fun ClasificarPendientesDialog(
                     }
                 }
 
-                if (currentIndex < movimientosSinCategoria.size) {
-                    val movimiento = movimientosSinCategoria[currentIndex]
+                if (currentIndex < sessionMovimientos.size) {
+                    val movimiento = sessionMovimientos[currentIndex]
                     
                     // Barra de progreso de la cola
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         LinearProgressIndicator(
-                            progress = (currentIndex.toFloat() / movimientosSinCategoria.size),
+                            progress = (currentIndex.toFloat() / sessionMovimientos.size),
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
-                            text = "Transacción ${currentIndex + 1} de ${movimientosSinCategoria.size} pendientes",
+                            text = "Transacción ${currentIndex + 1} de ${sessionMovimientos.size} pendientes",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

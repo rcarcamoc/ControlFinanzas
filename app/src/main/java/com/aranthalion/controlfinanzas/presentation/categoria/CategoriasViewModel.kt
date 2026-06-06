@@ -13,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 open class CategoriasViewModel @Inject constructor(
-    private val gestionarCategoriasUseCase: GestionarCategoriasUseCase
+    private val gestionarCategoriasUseCase: GestionarCategoriasUseCase,
+    private val gestionarPresupuestosUseCase: com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CategoriasUiState>(CategoriasUiState.Loading)
@@ -44,7 +45,7 @@ open class CategoriasViewModel @Inject constructor(
         }
     }
 
-    fun agregarCategoria(nombre: String, descripcion: String) {
+    fun agregarCategoria(nombre: String, descripcion: String, presupuesto: Double = 0.0, activarPresupuesto: Boolean = false) {
         viewModelScope.launch {
             try {
                 val nombreNormalizado = nombre.trim().lowercase()
@@ -63,6 +64,19 @@ open class CategoriasViewModel @Inject constructor(
                     descripcion = descripcion
                 )
                 gestionarCategoriasUseCase.insertCategoria(categoria)
+
+                if (activarPresupuesto && presupuesto > 0) {
+                    val calendar = java.util.Calendar.getInstance()
+                    val periodo = String.format("%04d-%02d", calendar.get(java.util.Calendar.YEAR), calendar.get(java.util.Calendar.MONTH) + 1)
+                    gestionarPresupuestosUseCase.guardarPresupuesto(
+                        com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity(
+                            categoriaId = 0L,
+                            monto = presupuesto,
+                            periodo = periodo
+                        )
+                    )
+                }
+                cargarCategorias()
             } catch (e: Exception) {
                 _uiState.value = CategoriasUiState.Error(e.message ?: "Error al agregar categoría")
             }
@@ -86,6 +100,24 @@ open class CategoriasViewModel @Inject constructor(
                 cargarCategorias()
             } catch (e: Exception) {
                 _uiState.value = CategoriasUiState.Error(e.message ?: "Error al actualizar categoría")
+            }
+        }
+    }
+
+    fun guardarPresupuesto(categoriaId: Long, monto: Double) {
+        viewModelScope.launch {
+            try {
+                val calendar = java.util.Calendar.getInstance()
+                val periodo = String.format("%04d-%02d", calendar.get(java.util.Calendar.YEAR), calendar.get(java.util.Calendar.MONTH) + 1)
+                gestionarPresupuestosUseCase.guardarPresupuesto(
+                    com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity(
+                        categoriaId = categoriaId,
+                        monto = monto,
+                        periodo = periodo
+                    )
+                )
+            } catch (e: Exception) {
+                _uiState.value = CategoriasUiState.Error(e.message ?: "Error al guardar presupuesto")
             }
         }
     }

@@ -285,6 +285,7 @@ fun SyncConfigCard(
     val syncEnabled by viewModel.syncEnabled.collectAsState()
     val syncServerUrl by viewModel.syncServerUrl.collectAsState()
     val syncHouseholdId by viewModel.syncHouseholdId.collectAsState()
+    val syncHouseholdName by viewModel.syncHouseholdName.collectAsState()
     val syncEmail by viewModel.syncEmail.collectAsState()
     val syncPassword by viewModel.syncPassword.collectAsState()
     val lastSyncTimestamp by viewModel.lastSyncTimestamp.collectAsState()
@@ -350,7 +351,7 @@ fun SyncConfigCard(
                     onClick = {
                         val intent = android.content.Intent(
                             android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("http://161.153.219.141/finanzas/dashboard/link-device")
+                            android.net.Uri.parse("http://129.151.113.195/finanzas/dashboard/link-device")
                         )
                         context.startActivity(intent)
                     },
@@ -389,8 +390,9 @@ fun SyncConfigCard(
                             text = "Usuario: $localEmail",
                             style = MaterialTheme.typography.bodySmall
                         )
+                        val displayName = if (syncHouseholdName.isNotBlank()) syncHouseholdName else "ID: ${localHouseholdId.take(12)}..."
                         Text(
-                            text = "Hogar ID: ${localHouseholdId.take(12)}...",
+                            text = "Hogar: $displayName",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

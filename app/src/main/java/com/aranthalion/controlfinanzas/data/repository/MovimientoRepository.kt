@@ -34,8 +34,7 @@ class MovimientoRepository @Inject constructor(
     
     suspend fun obtenerMovimientosPorPeriodoOptimizado(periodo: String): List<MovimientoEntity> {
         return cacheService.getMovimientosPorPeriodo(periodo) {
-            val (fechaInicio, fechaFin) = obtenerFechasDePeriodo(periodo)
-            movimientoDao.obtenerMovimientosPorPeriodoOptimizado(fechaInicio, fechaFin)
+            movimientoDao.obtenerMovimientosPorPeriodoFacturacion(periodo)
         }
     }
 
@@ -80,6 +79,7 @@ class MovimientoRepository @Inject constructor(
             )
             cacheService.invalidarCacheMovimientosSinCategoria()
             cacheService.invalidarCacheEstadisticas()
+            cacheService.invalidarCacheMovimientosPorPeriodo()
             println("⚠️ DUPLICADO: Movimiento actualizado - ID: ${movimientoActualizado.id}, idUnico: $idUnico, Timestamp: $timestamp")
         } else {
             // No existe, insertar normalmente
@@ -100,6 +100,7 @@ class MovimientoRepository @Inject constructor(
         )
         cacheService.invalidarCacheMovimientosSinCategoria()
         cacheService.invalidarCacheEstadisticas()
+        cacheService.invalidarCacheMovimientosPorPeriodo()
             println("📝 AUDITORÍA: Movimiento agregado - ID: ${movimiento.id}, idUnico: $idUnico, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
         }
     }
@@ -125,6 +126,7 @@ class MovimientoRepository @Inject constructor(
         // Invalidar cache relacionado
         cacheService.invalidarCacheMovimientosSinCategoria()
         cacheService.invalidarCacheEstadisticas()
+        cacheService.invalidarCacheMovimientosPorPeriodo()
         
         println("📝 AUDITORÍA: Movimiento actualizado - ID: ${movimiento.id}, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
     }
@@ -144,6 +146,12 @@ class MovimientoRepository @Inject constructor(
         
         // Ahora eliminar el movimiento
         movimientoDao.eliminarMovimiento(movimiento)
+        
+        // Invalidar cache relacionado
+        cacheService.invalidarCacheMovimientosSinCategoria()
+        cacheService.invalidarCacheEstadisticas()
+        cacheService.invalidarCacheMovimientosPorPeriodo()
+        
         println("✅ AUDITORÍA: Movimiento eliminado exitosamente")
     }
 
@@ -184,6 +192,12 @@ class MovimientoRepository @Inject constructor(
         
         // Ahora eliminar los movimientos
         movimientoDao.eliminarMovimientosPorPeriodo(periodo)
+        
+        // Invalidar cache relacionado
+        cacheService.invalidarCacheMovimientosSinCategoria()
+        cacheService.invalidarCacheEstadisticas()
+        cacheService.invalidarCacheMovimientosPorPeriodo()
+        
         println("✅ AUDITORÍA: Eliminación completada para período: $periodo")
     }
     
@@ -227,6 +241,9 @@ class MovimientoRepository @Inject constructor(
             } else {
                 println("ℹ️ No hay movimientos para eliminar")
             }
+            
+            // Invalidar cache
+            cacheService.invalidarTodoCache()
             
             println("✅ Base de datos limpiada completamente")
             

@@ -120,6 +120,9 @@ interface MovimientoDao {
     @Query("SELECT * FROM movimientos WHERE fecha BETWEEN :fechaInicio AND :fechaFin ORDER BY fecha DESC")
     suspend fun obtenerMovimientosPorPeriodoOptimizado(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity>
 
+    @Query("SELECT * FROM movimientos WHERE periodoFacturacion = :periodo ORDER BY fecha DESC")
+    suspend fun obtenerMovimientosPorPeriodoFacturacion(periodo: String): List<MovimientoEntity>
+
     data class IdUnicoCategoria(
         val idUnico: String,
         val categoriaId: Long?

@@ -84,9 +84,13 @@ fun AgregarTransaccionDialog(
                     // Campo de monto
                     OutlinedTextField(
                         value = monto,
-                        onValueChange = { monto = it },
+                        onValueChange = { input ->
+                            if (input.isEmpty() || input == "-" || input.matches(Regex("^-?\\d*$"))) {
+                                monto = input
+                            }
+                        },
                         label = { Text("Monto") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(

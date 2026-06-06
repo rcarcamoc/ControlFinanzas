@@ -40,7 +40,7 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
         CuentaPorCobrarEntity::class,
         AuditoriaEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -178,6 +178,30 @@ abstract class AppDatabase : RoomDatabase() {
                 Log.d(TAG, "Migración 16->17 completada")
             }
         }
+        
+        // Migración de la versión 17 a la 18: limpiar duplicados y agregar índice único a presupuesto_categoria
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d(TAG, "Ejecutando migración 17->18: limpiando duplicados y agregando índice único a presupuesto_categoria")
+                
+                // Primero, eliminar duplicados existentes en presupuesto_categoria
+                Log.d(TAG, "Limpiando duplicados existentes en presupuesto_categoria...")
+                database.execSQL("""
+                    DELETE FROM presupuesto_categoria 
+                    WHERE id NOT IN (
+                        SELECT MAX(id) 
+                        FROM presupuesto_categoria 
+                        GROUP BY categoriaId, periodo
+                    )
+                """)
+                
+                // Crear índice único en (categoriaId, periodo)
+                database.execSQL("CREATE UNIQUE INDEX index_presupuesto_categoria_categoriaId_periodo ON presupuesto_categoria(categoriaId, periodo)")
+                
+                Log.d(TAG, "Índice único creado en presupuesto_categoria")
+                Log.d(TAG, "Migración 17->18 completada")
+            }
+        }
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -187,7 +211,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "control_finanzas_db"
                 )
-                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                 .fallbackToDestructiveMigration() // Permite recrear la BD si la migración falla
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

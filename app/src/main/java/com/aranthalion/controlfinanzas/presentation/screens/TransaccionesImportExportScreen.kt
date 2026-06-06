@@ -99,8 +99,7 @@ fun TransaccionesImportExportScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(WindowInsets.systemBars.asPaddingValues())
-                .padding(padding)
+                .padding(bottom = padding.calculateBottomPadding())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top),
             horizontalAlignment = Alignment.CenterHorizontally

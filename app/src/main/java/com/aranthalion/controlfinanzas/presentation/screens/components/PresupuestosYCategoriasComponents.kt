@@ -91,8 +91,16 @@ fun CategoriaDialog(
     var nombre by remember { mutableStateOf(categoria?.nombre ?: "") }
     var tipoSeleccionado by remember { mutableStateOf(categoria?.tipo ?: "Gasto") }
     var expandedTipo by remember { mutableStateOf(false) }
-    var presupuesto by remember { mutableStateOf(0.0) }
-    var activarPresupuesto by remember { mutableStateOf(false) }
+    var presupuestoInput by remember {
+        mutableStateOf(
+            if (categoria?.presupuestoMensual != null && categoria.presupuestoMensual > 0) {
+                categoria.presupuestoMensual.toLong().toString()
+            } else {
+                ""
+            }
+        )
+    }
+    var activarPresupuesto by remember { mutableStateOf(categoria?.presupuestoMensual != null && categoria.presupuestoMensual > 0) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -157,8 +165,11 @@ fun CategoriaDialog(
                 }
                 if (activarPresupuesto) {
                     OutlinedTextField(
-                        value = if (presupuesto == 0.0) "" else presupuesto.toString(),
-                        onValueChange = { presupuesto = it.toDoubleOrNull() ?: 0.0 },
+                        value = presupuestoInput,
+                        onValueChange = { input ->
+                            val cleaned = input.replace("[^\\d]".toRegex(), "")
+                            presupuestoInput = cleaned
+                        },
                         label = { Text("Presupuesto mensual") },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
@@ -172,7 +183,10 @@ fun CategoriaDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(nombre, tipoSeleccionado, presupuesto, activarPresupuesto) },
+                onClick = {
+                    val presVal = if (activarPresupuesto) presupuestoInput.toDoubleOrNull() ?: 0.0 else 0.0
+                    onConfirm(nombre, tipoSeleccionado, presVal, activarPresupuesto)
+                },
                 enabled = nombre.isNotEmpty()
             ) {
                 Text(if (categoria == null) "Crear" else "Actualizar")

@@ -40,7 +40,7 @@ fun PresupuestoItem(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-    var montoTemporal by remember { mutableStateOf(presupuesto?.monto?.toString() ?: "") }
+    var montoTemporal by remember { mutableStateOf(presupuesto?.monto?.toLong()?.toString() ?: "") }
     val focusRequester = remember { FocusRequester() }
     
     Card(
@@ -72,7 +72,7 @@ fun PresupuestoItem(
                     if (presupuesto != null) {
                         if (isEditing) {
                             OutlinedTextField(
-                                value = formatNumberWithSeparators(montoTemporal),
+                                value = montoTemporal,
                                 onValueChange = {
                                     val cleaned = cleanNumberFormat(it)
                                     montoTemporal = cleaned
@@ -103,7 +103,7 @@ fun PresupuestoItem(
                     } else {
                         if (isEditing) {
                             OutlinedTextField(
-                                value = formatNumberWithSeparators(montoTemporal),
+                                value = montoTemporal,
                                 onValueChange = {
                                     val cleaned = cleanNumberFormat(it)
                                     montoTemporal = cleaned
@@ -163,7 +163,7 @@ fun PresupuestoItem(
                             IconButton(
                                 onClick = { 
                                     isEditing = false
-                                    montoTemporal = presupuesto.monto.toString()
+                                    montoTemporal = presupuesto.monto.toLong().toString()
                                 },
                                 modifier = Modifier.size(36.dp),
                                 colors = IconButtonDefaults.iconButtonColors(
@@ -181,7 +181,7 @@ fun PresupuestoItem(
                             IconButton(
                                 onClick = { 
                                     isEditing = true
-                                    montoTemporal = presupuesto.monto.toString()
+                                    montoTemporal = presupuesto.monto.toLong().toString()
                                 },
                                 modifier = Modifier.size(36.dp),
                                 colors = IconButtonDefaults.iconButtonColors(

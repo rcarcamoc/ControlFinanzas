@@ -14,10 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aranthalion.controlfinanzas.domain.categoria.Categoria
-import com.aranthalion.controlfinanzas.domain.usecase.GestionarPresupuestosUseCase
 import com.aranthalion.controlfinanzas.presentation.components.CustomIcons
-import kotlinx.coroutines.launch
-import java.util.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.asPaddingValues
@@ -25,13 +22,11 @@ import androidx.compose.foundation.layout.asPaddingValues
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriasScreen(
-    viewModel: CategoriasViewModel = hiltViewModel(),
-    gestionarPresupuestosUseCase: GestionarPresupuestosUseCase = hiltViewModel()
+    viewModel: CategoriasViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var categoriaToEdit by remember { mutableStateOf<Categoria?>(null) }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -48,7 +43,7 @@ fun CategoriasScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(bottom = paddingValues.calculateBottomPadding())
                 
         ) {
             when (uiState) {
@@ -88,21 +83,7 @@ fun CategoriasScreen(
         CategoriaDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { nombre, descripcion, presupuesto, activarPresupuesto ->
-                viewModel.agregarCategoria(nombre, descripcion)
-                if (activarPresupuesto && presupuesto > 0) {
-                    scope.launch {
-                        // Guardar presupuesto para el mes actual
-                        val calendar = Calendar.getInstance()
-                        val periodo = String.format("%04d-%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1)
-                        gestionarPresupuestosUseCase.guardarPresupuesto(
-                            com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity(
-                                categoriaId = 0L, // Se debe actualizar con el id real tras guardar la categoría
-                                monto = presupuesto,
-                                periodo = periodo
-                            )
-                        )
-                    }
-                }
+                viewModel.agregarCategoria(nombre, descripcion, presupuesto, activarPresupuesto)
                 showAddDialog = false
             }
         )
@@ -113,21 +94,11 @@ fun CategoriasScreen(
             categoria = categoria,
             onDismiss = { categoriaToEdit = null },
             onConfirm = { nombre, descripcion, presupuesto, activarPresupuesto ->
-                // Actualizar categoría y presupuesto
-                categoriaToEdit = null
+                viewModel.actualizarCategoria(categoria.copy(nombre = nombre, descripcion = descripcion))
                 if (activarPresupuesto && presupuesto > 0) {
-                    scope.launch {
-                        val calendar = Calendar.getInstance()
-                        val periodo = String.format("%04d-%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1)
-                        gestionarPresupuestosUseCase.guardarPresupuesto(
-                            com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity(
-                                categoriaId = categoria.id.toLong(),
-                                monto = presupuesto,
-                                periodo = periodo
-                            )
-                        )
-                    }
+                    viewModel.guardarPresupuesto(categoria.id.toLong(), presupuesto)
                 }
+                categoriaToEdit = null
             }
         )
     }
@@ -183,8 +154,16 @@ fun CategoriaDialog(
 ) {
     var nombre by remember { mutableStateOf(categoria?.nombre ?: "") }
     var descripcion by remember { mutableStateOf(categoria?.descripcion ?: "") }
-    var presupuesto by remember { mutableStateOf(0.0) }
-    var activarPresupuesto by remember { mutableStateOf(false) }
+    var presupuestoInput by remember {
+        mutableStateOf(
+            if (categoria?.presupuestoMensual != null && categoria.presupuestoMensual > 0) {
+                categoria.presupuestoMensual.toLong().toString()
+            } else {
+                ""
+            }
+        )
+    }
+    var activarPresupuesto by remember { mutableStateOf(categoria?.presupuestoMensual != null && categoria.presupuestoMensual > 0) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -211,8 +190,11 @@ fun CategoriaDialog(
                 }
                 if (activarPresupuesto) {
                     OutlinedTextField(
-                        value = if (presupuesto == 0.0) "" else presupuesto.toString(),
-                        onValueChange = { presupuesto = it.toDoubleOrNull() ?: 0.0 },
+                        value = presupuestoInput,
+                        onValueChange = { input ->
+                            val cleaned = input.replace("[^\\d]".toRegex(), "")
+                            presupuestoInput = cleaned
+                        },
                         label = { Text("Presupuesto mensual") },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
@@ -224,7 +206,8 @@ fun CategoriaDialog(
             TextButton(
                 onClick = {
                     if (nombre.isNotBlank()) {
-                        onConfirm(nombre, descripcion, presupuesto, activarPresupuesto)
+                        val presVal = if (activarPresupuesto) presupuestoInput.toDoubleOrNull() ?: 0.0 else 0.0
+                        onConfirm(nombre, descripcion, presVal, activarPresupuesto)
                     }
                 }
             ) {

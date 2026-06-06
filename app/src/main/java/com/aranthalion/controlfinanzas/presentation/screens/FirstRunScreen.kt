@@ -237,7 +237,7 @@ fun FirstRunScreen(
                                     onClick = {
                                         val intent = android.content.Intent(
                                             android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse("http://161.153.219.141/finanzas/dashboard/link-device")
+                                            android.net.Uri.parse("http://129.151.113.195/finanzas/dashboard/link-device")
                                         )
                                         context.startActivity(intent)
                                     },

@@ -91,7 +91,7 @@ fun PresupuestoDialog(
                     }
                     
                     OutlinedTextField(
-                        value = formatNumberWithSeparators(monto),
+                        value = monto,
                         onValueChange = { 
                             val cleaned = cleanNumberFormat(it)
                             monto = cleaned
@@ -151,7 +151,7 @@ fun PresupuestoEditDialog(
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit
 ) {
-    var monto by remember { mutableStateOf(presupuesto.monto.toString()) }
+    var monto by remember { mutableStateOf(presupuesto.monto.toLong().toString()) }
 
     AnimatedVisibility(
         visible = true,
@@ -178,7 +178,7 @@ fun PresupuestoEditDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     OutlinedTextField(
-                        value = formatNumberWithSeparators(monto),
+                        value = monto,
                         onValueChange = { 
                             val cleaned = cleanNumberFormat(it)
                             monto = cleaned

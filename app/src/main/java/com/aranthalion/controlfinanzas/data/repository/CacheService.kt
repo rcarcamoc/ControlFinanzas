@@ -108,6 +108,15 @@ class CacheService @Inject constructor() {
     }
     
     /**
+     * Invalida el cache de movimientos por período
+     */
+    suspend fun invalidarCacheMovimientosPorPeriodo() = mutex.withLock {
+        movimientosPorPeriodoCache.clear()
+        movimientosPorPeriodoCacheTimestamp.clear()
+        println("🗑️ HITO 1.3: Cache de movimientos por período invalidado")
+    }
+    
+    /**
      * Invalida el cache de categorías
      */
     suspend fun invalidarCacheCategorias() = mutex.withLock {

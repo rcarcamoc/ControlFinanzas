@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.UUID
 import kotlinx.coroutines.flow.first
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 import javax.inject.Inject
 
 sealed interface TransaccionesEvent {
@@ -25,6 +26,7 @@ sealed interface TransaccionesEvent {
     data class SearchMovimientos(val query: String) : TransaccionesEvent
     data class UpdateMovimientoCategoria(val id: Long, val categoriaId: Long?) : TransaccionesEvent
     data class EditMovimiento(val movimiento: MovimientoEntity) : TransaccionesEvent
+    data class FilterByPeriodo(val periodo: String) : TransaccionesEvent
 }
 
 sealed interface UiState {
@@ -37,7 +39,8 @@ sealed interface UiState {
 class TransaccionesViewModel @Inject constructor(
     private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
     private val gestionarCategoriasUseCase: GestionarCategoriasUseCase,
-    val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
+    val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase,
+    private val configuracionPreferences: ConfiguracionPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -46,8 +49,10 @@ class TransaccionesViewModel @Inject constructor(
     private var currentTipoFilter: String? = null
     private var currentCategoriaFilter: Categoria? = null
     private var currentSearchQuery: String = ""
+    private var currentPeriodoFilter: String? = null
 
     init {
+        currentPeriodoFilter = configuracionPreferences.obtenerPeriodoGlobal()
         fetchData()
     }
 
@@ -99,6 +104,10 @@ class TransaccionesViewModel @Inject constructor(
                     fetchData()
                 }
             }
+            is TransaccionesEvent.FilterByPeriodo -> {
+                currentPeriodoFilter = event.periodo
+                fetchData()
+            }
         }
     }
 
@@ -109,12 +118,15 @@ class TransaccionesViewModel @Inject constructor(
                 val movimientos = gestionarMovimientosUseCase.obtenerMovimientos().filter { movimiento ->
                     val tipoMatch = currentTipoFilter?.let { it == movimiento.tipo } ?: true
                     val categoriaMatch = currentCategoriaFilter?.let { it.id == movimiento.categoriaId } ?: true
+                    val periodoMatch = currentPeriodoFilter?.let { 
+                        it == "Todos" || movimiento.periodoFacturacion == it 
+                    } ?: true
                     val searchMatch = if (currentSearchQuery.isBlank()) {
                         true
                     } else {
                         movimiento.descripcion.contains(currentSearchQuery, ignoreCase = true)
                     }
-                    tipoMatch && categoriaMatch && searchMatch
+                    tipoMatch && categoriaMatch && periodoMatch && searchMatch
                 }
                 
                 // Ordenar por fecha descendente

@@ -30,8 +30,14 @@ class GestionarPresupuestosUseCase @Inject constructor(
     private val categoriaRepository: CategoriaRepository,
     private val movimientoRepository: MovimientoRepository
 ) {
-    suspend fun guardarPresupuesto(presupuesto: PresupuestoCategoriaEntity) =
-        repository.insertarPresupuesto(presupuesto)
+    suspend fun guardarPresupuesto(presupuesto: PresupuestoCategoriaEntity) {
+        val existente = repository.obtenerPresupuestoPorCategoriaYPeriodo(presupuesto.categoriaId, presupuesto.periodo)
+        if (existente != null) {
+            repository.actualizarPresupuesto(existente.copy(monto = presupuesto.monto))
+        } else {
+            repository.insertarPresupuesto(presupuesto)
+        }
+    }
 
     suspend fun actualizarPresupuesto(presupuesto: PresupuestoCategoriaEntity) =
         repository.actualizarPresupuesto(presupuesto)
@@ -118,21 +124,9 @@ class GestionarPresupuestosUseCase @Inject constructor(
      * Calcula el gasto total de una categoría en un período
      */
     private suspend fun calcularGastoCategoria(categoriaId: Long, periodo: String): Double {
-        // Obtener todos los movimientos y filtrar por período de facturación
-        val todosLosMovimientos = movimientoRepository.obtenerMovimientos()
-        println("🔍 GASTO: Total movimientos obtenidos: ${todosLosMovimientos.size}")
-        todosLosMovimientos.forEach { m ->
-            println("🔍 GASTO: Movimiento: id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
-        }
-        
-        // Filtrar por período de facturación en lugar de fecha
-        val movimientosDelPeriodo = todosLosMovimientos.filter { movimiento ->
-            movimiento.periodoFacturacion == periodo
-        }
+        // Obtener movimientos del período directamente
+        val movimientosDelPeriodo = movimientoRepository.obtenerMovimientosPorPeriodoOptimizado(periodo)
         println("🔍 GASTO: Movimientos en periodo de facturación ($periodo): ${movimientosDelPeriodo.size}")
-        movimientosDelPeriodo.forEach { m ->
-            println("🔍 GASTO: [Periodo] id=${m.id}, fecha=${m.fecha}, periodoFacturacion=${m.periodoFacturacion}, categoriaId=${m.categoriaId}, tipo=${m.tipo}, monto=${m.monto}")
-        }
         
         // Obtener movimientos de la categoría para el período
         val movimientosCategoria = movimientosDelPeriodo.filter {

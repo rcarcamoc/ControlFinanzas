@@ -123,6 +123,13 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Selector de período global
+        PeriodoSelectorGlobal(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        )
+
         // Dashboard Stats con datos reales - Layout responsive
         when (uiState) {
             is MovimientosUiState.Success -> {

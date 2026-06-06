@@ -68,7 +68,7 @@ fun UsuariosScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             when (uiState) {
                 is UsuariosUiState.Loading -> {
