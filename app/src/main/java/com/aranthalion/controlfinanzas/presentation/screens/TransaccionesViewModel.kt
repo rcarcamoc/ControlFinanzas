@@ -17,6 +17,7 @@ import java.util.Date
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+import com.aranthalion.controlfinanzas.data.remote.ai.VisionImportService
 import javax.inject.Inject
 
 sealed interface TransaccionesEvent {
@@ -40,11 +41,32 @@ class TransaccionesViewModel @Inject constructor(
     private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
     private val gestionarCategoriasUseCase: GestionarCategoriasUseCase,
     val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase,
-    private val configuracionPreferences: ConfiguracionPreferences
+    private val configuracionPreferences: ConfiguracionPreferences,
+    private val visionImportService: VisionImportService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _visionLoading = MutableStateFlow(false)
+    val visionLoading: StateFlow<Boolean> = _visionLoading.asStateFlow()
+
+    fun importarCaptura(
+        base64Image: String,
+        onParsed: (List<VisionImportService.ParsedTransaction>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            _visionLoading.value = true
+            val result = visionImportService.analyzeScreenshot(base64Image)
+            _visionLoading.value = false
+            result.onSuccess {
+                onParsed(it)
+            }.onFailure {
+                onError(it.message ?: "Error al procesar la captura")
+            }
+        }
+    }
 
     private var currentTipoFilter: String? = null
     private var currentCategoriaFilter: Categoria? = null

@@ -67,14 +67,57 @@ class EmailSyncViewModel @Inject constructor(
         }
     }
 
+    private fun esDuplicado(nuevo: MovimientoEntity, existentes: List<MovimientoEntity>): Boolean {
+        // 1. Coincidencia exacta de idUnico
+        if (existentes.any { it.idUnico == nuevo.idUnico }) return true
+
+        // 2. Coincidencia por monto, tipo y fecha (mismo día ignorando hora)
+        val nuevoCal = java.util.Calendar.getInstance().apply { time = nuevo.fecha }
+        val nuevoYear = nuevoCal.get(java.util.Calendar.YEAR)
+        val nuevoMonth = nuevoCal.get(java.util.Calendar.MONTH)
+        val nuevoDay = nuevoCal.get(java.util.Calendar.DAY_OF_MONTH)
+
+        val descNueva = nuevo.descripcion.lowercase().trim()
+        val comercioNuevo = descNueva
+            .replace("importado correo:", "")
+            .replace("importado excel:", "")
+            .trim()
+
+        for (existente in existentes) {
+            if (existente.monto == nuevo.monto && existente.tipo == nuevo.tipo) {
+                val extCal = java.util.Calendar.getInstance().apply { time = existente.fecha }
+                val extYear = extCal.get(java.util.Calendar.YEAR)
+                val extMonth = extCal.get(java.util.Calendar.MONTH)
+                val extDay = extCal.get(java.util.Calendar.DAY_OF_MONTH)
+
+                if (nuevoYear == extYear && nuevoMonth == extMonth && nuevoDay == extDay) {
+                    val descExistente = existente.descripcion.lowercase().trim()
+                    val comercioExistente = descExistente
+                        .replace("importado correo:", "")
+                        .replace("importado excel:", "")
+                        .trim()
+
+                    // Si coinciden en comercio o si uno contiene al otro
+                    if (comercioExistente.isEmpty() || comercioNuevo.isEmpty() ||
+                        comercioExistente.contains(comercioNuevo) || 
+                        comercioNuevo.contains(comercioExistente) ||
+                        comercioExistente.take(5) == comercioNuevo.take(5)) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
     fun importarMovimientos(movimientos: List<MovimientoEntity>) {
         viewModelScope.launch {
             _uiState.value = EmailSyncUiState.Loading
             try {
-                val existentes = gestionarMovimientosUseCase.obtenerIdUnicos()
+                val existentes = gestionarMovimientosUseCase.obtenerMovimientos()
                 var guardados = 0
                 for (mov in movimientos) {
-                    if (mov.idUnico !in existentes) {
+                    if (!esDuplicado(mov, existentes)) {
                         gestionarMovimientosUseCase.agregarMovimiento(mov)
                         guardados++
                     }

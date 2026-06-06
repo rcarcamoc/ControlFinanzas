@@ -112,10 +112,42 @@ class EmailFetcherService @Inject constructor(
         return palabrasClave.any { textToSearch.contains(it) }
     }
 
+    private fun stripHtml(html: String): String {
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+            } else {
+                @Suppress("DEPRECATION")
+                android.text.Html.fromHtml(html).toString()
+            }
+        } catch (e: Exception) {
+            // Fallback for unit tests or when android.text.Html is unavailable
+            html.replace(Regex("<[^>]*>"), " ")
+                .replace("&nbsp;", " ")
+                .replace("&aacute;", "á")
+                .replace("&eacute;", "é")
+                .replace("&iacute;", "í")
+                .replace("&oacute;", "ó")
+                .replace("&uacute;", "ú")
+                .replace("&ntilde;", "ñ")
+                .replace("&Aacute;", "Á")
+                .replace("&Eacute;", "É")
+                .replace("&Iacute;", "Í")
+                .replace("&Oacute;", "Ó")
+                .replace("&Uacute;", "Ú")
+                .replace("&Ntilde;", "Ñ")
+                .replace("&Iquest;", "¿")
+                .replace("&iquest;", "¿")
+                .replace("&iexcl;", "¡")
+        }
+    }
+
     private fun parsearCorreoAMovimiento(subject: String, body: String, sentDate: Date): MovimientoEntity? {
+        val plainBody = stripHtml(body)
+
         // Expresión regular genérica para extraer montos en pesos chilenos o dólares (ej: $15.000, $ 10.000, 5000 CLP)
         val montoPattern = Pattern.compile("(?i)(?:\\$|CLP|USD)\\s*([0-9]{1,3}(?:\\.[0-9]{3})+|[0-9]+)")
-        val matcherMonto = montoPattern.matcher(body)
+        val matcherMonto = montoPattern.matcher(plainBody)
         
         var monto = 0.0
         if (matcherMonto.find()) {
@@ -127,21 +159,48 @@ class EmailFetcherService @Inject constructor(
 
         // Determinar tipo (GASTO o INGRESO)
         var tipo = "GASTO"
-        val textToSearch = (subject + " " + body).lowercase()
+        val textToSearch = (subject + " " + plainBody).lowercase()
         if (textToSearch.contains("recibiste") || textToSearch.contains("abono") || textToSearch.contains("transferencia recibida")) {
             tipo = "INGRESO"
         }
 
         // Buscar comercio/compañía en el cuerpo
         var comercio = "Transacción Correo"
-        val comercioPattern = Pattern.compile("(?i)(?:en|comercio|destinatario|establecimiento|a)\\s+([A-Za-z0-9\\s]{3,25})")
-        val matcherComercio = comercioPattern.matcher(body)
+        val comercioPattern = Pattern.compile("(?i)(?:en|comercio|destinatario|establecimiento|a)\\s+([\\p{L}0-9 .,'\\-/]{3,50})")
+        val matcherComercio = comercioPattern.matcher(plainBody)
         if (matcherComercio.find()) {
-            comercio = matcherComercio.group(1)?.trim() ?: comercio
+            comercio = matcherComercio.group(1)?.replace(Regex(" +"), " ")?.trim() ?: comercio
+        }
+
+        // Obtener la fecha y hora de la transacción
+        var fechaTransaccion = sentDate
+        try {
+            val fechaPattern = Pattern.compile("(?i)Fecha\\s*\\r?\\n*\\s*([0-9]{2}/[0-9]{2}/[0-9]{4}|[0-9]{2}-[0-9]{2}-[0-9]{4})")
+            val horaPattern = Pattern.compile("(?i)Hora\\s*\\r?\\n*\\s*([0-9]{2}:[0-9]{2})")
+            
+            val matcherFecha = fechaPattern.matcher(plainBody)
+            val matcherHora = horaPattern.matcher(plainBody)
+            
+            if (matcherFecha.find()) {
+                val fechaStr = matcherFecha.group(1)
+                var horaStr = "00:00"
+                if (matcherHora.find()) {
+                    horaStr = matcherHora.group(1) ?: "00:00"
+                }
+                
+                val formatStr = if (fechaStr.contains("/")) "dd/MM/yyyy HH:mm" else "dd-MM-yyyy HH:mm"
+                val sdf = java.text.SimpleDateFormat(formatStr, Locale.getDefault())
+                val parsedDate = sdf.parse("$fechaStr $horaStr")
+                if (parsedDate != null) {
+                    fechaTransaccion = parsedDate
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("EmailFetcherService", "Error parsing transaction date/time from body, using sentDate", e)
         }
 
         val calendar = Calendar.getInstance()
-        calendar.time = sentDate
+        calendar.time = fechaTransaccion
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) + 1
         val periodo = String.format("%04d-%02d", year, month)
@@ -150,9 +209,9 @@ class EmailFetcherService @Inject constructor(
             tipo = tipo,
             monto = monto,
             descripcion = "Importado Correo: $comercio",
-            fecha = sentDate,
+            fecha = fechaTransaccion,
             periodoFacturacion = periodo,
-            idUnico = "EMAIL_${sentDate.time}_${monto.toInt()}"
+            idUnico = "EMAIL_${fechaTransaccion.time}_${monto.toInt()}"
         )
     }
 

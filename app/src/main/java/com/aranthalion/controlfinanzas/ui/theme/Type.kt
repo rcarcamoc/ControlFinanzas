@@ -4,15 +4,33 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
+import com.aranthalion.controlfinanzas.R
 
-// Jerarquía de tipografía basada en la guía de diseño Finanzas personales
-// Tamaños específicos: 30sp, 24sp, 14sp, 12sp
-// Pesos: 400 (Normal), 500 (Medium), 700 (Bold)
+// Proveedor de Google Fonts para descarga dinámica en Compose
+val provider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+// Familia Playfair Display para un estilo editorial sofisticado en encabezados
+val PlayfairFontFamily = FontFamily(
+    Font(googleFont = GoogleFont("Playfair Display"), fontProvider = provider)
+)
+
+// Familia Inter para una legibilidad y funcionalidad moderna en el texto de cuerpo
+val InterFontFamily = FontFamily(
+    Font(googleFont = GoogleFont("Inter"), fontProvider = provider)
+)
+
+// Jerarquía de tipografía basada en la guía de diseño de Finanzas Familiares
 val Typography = Typography(
     // Título de Página (PageHeader) - 30sp, Bold, color primary
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PlayfairFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 30.sp,
         lineHeight = 36.sp,
@@ -21,7 +39,7 @@ val Typography = Typography(
     
     // Título de Tarjeta (CardTitle) - 24sp, Bold, color foreground
     displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PlayfairFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
@@ -30,7 +48,7 @@ val Typography = Typography(
     
     // Título de sección - 20sp, Bold
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PlayfairFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = 28.sp,
@@ -39,7 +57,7 @@ val Typography = Typography(
     
     // Título grande - 22sp, SemiBold
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PlayfairFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
@@ -48,7 +66,7 @@ val Typography = Typography(
     
     // Título medio - 18sp, SemiBold
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PlayfairFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
@@ -57,7 +75,7 @@ val Typography = Typography(
     
     // Título pequeño - 16sp, Bold
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PlayfairFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
         lineHeight = 22.sp,
@@ -66,7 +84,7 @@ val Typography = Typography(
     
     // Texto de cuerpo grande - 16sp, Normal
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
@@ -75,7 +93,7 @@ val Typography = Typography(
     
     // Texto de cuerpo (Tabla) - 14sp, Normal, color foreground
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -84,7 +102,7 @@ val Typography = Typography(
     
     // Texto de cuerpo pequeño - 12sp, Normal
     bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
@@ -93,7 +111,7 @@ val Typography = Typography(
     
     // Etiquetas de Formulario (Label) - 14sp, Medium, color foreground
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -102,7 +120,7 @@ val Typography = Typography(
     
     // Texto de Botón - 14sp, Medium
     labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -111,7 +129,7 @@ val Typography = Typography(
     
     // Texto Muted/Secundario - 12sp, Normal, color muted-foreground
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
@@ -120,7 +138,7 @@ val Typography = Typography(
     
     // Texto de Input - 16sp, Normal
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 22.sp,
@@ -129,7 +147,7 @@ val Typography = Typography(
     
     // Descripción de Tarjeta/Página - 14sp, Normal, color muted-foreground
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -138,7 +156,7 @@ val Typography = Typography(
     
     // Título de sección pequeña - 12sp, Medium
     titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,

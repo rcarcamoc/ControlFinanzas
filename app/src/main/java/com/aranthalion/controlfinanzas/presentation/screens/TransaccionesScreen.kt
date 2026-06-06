@@ -51,6 +51,15 @@ import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.domain.clasificacion.GestionarClasificacionAutomaticaUseCase
 import com.aranthalion.controlfinanzas.presentation.global.PeriodoGlobalViewModel
 import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
+import android.net.Uri
+import android.util.Base64
+import android.widget.Toast
+import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.aranthalion.controlfinanzas.presentation.screens.composables.ConfirmarCapturaDialog
+import com.aranthalion.controlfinanzas.data.remote.ai.VisionImportService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +69,33 @@ fun TransaccionesScreen(
     periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val state = rememberTransaccionesScreenState()
+    val context = LocalContext.current
+    val visionLoading by viewModel.visionLoading.collectAsState()
+    var parsedTransactions by remember { mutableStateOf<List<VisionImportService.ParsedTransaction>?>(null) }
+    var mostrarConfirmacionDialog by remember { mutableStateOf(false) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val base64 = uriToBase64(context, it)
+            if (base64 != null) {
+                viewModel.importarCaptura(
+                    base64Image = base64,
+                    onParsed = { txs ->
+                        parsedTransactions = txs
+                        mostrarConfirmacionDialog = true
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                )
+            } else {
+                Toast.makeText(context, "Error al leer la imagen", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
     val periodoSeleccionado by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
 
     LaunchedEffect(categoriaId) {
@@ -134,6 +170,17 @@ fun TransaccionesScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "Escanear captura",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -172,6 +219,35 @@ fun TransaccionesScreen(
                                     state.mostrarFiltroDialog.value = false
                                 },
                                 categorias = currentState.categorias
+                            )
+                        }
+
+                        if (mostrarConfirmacionDialog && parsedTransactions != null) {
+                            ConfirmarCapturaDialog(
+                                onDismiss = {
+                                    mostrarConfirmacionDialog = false
+                                    parsedTransactions = null
+                                },
+                                onConfirm = { entities ->
+                                    entities.forEach { entity ->
+                                        viewModel.onEvent(
+                                            TransaccionesEvent.AddMovimiento(
+                                                descripcion = entity.descripcion,
+                                                monto = entity.monto,
+                                                tipo = entity.tipo,
+                                                categoria = currentState.categorias.find { it.id == entity.categoriaId },
+                                                fecha = entity.fecha,
+                                                periodo = entity.periodoFacturacion ?: periodoSeleccionado
+                                            )
+                                        )
+                                    }
+                                    mostrarConfirmacionDialog = false
+                                    parsedTransactions = null
+                                    Toast.makeText(context, "Gastos importados con éxito", Toast.LENGTH_SHORT).show()
+                                },
+                                transaccionesExtraidas = parsedTransactions!!,
+                                categorias = currentState.categorias,
+                                periodoFacturacionActual = periodoSeleccionado
                             )
                         }
 
@@ -298,7 +374,40 @@ fun TransaccionesScreen(
                         }
                     }
                 }
+
+                if (visionLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Analizando captura con IA...",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
         }
     }
 }
 }
+
+private fun uriToBase64(context: Context, uri: Uri): String? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val bytes = inputStream?.readBytes()
+        inputStream?.close()
+        if (bytes != null) {
+            Base64.encodeToString(bytes, Base64.DEFAULT)
+        } else null
+    } catch (e: Exception) {
+        null
+    }
+}
+
