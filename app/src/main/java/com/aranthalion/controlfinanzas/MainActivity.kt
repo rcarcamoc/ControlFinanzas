@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                 val householdName = uri.getQueryParameter("householdName")
                 val password = uri.getQueryParameter("password")
                 val action = uri.getQueryParameter("action")
+                val serverUrl = uri.getQueryParameter("serverUrl")
                 if (email != null && householdId != null) {
                     val configPrefs = ConfiguracionPreferences(this)
                     configPrefs.syncEmail = email
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     if (householdName != null) configPrefs.syncHouseholdName = householdName
                     if (password != null) configPrefs.syncPassword = password
                     if (action != null) configPrefs.syncOverwriteAction = action
+                    if (serverUrl != null) configPrefs.syncServerUrl = serverUrl
                     configPrefs.syncEnabled = true
                     configPrefs.markFirstRunComplete()
                     pendingDeepLinkUrl = uri.toString()
@@ -130,6 +132,7 @@ class MainActivity : ComponentActivity() {
                 val householdName = uri.getQueryParameter("householdName")
                 val password = uri.getQueryParameter("password")
                 val action = uri.getQueryParameter("action")
+                val serverUrl = uri.getQueryParameter("serverUrl")
                 if (email != null && householdId != null) {
                     val configPrefs = ConfiguracionPreferences(this)
                     configPrefs.syncEmail = email
@@ -137,6 +140,7 @@ class MainActivity : ComponentActivity() {
                     if (householdName != null) configPrefs.syncHouseholdName = householdName
                     if (password != null) configPrefs.syncPassword = password
                     if (action != null) configPrefs.syncOverwriteAction = action
+                    if (serverUrl != null) configPrefs.syncServerUrl = serverUrl
                     configPrefs.syncEnabled = true
                     configPrefs.markFirstRunComplete()
                     pendingDeepLinkUrl = uri.toString()
