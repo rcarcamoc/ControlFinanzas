@@ -166,10 +166,19 @@ class EmailFetcherService @Inject constructor(
 
         // Buscar comercio/compañía en el cuerpo
         var comercio = "Transacción Correo"
-        val comercioPattern = Pattern.compile("(?i)(?:en|comercio|destinatario|establecimiento|a)\\s+([\\p{L}0-9 .,'\\-/]{3,50})")
-        val matcherComercio = comercioPattern.matcher(plainBody)
-        if (matcherComercio.find()) {
-            comercio = matcherComercio.group(1)?.replace(Regex(" +"), " ")?.trim() ?: comercio
+        
+        // Patrón explícito para campo "Comercio" en emails con tablas (como BCI)
+        val comercioExplicitPattern = Pattern.compile("(?i)Comercio\\s*\\r?\\n*\\s*([\\p{L}0-9 .,'\\-/]{3,50})")
+        val matcherExplicit = comercioExplicitPattern.matcher(plainBody)
+        if (matcherExplicit.find()) {
+            comercio = matcherExplicit.group(1)?.replace(Regex(" +"), " ")?.trim() ?: comercio
+        } else {
+            // Patrón genérico de respaldo para otros correos
+            val comercioPattern = Pattern.compile("(?i)\\b(?:en|destinatario|establecimiento|a|para)\\s+([\\p{L}0-9 .,'\\-/]{3,50})")
+            val matcherComercio = comercioPattern.matcher(plainBody)
+            if (matcherComercio.find()) {
+                comercio = matcherComercio.group(1)?.replace(Regex(" +"), " ")?.trim() ?: comercio
+            }
         }
 
         // Obtener la fecha y hora de la transacción
@@ -188,9 +197,9 @@ class EmailFetcherService @Inject constructor(
                     horaStr = matcherHora.group(1) ?: "00:00"
                 }
                 
-                val formatStr = if (fechaStr.contains("/")) "dd/MM/yyyy HH:mm" else "dd-MM-yyyy HH:mm"
+                val formatStr = if (fechaStr != null && fechaStr.contains("/")) "dd/MM/yyyy HH:mm" else "dd-MM-yyyy HH:mm"
                 val sdf = java.text.SimpleDateFormat(formatStr, Locale.getDefault())
-                val parsedDate = sdf.parse("$fechaStr $horaStr")
+                val parsedDate = if (fechaStr != null) sdf.parse("$fechaStr $horaStr") else null
                 if (parsedDate != null) {
                     fechaTransaccion = parsedDate
                 }
@@ -208,7 +217,7 @@ class EmailFetcherService @Inject constructor(
         return MovimientoEntity(
             tipo = tipo,
             monto = monto,
-            descripcion = "Importado Correo: $comercio",
+            descripcion = comercio,
             fecha = fechaTransaccion,
             periodoFacturacion = periodo,
             idUnico = "EMAIL_${fechaTransaccion.time}_${monto.toInt()}"

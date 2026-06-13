@@ -199,7 +199,7 @@ class SyncService @Inject constructor(
                     
                     val entity = MovimientoEntity(
                         id = local?.id ?: 0L,
-                        tipo = rTx.type,
+                        tipo = if (rTx.ignored) "OMITIR" else rTx.type,
                         monto = rTx.amount,
                         descripcion = rTx.description,
                         descripcionLimpia = limpiarDescripcion(rTx.description),

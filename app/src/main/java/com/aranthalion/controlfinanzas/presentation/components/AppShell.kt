@@ -45,8 +45,6 @@ val navItems = listOf(
     NavItem("home", "Dashboard", CustomIcons.Dashboard, "Principal"),
     NavItem("transacciones", "Transacciones", CustomIcons.Transaction, "Principal"),
     NavItem("importar_excel", "Importar Excel", CustomIcons.Import, "Principal"),
-    // Nueva pantalla de verificación
-    NavItem("verificacion_compilacion", "Verificación compilación", CustomIcons.Info, "Principal"),
     
     // Gestión
     NavItem("presupuestos", "Presupuestos y Categorías", CustomIcons.Category, "Gestión"),

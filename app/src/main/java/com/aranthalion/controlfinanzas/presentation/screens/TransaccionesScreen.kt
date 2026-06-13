@@ -264,7 +264,7 @@ fun TransaccionesScreen(
                         }
 
                         val movimientosSinCategoria = remember(currentState.movimientos) {
-                            currentState.movimientos.filter { it.categoriaId == null }
+                            currentState.movimientos.filter { it.categoriaId == null && it.tipo != "OMITIR" }
                         }
 
                         if (mostrarAsistenteClasificacion) {

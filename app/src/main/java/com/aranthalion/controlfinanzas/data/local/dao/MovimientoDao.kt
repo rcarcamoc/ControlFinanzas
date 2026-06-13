@@ -55,16 +55,16 @@ interface MovimientoDao {
     suspend fun obtenerMovimientosConCategoria(): List<MovimientoEntity>
     
     // Consultas optimizadas usando campos normalizados (HITO 1.1)
-    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL ORDER BY fecha DESC LIMIT :limit")
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR' ORDER BY fecha DESC LIMIT :limit")
     suspend fun obtenerMovimientosSinCategoria(limit: Int = 50): List<MovimientoEntity>
     
-    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND descripcionNormalizada LIKE '%' || :patron || '%' ORDER BY fecha DESC LIMIT :limit")
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR' AND descripcionNormalizada LIKE '%' || :patron || '%' ORDER BY fecha DESC LIMIT :limit")
     suspend fun obtenerMovimientosSinCategoriaPorPatron(patron: String, limit: Int = 50): List<MovimientoEntity>
     
-    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND montoCategoria = :categoriaMonto ORDER BY fecha DESC LIMIT :limit")
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR' AND montoCategoria = :categoriaMonto ORDER BY fecha DESC LIMIT :limit")
     suspend fun obtenerMovimientosSinCategoriaPorMonto(categoriaMonto: String, limit: Int = 50): List<MovimientoEntity>
     
-    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND fechaMes = :mes ORDER BY fecha DESC LIMIT :limit")
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR' AND fechaMes = :mes ORDER BY fecha DESC LIMIT :limit")
     suspend fun obtenerMovimientosSinCategoriaPorMes(mes: String, limit: Int = 50): List<MovimientoEntity>
     
     @Query("SELECT * FROM movimientos WHERE categoriaId IS NOT NULL AND descripcionNormalizada = :descripcionNormalizada ORDER BY fecha DESC LIMIT :limit")
@@ -98,7 +98,7 @@ interface MovimientoDao {
     )
     
     // Consultas optimizadas para clasificación automática (HITO 1.2)
-    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND descripcionNormalizada != '' ORDER BY fecha DESC LIMIT :limit")
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR' AND descripcionNormalizada != '' ORDER BY fecha DESC LIMIT :limit")
     suspend fun obtenerMovimientosSinCategoriaOptimizado(limit: Int = 50): List<MovimientoEntity>
     
     @Query("SELECT * FROM movimientos WHERE categoriaId IS NOT NULL AND descripcionNormalizada = :descripcionNormalizada ORDER BY fecha DESC LIMIT :limit")
@@ -110,7 +110,7 @@ interface MovimientoDao {
     @Query("SELECT * FROM movimientos WHERE categoriaId IS NOT NULL AND fechaMes = :mes ORDER BY fecha DESC LIMIT :limit")
     suspend fun obtenerMovimientosPorMes(mes: String, limit: Int = 20): List<MovimientoEntity>
     
-    @Query("SELECT COUNT(*) FROM movimientos WHERE categoriaId IS NULL")
+    @Query("SELECT COUNT(*) FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR'")
     suspend fun contarMovimientosSinCategoria(): Int
     
     @Query("SELECT COUNT(*) FROM movimientos WHERE categoriaId IS NOT NULL")

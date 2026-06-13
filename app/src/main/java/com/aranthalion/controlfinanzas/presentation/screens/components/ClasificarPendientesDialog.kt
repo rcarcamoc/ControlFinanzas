@@ -296,7 +296,10 @@ fun ClasificarPendientesDialog(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(
-                            onClick = { currentIndex++ }
+                            onClick = {
+                                onUpdateCategory(movimiento.id, -1L)
+                                currentIndex++
+                            }
                         ) {
                             Text("Omitir")
                             Spacer(modifier = Modifier.width(4.dp))

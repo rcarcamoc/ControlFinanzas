@@ -107,10 +107,14 @@ class TransaccionesViewModel @Inject constructor(
                     val movimientos = gestionarMovimientosUseCase.obtenerMovimientos()
                     val movimientoAnterior = movimientos.find { it.id == event.id }
                     if (movimientoAnterior != null) {
-                        val nuevoMovimiento = movimientoAnterior.copy(categoriaId = event.categoriaId)
+                        val nuevoMovimiento = if (event.categoriaId == -1L) {
+                            movimientoAnterior.copy(tipo = "OMITIR", categoriaId = null)
+                        } else {
+                            movimientoAnterior.copy(categoriaId = event.categoriaId)
+                        }
                         gestionarMovimientosUseCase.actualizarMovimiento(nuevoMovimiento)
                         
-                        if (event.categoriaId != null) {
+                        if (event.categoriaId != null && event.categoriaId != -1L) {
                             clasificacionUseCase.aprenderPatron(nuevoMovimiento.descripcion, event.categoriaId)
                         }
                         fetchData()

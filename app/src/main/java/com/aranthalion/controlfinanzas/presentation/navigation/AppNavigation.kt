@@ -92,8 +92,6 @@ fun AppNavigation(navController: NavHostController) {
                     onNavigateBack = { navController.navigateUp() }
                 )
             }
-            composable("verificacion_compilacion") {
-            }
             composable("tinder_clasificacion") {
                 TinderClasificacionScreen(
                     onDismiss = {
