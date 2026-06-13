@@ -181,6 +181,20 @@ class EmailFetcherService @Inject constructor(
             }
         }
 
+        // Limpiar de la palabra "Cuotas" si aparece
+        val idxCuotas = comercio.indexOf("cuotas", ignoreCase = true)
+        if (idxCuotas != -1) {
+            comercio = comercio.substring(0, idxCuotas).trim()
+        }
+
+        // Buscar número de tarjeta de crédito
+        var tarjeta: String? = null
+        val tarjetaPattern = Pattern.compile("(?i)(?:Número tarjeta crédito|Tarjeta)\\s*\\r?\\n*\\s*([\\*0-9]{4,10})")
+        val matcherTarjeta = tarjetaPattern.matcher(plainBody)
+        if (matcherTarjeta.find()) {
+            tarjeta = matcherTarjeta.group(1)?.trim()
+        }
+
         // Obtener la fecha y hora de la transacción
         var fechaTransaccion = sentDate
         try {
@@ -220,6 +234,7 @@ class EmailFetcherService @Inject constructor(
             descripcion = comercio,
             fecha = fechaTransaccion,
             periodoFacturacion = periodo,
+            tipoTarjeta = tarjeta,
             idUnico = "EMAIL_${fechaTransaccion.time}_${monto.toInt()}"
         )
     }

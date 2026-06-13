@@ -127,7 +127,7 @@ fun TransaccionListItem(
 ) {
     val categoria = categorias.find { it.id == movimiento.categoriaId }
     val formattedDate = remember(movimiento.fecha) {
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(movimiento.fecha)
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(movimiento.fecha)
     }
     var deleteConfirmCountdown by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -208,6 +208,26 @@ fun TransaccionListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
+                // Tarjeta
+                if (!movimiento.tipoTarjeta.isNullOrBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CreditCard,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Tarjeta: ${movimiento.tipoTarjeta}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 
                 // Período de facturación
                 Row(
