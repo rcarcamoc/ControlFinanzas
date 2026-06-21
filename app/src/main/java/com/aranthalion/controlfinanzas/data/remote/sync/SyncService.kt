@@ -52,6 +52,7 @@ class SyncService @Inject constructor(
             val localPatterns = db.clasificacionAutomaticaDao().obtenerTodosLosPatrones()
             val localDebts = db.cuentaPorCobrarDao().obtenerTodasLasCuentas()
             val localUsers = db.usuarioDao().obtenerTodosLosUsuarios()
+            val pendingDeletions = db.movimientoEliminadoDao().obtenerPendientes()
 
             // Mapas de ayuda para resolver IDs a nombres
             val categoryIdToName = localCategories.associate { it.id to it.nombre }
@@ -64,6 +65,7 @@ class SyncService @Inject constructor(
                 "householdId" to config.syncHouseholdId,
                 "lastSyncTimestamp" to config.lastSyncTimestamp.toString(),
                 "overwrite" to overwriteServer,
+                "deletedIds" to pendingDeletions.map { it.idUnico },
                 "transactions" to localTxs.map { tx ->
                     mapOf(
                         "idUnico" to tx.idUnico,
@@ -76,7 +78,9 @@ class SyncService @Inject constructor(
                         "billingPeriod" to tx.periodoFacturacion,
                         "ignored" to (tx.tipo == "OMITIR"),
                         "createdAt" to tx.fechaCreacion,
-                        "updatedAt" to tx.fechaActualizacion
+                        "updatedAt" to tx.fechaActualizacion,
+                        "scope" to tx.scope,
+                        "userId_internal" to (tx.userId_internal ?: "")
                     )
                 },
                 "budgets" to localBudgets.map { b ->
@@ -84,6 +88,7 @@ class SyncService @Inject constructor(
                         "categoryName" to (categoryIdToName[b.categoriaId] ?: ""),
                         "amount" to b.monto,
                         "period" to b.periodo,
+                        "scope" to b.scope,
                         "updatedAt" to System.currentTimeMillis() // Presupuestos locales no tienen updatedAt explícito en Room
                     )
                 },
@@ -154,6 +159,16 @@ class SyncService @Inject constructor(
                 val remoteSalaries = parseList(syncData["salaries"]) { gson.fromJson(gson.toJson(it), RemoteSalary::class.java) }
                 val remotePatterns = parseList(syncData["patterns"]) { gson.fromJson(gson.toJson(it), RemotePattern::class.java) }
                 val remoteDebts = parseList(syncData["debts"]) { gson.fromJson(gson.toJson(it), RemoteDebt::class.java) }
+                val remoteDeletedIds = (syncData["deletedIds"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+
+                // 4b. Procesar eliminaciones del servidor
+                remoteDeletedIds.forEach { deletedIdUnico ->
+                    val local = db.movimientoDao().obtenerMovimientos().find { it.idUnico == deletedIdUnico }
+                    if (local != null) {
+                        db.movimientoDao().eliminarMovimiento(local)
+                        Log.d(TAG, "🗑️ SYNC: Movimiento eliminado localmente por orden del servidor: $deletedIdUnico")
+                    }
+                }
 
                 // Resolver Categorías locales e inyectar nuevas si no existen
                 val currentCategories = db.categoriaDao().obtenerCategorias().toMutableList()
@@ -197,37 +212,87 @@ class SyncService @Inject constructor(
                     val catId = getOrCreateLocalCategoryId(rTx.categoryName)
                     val local = db.movimientoDao().obtenerMovimientos().find { it.idUnico == rTx.idUnico }
                     
-                    val entity = MovimientoEntity(
-                        id = local?.id ?: 0L,
-                        tipo = if (rTx.ignored) "OMITIR" else rTx.type,
-                        monto = rTx.amount,
-                        descripcion = rTx.description,
-                        descripcionLimpia = limpiarDescripcion(rTx.description),
-                        fecha = Date(rTx.date),
-                        periodoFacturacion = rTx.billingPeriod,
-                        categoriaId = catId,
-                        tipoTarjeta = rTx.cardType.ifBlank { null },
-                        idUnico = rTx.idUnico,
-                        fechaCreacion = rTx.createdAt,
-                        fechaActualizacion = rTx.updatedAt,
-                        metodoActualizacion = "SYNC",
-                        daoResponsable = "SyncService"
-                    )
+                    if (local != null) {
+                        // Si el cambio local es más reciente que el remoto, conservar local
+                        if (local.fechaActualizacion > rTx.updatedAt) {
+                            return@forEach
+                        }
+                        
+                        // Si el movimiento local ya tiene categoría asignada y el remoto viene sin categoría, conservar la local
+                        val resolvedCatId = if (rTx.categoryName.isBlank() && local.categoriaId != null) {
+                            local.categoriaId
+                        } else {
+                            catId
+                        }
 
-                    db.movimientoDao().agregarMovimiento(entity)
+                        // Conservar el scope personal local si el remoto viene como familiar (para evitar pérdida de clasificación de scope local debido a clock skew o actualización demorada)
+                        val resolvedScope = if (rTx.scope.isNullOrBlank() || (rTx.scope == "HOUSEHOLD" && local.scope == "PERSONAL")) {
+                            local.scope
+                        } else {
+                            rTx.scope
+                        }
+
+                        val resolvedUserIdInternal = if (resolvedScope == "PERSONAL") {
+                            rTx.userId_internal?.ifBlank { null } ?: local.userId_internal
+                        } else {
+                            rTx.userId_internal?.ifBlank { null }
+                        }
+
+                        val entity = MovimientoEntity(
+                            id = local.id,
+                            tipo = if (rTx.ignored) "OMITIR" else rTx.type,
+                            monto = rTx.amount,
+                            descripcion = rTx.description,
+                            descripcionLimpia = limpiarDescripcion(rTx.description),
+                            fecha = Date(rTx.date),
+                            periodoFacturacion = rTx.billingPeriod,
+                            categoriaId = resolvedCatId,
+                            tipoTarjeta = rTx.cardType.ifBlank { null },
+                            idUnico = rTx.idUnico,
+                            fechaCreacion = rTx.createdAt,
+                            fechaActualizacion = rTx.updatedAt,
+                            metodoActualizacion = "SYNC",
+                            daoResponsable = "SyncService",
+                            scope = resolvedScope,
+                            userId_internal = resolvedUserIdInternal
+                        )
+                        db.movimientoDao().agregarMovimiento(entity)
+                    } else {
+                        val entity = MovimientoEntity(
+                            id = 0L,
+                            tipo = if (rTx.ignored) "OMITIR" else rTx.type,
+                            monto = rTx.amount,
+                            descripcion = rTx.description,
+                            descripcionLimpia = limpiarDescripcion(rTx.description),
+                            fecha = Date(rTx.date),
+                            periodoFacturacion = rTx.billingPeriod,
+                            categoriaId = catId,
+                            tipoTarjeta = rTx.cardType.ifBlank { null },
+                            idUnico = rTx.idUnico,
+                            fechaCreacion = rTx.createdAt,
+                            fechaActualizacion = rTx.updatedAt,
+                            metodoActualizacion = "SYNC",
+                            daoResponsable = "SyncService",
+                            scope = rTx.scope ?: "HOUSEHOLD",
+                            userId_internal = rTx.userId_internal?.ifBlank { null }
+                        )
+                        db.movimientoDao().agregarMovimiento(entity)
+                    }
                 }
 
                 // 6. Aplicar Presupuestos Remotos
                 remoteBudgets.forEach { rB ->
                     val catId = getOrCreateLocalCategoryId(rB.categoryName)
                     if (catId != null) {
+                        val targetScope = rB.scope ?: "HOUSEHOLD"
                         val local = db.presupuestoCategoriaDao().obtenerPresupuestosPorPeriodo(rB.period)
-                            .find { it.categoriaId == catId }
+                            .find { it.categoriaId == catId && it.scope == targetScope }
                         val entity = PresupuestoCategoriaEntity(
                             id = local?.id ?: 0L,
                             categoriaId = catId,
                             monto = rB.amount,
-                            periodo = rB.period
+                            periodo = rB.period,
+                            scope = targetScope
                         )
                         db.presupuestoCategoriaDao().insertarPresupuesto(entity)
                     }
@@ -249,7 +314,7 @@ class SyncService @Inject constructor(
                 remotePatterns.forEach { rP ->
                     val catId = getOrCreateLocalCategoryId(rP.categoryName)
                     if (catId != null) {
-                        val local = db.clasificacionAutomaticaDao().obtenerPatronPorDescripcion(rP.pattern)
+                        val local = db.clasificacionAutomaticaDao().obtenerPatronPorPatronYCategoria(rP.pattern, catId)
                         val entity = ClasificacionAutomaticaEntity(
                             id = local?.id ?: 0L,
                             patron = rP.pattern,
@@ -270,9 +335,9 @@ class SyncService @Inject constructor(
                 remoteDebts.forEach { rD ->
                     val debtorId = getOrCreateLocalUserId(rD.debtorName)
                     
-                    // Buscar si existe una deuda local por coincidencia de motivo y monto
+                    // Buscar si existe una deuda local por coincidencia de motivo, monto y fecha de creación con tolerancia de 5 segundos
                     val local = db.cuentaPorCobrarDao().obtenerTodasLasCuentas().find {
-                        it.motivo == rD.reason && it.monto == rD.amount && it.fechaCreacion == rD.createdAt
+                        it.motivo == rD.reason && it.monto == rD.amount && java.lang.Math.abs(it.fechaCreacion - rD.createdAt) <= 5000
                     }
 
                     val entity = CuentaPorCobrarEntity(
@@ -291,9 +356,38 @@ class SyncService @Inject constructor(
                     db.cuentaPorCobrarDao().insertarCuenta(entity)
                 }
 
+                // 10. Aplicar Usuarios Remotos
+                val remoteUsers = parseList(syncData["users"]) { gson.fromJson(gson.toJson(it), RemoteUser::class.java) }
+                remoteUsers.forEach { rU ->
+                    val local = db.usuarioDao().obtenerTodosLosUsuarios().find { 
+                        it.idServidor == rU.id || (rU.email.isNotBlank() && it.email == rU.email) 
+                    }
+                    val entity = UsuarioEntity(
+                        id = local?.id ?: 0L,
+                        nombre = rU.name.split(" ").firstOrNull() ?: rU.name,
+                        apellido = rU.name.split(" ").drop(1).joinToString(" "),
+                        email = rU.email.ifBlank { null },
+                        activo = true,
+                        idServidor = rU.id
+                    )
+                    if (local != null) {
+                        db.usuarioDao().actualizarUsuario(entity)
+                    } else {
+                        db.usuarioDao().insertarUsuario(entity)
+                    }
+                }
+
                 // Guardar la marca de tiempo de sincronización exitosa
                 config.lastSyncTimestamp = serverTimestamp
                 config.syncOverwriteAction = ""
+                 
+                // Limpiar tombstones locales sincronizados
+                if (pendingDeletions.isNotEmpty()) {
+                    db.movimientoEliminadoDao().marcarComoSincronizados(pendingDeletions.map { it.id })
+                    db.movimientoEliminadoDao().purgarSincronizados()
+                    Log.d(TAG, "🗑️ SYNC: ${pendingDeletions.size} tombstones locales marcados como sincronizados y purgados")
+                }
+
                 Log.d(TAG, "✅ Sincronización exitosa. Marca de tiempo: $serverTimestamp")
                 return@withContext Result.success("Sincronización completada exitosamente")
             }
@@ -332,13 +426,23 @@ class SyncService @Inject constructor(
         val billingPeriod: String,
         val ignored: Boolean,
         val createdAt: Long,
-        val updatedAt: Long
+        val updatedAt: Long,
+        val scope: String?,
+        val userId_internal: String?,
+        val userName: String?
+    )
+
+    private data class RemoteUser(
+        val id: String,
+        val name: String,
+        val email: String
     )
 
     private data class RemoteBudget(
         val categoryName: String,
         val amount: Double,
         val period: String,
+        val scope: String?,
         val updatedAt: Long
     )
 

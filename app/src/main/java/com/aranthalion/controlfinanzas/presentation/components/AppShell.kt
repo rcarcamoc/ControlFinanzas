@@ -44,7 +44,7 @@ val navItems = listOf(
     // Principal
     NavItem("home", "Dashboard", CustomIcons.Dashboard, "Principal"),
     NavItem("transacciones", "Transacciones", CustomIcons.Transaction, "Principal"),
-    NavItem("importar_excel", "Importar Excel", CustomIcons.Import, "Principal"),
+    NavItem("importadores", "Importadores", CustomIcons.Import, "Principal"),
     
     // Gestión
     NavItem("presupuestos", "Presupuestos y Categorías", CustomIcons.Category, "Gestión"),
@@ -133,6 +133,21 @@ fun AppShell(
                     )
                     
                     PeriodoSelectorGlobal(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Selector de imputación / filtro global
+                    Text(
+                        text = "Imputación / Filtro",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = SidebarForeground,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    ScopeSelectorGlobal(
                         modifier = Modifier.fillMaxWidth()
                     )
                     

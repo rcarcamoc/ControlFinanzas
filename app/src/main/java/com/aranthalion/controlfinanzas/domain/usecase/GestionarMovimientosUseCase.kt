@@ -12,6 +12,30 @@ class GestionarMovimientosUseCase @Inject constructor(
         return movimientoRepository.obtenerMovimientos()
     }
 
+    /**
+     * Obtiene TODOS los movimientos sin filtro de scope.
+     * Para uso en detección de duplicados cross-scope (ej. EmailSyncWorker).
+     */
+    suspend fun obtenerTodosLosMovimientos(): List<MovimientoEntity> {
+        return movimientoRepository.obtenerTodosLosMovimientos()
+    }
+
+    /**
+     * Obtiene un movimiento por ID sin filtro de scope.
+     * Garantiza encontrar el movimiento sin importar su scope actual.
+     */
+    suspend fun obtenerMovimientoPorId(id: Long): MovimientoEntity? {
+        return movimientoRepository.obtenerMovimientoPorId(id)
+    }
+
+    /**
+     * Obtiene todos los movimientos sin categoría de todos los scopes.
+     * Para el asistente de clasificación.
+     */
+    suspend fun obtenerMovimientosSinCategoriaTodosScopes(): List<MovimientoEntity> {
+        return movimientoRepository.obtenerMovimientosSinCategoriaTodosScopes()
+    }
+
     // Métodos optimizados del HITO 1
     suspend fun obtenerMovimientosOptimizado(): List<MovimientoEntity> {
         return movimientoRepository.obtenerMovimientos()

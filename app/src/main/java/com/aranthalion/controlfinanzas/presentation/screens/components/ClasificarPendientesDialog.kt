@@ -4,7 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.items as listItems
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -29,17 +32,52 @@ import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClasificarPendientesDialog(
     movimientosSinCategoria: List<MovimientoEntity>,
     categorias: List<Categoria>,
-    onUpdateCategory: (Long, Long?) -> Unit,
+    onUpdateCategory: (List<Long>, Long?, String) -> Unit,
     clasificacionUseCase: GestionarClasificacionAutomaticaUseCase,
     onDismiss: () -> Unit
 ) {
     // Tomar un snapshot estático al abrir el diálogo para definir la sesión de clasificación
     val sessionMovimientos = remember { movimientosSinCategoria }
     var currentIndex by remember { mutableStateOf(0) }
+    val idsClasificados = remember { mutableStateListOf<Long>() }
+    var modoPorCategorias by remember { mutableStateOf(false) }
+    val sugerenciasMap = remember { mutableStateMapOf<Long, Long?>() }
+
+    LaunchedEffect(sessionMovimientos) {
+        sessionMovimientos.forEach { mov ->
+            if (sugerenciasMap[mov.id] == null) {
+                try {
+                    val resultado = clasificacionUseCase.obtenerSugerenciaMejorada(mov.descripcion)
+                    val catId = when (resultado) {
+                        is ResultadoClasificacion.AltaConfianza -> resultado.categoriaId
+                        is ResultadoClasificacion.BajaConfianza -> {
+                            val mejor = resultado.sugerencias.maxByOrNull { it.nivelConfianza }
+                            if (mejor != null && clasificacionUseCase.esConfianzaSuficiente(mejor.nivelConfianza)) {
+                                mejor.categoriaId
+                            } else {
+                                null
+                            }
+                        }
+                        else -> null
+                    }
+                    sugerenciasMap[mov.id] = catId
+                } catch (e: Exception) {
+                    sugerenciasMap[mov.id] = null
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(currentIndex, idsClasificados.size) {
+        while (currentIndex < sessionMovimientos.size && idsClasificados.contains(sessionMovimientos[currentIndex].id)) {
+            currentIndex++
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -71,8 +109,45 @@ fun ClasificarPendientesDialog(
                     }
                 }
 
-                if (currentIndex < sessionMovimientos.size) {
+                // Selector de modo
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = !modoPorCategorias,
+                        onClick = { modoPorCategorias = false },
+                        label = { Text("Asistente Rápido") }
+                    )
+                    FilterChip(
+                        selected = modoPorCategorias,
+                        onClick = { modoPorCategorias = true },
+                        label = { Text("Por Categorías") }
+                    )
+                }
+
+                if (!modoPorCategorias) {
+                    if (currentIndex < sessionMovimientos.size) {
                     val movimiento = sessionMovimientos[currentIndex]
+                    var scopeSeleccionado by remember(movimiento.id) { mutableStateOf(movimiento.scope) }
+                    
+                    val similarMovimientos = remember(movimiento.id) {
+                        sessionMovimientos.subList(currentIndex + 1, sessionMovimientos.size)
+                            .filter { areSimilar(movimiento.descripcion, it.descripcion) }
+                    }
+                    
+                    val seleccionadosSimilares = remember(movimiento.id) {
+                        mutableStateListOf<Long>().apply {
+                            addAll(similarMovimientos.map { it.id })
+                        }
+                    }
+
+                    val clasificarActualYSimilares = { categoriaId: Long? ->
+                        val idsAClasificar = listOf(movimiento.id) + seleccionadosSimilares.toList()
+                        onUpdateCategory(idsAClasificar, categoriaId, scopeSeleccionado)
+                        idsClasificados.addAll(idsAClasificar)
+                        currentIndex++
+                    }
                     
                     // Barra de progreso de la cola
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -108,11 +183,25 @@ fun ClasificarPendientesDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(movimiento.fecha),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column {
+                                    Text(
+                                        text = SimpleDateFormat("EEEE, dd/MM/yyyy HH:mm", Locale.getDefault())
+                                            .format(movimiento.fecha)
+                                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    movimiento.tipoTarjeta?.let { tarjeta ->
+                                        if (tarjeta.isNotEmpty()) {
+                                            Text(
+                                                text = "Tarjeta: $tarjeta",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
                                 Text(
                                     text = if (movimiento.tipo == "INGRESO") {
                                         "+${FormatUtils.formatMoneyCLP(movimiento.monto)}"
@@ -123,6 +212,87 @@ fun ClasificarPendientesDialog(
                                     fontWeight = FontWeight.Bold,
                                     color = if (movimiento.tipo == "INGRESO") Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
                                 )
+                            }
+                        }
+                    }
+
+                    // Selector de ámbito (Grupo Familiar vs Personal)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Imputación / Ámbito:",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = scopeSeleccionado == "HOUSEHOLD",
+                                onClick = { scopeSeleccionado = "HOUSEHOLD" },
+                                label = { Text("🏠 Grupo Familiar") }
+                            )
+                            FilterChip(
+                                selected = scopeSeleccionado == "PERSONAL",
+                                onClick = { scopeSeleccionado = "PERSONAL" },
+                                label = { Text("👤 Gastos Personales") }
+                            )
+                        }
+                    }
+
+                    // Transacciones Similares Encontradas
+                    if (similarMovimientos.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "¿Clasificar también similares? (${seleccionadosSimilares.size} seleccionadas)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .maxHeight(120.dp)
+                                ) {
+                                    androidx.compose.foundation.lazy.LazyColumn(
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        listItems(similarMovimientos) { sim ->
+                                            val isChecked = seleccionadosSimilares.contains(sim.id)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Checkbox(
+                                                    checked = isChecked,
+                                                    onCheckedChange = { checked ->
+                                                        if (checked) {
+                                                            seleccionadosSimilares.add(sim.id)
+                                                        } else {
+                                                            seleccionadosSimilares.remove(sim.id)
+                                                        }
+                                                    },
+                                                    modifier = Modifier.scale(0.85f)
+                                                )
+                                                Text(
+                                                    text = sim.descripcion.ifEmpty { "Sin descripción" },
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -233,8 +403,7 @@ fun ClasificarPendientesDialog(
                                 }
                                 Button(
                                     onClick = {
-                                        onUpdateCategory(movimiento.id, sugCat.id)
-                                        currentIndex++
+                                        clasificarActualYSimilares(sugCat.id)
                                     }
                                 ) {
                                     Icon(Icons.Default.Check, contentDescription = "Aceptar sugerencia")
@@ -266,11 +435,10 @@ fun ClasificarPendientesDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(categoriasOrdenadas) { cat ->
+                            gridItems(categoriasOrdenadas) { cat ->
                                 Button(
                                     onClick = {
-                                        onUpdateCategory(movimiento.id, cat.id)
-                                        currentIndex++
+                                        clasificarActualYSimilares(cat.id)
                                     },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -297,8 +465,7 @@ fun ClasificarPendientesDialog(
                     ) {
                         TextButton(
                             onClick = {
-                                onUpdateCategory(movimiento.id, -1L)
-                                currentIndex++
+                                clasificarActualYSimilares(-1L)
                             }
                         ) {
                             Text("Omitir")
@@ -339,16 +506,277 @@ fun ClasificarPendientesDialog(
                         }
                     }
                 }
+                } else {
+                    // MODO POR CATEGORÍAS
+                    var categoriaSeleccionadaId by remember { mutableStateOf<Long?>(null) }
+                    var filtroBusqueda by remember { mutableStateOf("") }
+                    val seleccionadosLote = remember { mutableStateListOf<Long>() }
+                    var scopeSeleccionadoLote by remember { mutableStateOf("HOUSEHOLD") }
+
+                    val activeCategory = categorias.find { it.id == categoriaSeleccionadaId }
+
+                    if (categoriaSeleccionadaId == null) {
+                        Text(
+                            text = "Selecciona una categoría para clasificar en lote:",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Box(modifier = Modifier.weight(1f).maxHeight(320.dp)) {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 130.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                gridItems(categorias) { cat ->
+                                    val count = sessionMovimientos.count { mov ->
+                                        !idsClasificados.contains(mov.id) && sugerenciasMap[mov.id] == cat.id
+                                    }
+                                    Button(
+                                        onClick = {
+                                            categoriaSeleccionadaId = cat.id
+                                            seleccionadosLote.clear()
+                                            seleccionadosLote.addAll(
+                                                sessionMovimientos.filter { mov ->
+                                                    !idsClasificados.contains(mov.id) && sugerenciasMap[mov.id] == cat.id
+                                                }.map { it.id }
+                                            )
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (count > 0) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = if (count > 0) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = cat.nombre,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (count > 0) {
+                                                Text(
+                                                    text = "$count sugerencias",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Normal
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxHeight()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Categoría: ${activeCategory?.nombre ?: ""}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                TextButton(onClick = { categoriaSeleccionadaId = null }) {
+                                    Text("Volver")
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "Ámbito lote:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                FilterChip(
+                                    selected = scopeSeleccionadoLote == "HOUSEHOLD",
+                                    onClick = { scopeSeleccionadoLote = "HOUSEHOLD" },
+                                    label = { Text("🏠 Familiar") }
+                                )
+                                FilterChip(
+                                    selected = scopeSeleccionadoLote == "PERSONAL",
+                                    onClick = { scopeSeleccionadoLote = "PERSONAL" },
+                                    label = { Text("👤 Personal") }
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = filtroBusqueda,
+                                onValueChange = { filtroBusqueda = it },
+                                placeholder = { Text("Buscar descripción...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            val filtradosSugeridos = remember(sessionMovimientos, idsClasificados.size, categoriaSeleccionadaId, filtroBusqueda) {
+                                sessionMovimientos.filter { mov ->
+                                    !idsClasificados.contains(mov.id) &&
+                                    sugerenciasMap[mov.id] == categoriaSeleccionadaId &&
+                                    (filtroBusqueda.isEmpty() || mov.descripcion.contains(filtroBusqueda, ignoreCase = true))
+                                }
+                            }
+
+                            val filtradosOtros = remember(sessionMovimientos, idsClasificados.size, categoriaSeleccionadaId, filtroBusqueda) {
+                                sessionMovimientos.filter { mov ->
+                                    !idsClasificados.contains(mov.id) &&
+                                    sugerenciasMap[mov.id] != categoriaSeleccionadaId &&
+                                    (filtroBusqueda.isEmpty() || mov.descripcion.contains(filtroBusqueda, ignoreCase = true))
+                                }
+                            }
+
+                            Box(modifier = Modifier.weight(1f).maxHeight(200.dp)) {
+                                LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    if (filtradosSugeridos.isNotEmpty()) {
+                                        item {
+                                            Text(
+                                                text = "Sugeridos para esta categoría:",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(vertical = 4.dp)
+                                            )
+                                        }
+                                        listItems(filtradosSugeridos) { sim ->
+                                            val isChecked = seleccionadosLote.contains(sim.id)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Checkbox(
+                                                    checked = isChecked,
+                                                    onCheckedChange = { checked ->
+                                                        if (checked) seleccionadosLote.add(sim.id) else seleccionadosLote.remove(sim.id)
+                                                    },
+                                                    modifier = Modifier.scale(0.85f)
+                                                )
+                                                Text(
+                                                    text = sim.descripcion,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Text(
+                                                    text = FormatUtils.formatMoneyCLP(sim.monto),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (filtradosOtros.isNotEmpty()) {
+                                        item {
+                                            Text(
+                                                text = "Otros movimientos sin clasificar:",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                modifier = Modifier.padding(vertical = 4.dp)
+                                            )
+                                        }
+                                        listItems(filtradosOtros) { sim ->
+                                            val isChecked = seleccionadosLote.contains(sim.id)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Checkbox(
+                                                    checked = isChecked,
+                                                    onCheckedChange = { checked ->
+                                                        if (checked) seleccionadosLote.add(sim.id) else seleccionadosLote.remove(sim.id)
+                                                    },
+                                                    modifier = Modifier.scale(0.85f)
+                                                )
+                                                Text(
+                                                    text = sim.descripcion,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Text(
+                                                    text = FormatUtils.formatMoneyCLP(sim.monto),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (seleccionadosLote.isNotEmpty()) {
+                                Button(
+                                    onClick = {
+                                        onUpdateCategory(seleccionadosLote.toList(), categoriaSeleccionadaId, scopeSeleccionadoLote)
+                                        idsClasificados.addAll(seleccionadosLote)
+                                        seleccionadosLote.clear()
+                                        categoriaSeleccionadaId = null
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Confirmar Lote (${seleccionadosLote.size})")
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-// Extensión Modifier para max height en Compose
 fun Modifier.maxHeight(maxHeight: androidx.compose.ui.unit.Dp): Modifier = layout { measurable, constraints ->
-    val height = constraints.maxHeight.coerceAtMost(maxHeight.roundToPx())
-    val placeable = measurable.measure(constraints.copy(maxHeight = height))
+    val targetMaxHeight = maxHeight.roundToPx()
+    val minHeight = constraints.minHeight.coerceAtMost(targetMaxHeight)
+    val height = constraints.maxHeight.coerceAtMost(targetMaxHeight).coerceAtLeast(minHeight)
+    val placeable = measurable.measure(
+        constraints.copy(
+            minHeight = minHeight,
+            maxHeight = height
+        )
+    )
     layout(placeable.width, placeable.height) {
         placeable.placeRelative(0, 0)
     }
+}
+
+private fun cleanDescription(desc: String): List<String> {
+    return desc.lowercase()
+        .replace(Regex("[^a-z0-9\\s]"), "")
+        .split(Regex("\\s+"))
+        .filter { it.length > 2 }
+}
+
+private fun getSimilarity(desc1: String, desc2: String): Double {
+    val words1 = cleanDescription(desc1)
+    val words2 = cleanDescription(desc2)
+    if (words1.isEmpty() || words2.isEmpty()) return 0.0
+    val intersection = words1.filter { words2.contains(it) }
+    val union = (words1 + words2).distinct()
+    return intersection.size.toDouble() / union.size.toDouble()
+}
+
+private fun areSimilar(desc1: String, desc2: String): Boolean {
+    val d1 = desc1.lowercase().trim()
+    val d2 = desc2.lowercase().trim()
+    if (d1 == d2) return true
+    
+    val clean1 = cleanDescription(d1)
+    val clean2 = cleanDescription(d2)
+    if (clean1.isEmpty() || clean2.isEmpty()) return false
+    
+    if (clean1.size >= 2 && clean2.size >= 2) {
+        if (clean1[0] == clean2[0] && clean1[1] == clean2[1]) return true
+    }
+    
+    return getSimilarity(desc1, desc2) >= 0.4
 }

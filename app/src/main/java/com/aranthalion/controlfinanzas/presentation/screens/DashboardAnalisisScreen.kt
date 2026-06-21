@@ -3,15 +3,13 @@ package com.aranthalion.controlfinanzas.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,35 +32,18 @@ fun DashboardAnalisisScreen(
     periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
 ) {
     val periodoSeleccionado by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    val scopeSeleccionado by periodoGlobalViewModel.scopeSeleccionado.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(periodoSeleccionado) {
+    LaunchedEffect(periodoSeleccionado, scopeSeleccionado) {
         viewModel.cargarAnalisis(periodoSeleccionado)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Panel de Análisis", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.cargarAnalisis(periodoSeleccionado, force = true) }
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Recargar")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = paddingValues.calculateBottomPadding())
+                .padding(paddingValues)
         ) {
             when (uiState) {
                 is DashboardAnalisisUiState.Loading -> {

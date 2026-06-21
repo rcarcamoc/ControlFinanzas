@@ -17,17 +17,30 @@ open class PeriodoGlobalViewModel @Inject constructor(
     private val configuracionPreferences: ConfiguracionPreferences
 ) : ViewModel() {
     
-    private val _periodoSeleccionado = MutableStateFlow(obtenerPeriodoInicial())
-    open val periodoSeleccionado: StateFlow<String> = _periodoSeleccionado.asStateFlow()
+    companion object {
+        private val _periodoSeleccionado = MutableStateFlow("")
+        val staticPeriodoSeleccionado: StateFlow<String> = _periodoSeleccionado.asStateFlow()
+
+        private val _scopeSeleccionado = MutableStateFlow("")
+        val staticScopeSeleccionado: StateFlow<String> = _scopeSeleccionado.asStateFlow()
+
+        private var isInitialized = false
+    }
+
+    open val periodoSeleccionado: StateFlow<String> = staticPeriodoSeleccionado
+    open val scopeSeleccionado: StateFlow<String> = staticScopeSeleccionado
     
     private val _periodosDisponibles = MutableStateFlow(generarPeriodosDisponibles())
     open val periodosDisponibles: StateFlow<List<String>> = _periodosDisponibles.asStateFlow()
-    
+
     init {
-        // Cargar período guardado en preferencias
-        val periodoGuardado = configuracionPreferences.obtenerPeriodoGlobal()
-        if (periodoGuardado != null) {
-            _periodoSeleccionado.value = periodoGuardado
+        synchronized(this) {
+            if (!isInitialized) {
+                val periodoGuardado = configuracionPreferences.obtenerPeriodoGlobal() ?: obtenerPeriodoInicial()
+                _periodoSeleccionado.value = periodoGuardado
+                _scopeSeleccionado.value = configuracionPreferences.obtenerScopeGlobal()
+                isInitialized = true
+            }
         }
     }
     
@@ -36,6 +49,13 @@ open class PeriodoGlobalViewModel @Inject constructor(
         // Guardar en preferencias
         viewModelScope.launch {
             configuracionPreferences.guardarPeriodoGlobal(periodo)
+        }
+    }
+
+    fun cambiarScope(scope: String) {
+        _scopeSeleccionado.value = scope
+        viewModelScope.launch {
+            configuracionPreferences.guardarScopeGlobal(scope)
         }
     }
     

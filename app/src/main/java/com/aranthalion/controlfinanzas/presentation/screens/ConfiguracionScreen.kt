@@ -167,6 +167,10 @@ fun ConfiguracionScreen(
             }
 
             item {
+                com.aranthalion.controlfinanzas.presentation.screens.components.BillingPeriodConfigCard(viewModel = viewModel)
+            }
+
+            item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -240,13 +244,6 @@ fun ConfiguracionScreen(
                             title = "Acerca de",
                             subtitle = "Información de la aplicación",
                             onClick = { /* TODO */ }
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        ConfiguracionItem(
-                            icon = Icons.Default.Email,
-                            title = "Consultar Correos",
-                            subtitle = "Configurar e importar movimientos de tu correo",
-                            onClick = { navController.navigate("email_sync") }
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         ConfiguracionItem(

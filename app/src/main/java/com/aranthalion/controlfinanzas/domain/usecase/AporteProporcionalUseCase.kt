@@ -62,7 +62,8 @@ class AporteProporcionalUseCase @Inject constructor(
         val totalGastos = movimientos.filter { 
             it.tipo == "GASTO" && 
             it.periodoFacturacion == periodo &&
-            it.tipo != "OMITIR" // Excluir transacciones omitidas
+            it.tipo != "OMITIR" && // Excluir transacciones omitidas
+            it.scope == "HOUSEHOLD"
         }.sumOf { it.monto }
         
         // Calcular gastos por categoría (excluyendo transacciones omitidas)
@@ -70,7 +71,8 @@ class AporteProporcionalUseCase @Inject constructor(
             .filter { 
                 it.tipo == "GASTO" &&
                 it.periodoFacturacion == periodo &&
-                it.tipo != "OMITIR" // Excluir transacciones omitidas
+                it.tipo != "OMITIR" && // Excluir transacciones omitidas
+                it.scope == "HOUSEHOLD"
             }
             .groupBy { it.categoriaId }
             .mapValues { (_, movimientos) -> movimientos.sumOf { it.monto } }
@@ -79,7 +81,8 @@ class AporteProporcionalUseCase @Inject constructor(
         val totalTarjetaTitular = movimientos.filter { 
             it.tipo == "GASTO" &&
             it.periodoFacturacion == periodo &&
-            it.categoriaId == categoriaTarjetaTitular?.id
+            it.categoriaId == categoriaTarjetaTitular?.id &&
+            it.scope == "HOUSEHOLD"
         }.sumOf { abs(it.monto) }
         // Total a distribuir
         val totalADistribuir = totalGastos - totalTarjetaTitular
@@ -129,7 +132,8 @@ class AporteProporcionalUseCase @Inject constructor(
         return movimientos.filter { movimiento ->
             movimiento.tipo == "GASTO" &&
             movimiento.periodoFacturacion == periodo &&
-            movimiento.categoriaId != categoriaTarjetaTitular?.id
+            movimiento.categoriaId != categoriaTarjetaTitular?.id &&
+            movimiento.scope == "HOUSEHOLD"
         }
     }
 

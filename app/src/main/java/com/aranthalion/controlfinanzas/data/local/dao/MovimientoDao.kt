@@ -10,6 +10,12 @@ interface MovimientoDao {
     @Query("SELECT * FROM movimientos ORDER BY fecha DESC")
     suspend fun obtenerMovimientos(): List<MovimientoEntity>
 
+    @Query("SELECT * FROM movimientos WHERE id = :id LIMIT 1")
+    suspend fun obtenerMovimientoPorId(id: Long): MovimientoEntity?
+
+    @Query("SELECT * FROM movimientos WHERE categoriaId IS NULL AND tipo != 'OMITIR' ORDER BY fecha DESC")
+    suspend fun obtenerMovimientosSinCategoriaTodosScopes(): List<MovimientoEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun agregarMovimiento(movimiento: MovimientoEntity)
 

@@ -3,8 +3,10 @@ package com.aranthalion.controlfinanzas.data.repository
 import android.content.Context
 import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
+import com.aranthalion.controlfinanzas.data.local.dao.MovimientoEliminadoDao
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEliminadoEntity
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -13,33 +15,64 @@ import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
 class MovimientoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
     private val categoriaDao: CategoriaDao,
+    private val movimientoEliminadoDao: MovimientoEliminadoDao,
     private val context: Context,
     private val auditoriaService: AuditoriaService,
     private val normalizacionService: NormalizacionService,
-    private val cacheService: CacheService
+    private val cacheService: CacheService,
+    private val configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 ) {
     suspend fun obtenerMovimientos(): List<MovimientoEntity> {
-        val movimientos = movimientoDao.obtenerMovimientos()
-        println("🔍 DEBUG: MovimientoRepository.obtenerMovimientos() - Total: ${movimientos.size}")
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
+        val movimientos = movimientoDao.obtenerMovimientos().filter { it.scope == activeScope }
+        println("🔍 DEBUG: MovimientoRepository.obtenerMovimientos() - Scope: $activeScope - Total: ${movimientos.size}")
         movimientos.take(3).forEach { movimiento ->
             println("  - ${movimiento.descripcion}: ${movimiento.fecha} (tipo: ${movimiento.tipo})")
         }
         return movimientos
     }
 
+    /**
+     * Obtiene TODOS los movimientos sin filtro de scope.
+     * Usado por el EmailSyncWorker para detectar duplicados independientemente del scope activo.
+     */
+    suspend fun obtenerTodosLosMovimientos(): List<MovimientoEntity> {
+        return movimientoDao.obtenerMovimientos()
+    }
+
+    /**
+     * Obtiene un movimiento por su ID sin filtro de scope.
+     * Usado para lookups en clasificación y edición donde el scope puede cambiar.
+     */
+    suspend fun obtenerMovimientoPorId(id: Long): MovimientoEntity? {
+        return movimientoDao.obtenerMovimientoPorId(id)
+    }
+
+    /**
+     * Obtiene todos los movimientos sin categoría de TODOS los scopes.
+     * Usado por el asistente de clasificación para mostrar TODAS las pendientes.
+     */
+    suspend fun obtenerMovimientosSinCategoriaTodosScopes(): List<MovimientoEntity> {
+        return movimientoDao.obtenerMovimientosSinCategoriaTodosScopes()
+    }
+
     // Métodos optimizados del HITO 1
     suspend fun obtenerMovimientosOptimizado(): List<MovimientoEntity> {
-        return movimientoDao.obtenerMovimientos()
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
+        return movimientoDao.obtenerMovimientos().filter { it.scope == activeScope }
     }
     
     suspend fun obtenerMovimientosPorPeriodoOptimizado(periodo: String): List<MovimientoEntity> {
-        return cacheService.getMovimientosPorPeriodo(periodo) {
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
+        val movimientos = cacheService.getMovimientosPorPeriodo(periodo) {
             movimientoDao.obtenerMovimientosPorPeriodoFacturacion(periodo)
         }
+        return movimientos.filter { it.scope == activeScope }
     }
 
     suspend fun obtenerMovimientosPorPeriodo(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity> {
-        return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin)
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
+        return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin).filter { it.scope == activeScope }
     }
 
     suspend fun obtenerCategorias(): List<Categoria> {
@@ -61,10 +94,17 @@ class MovimientoRepository @Inject constructor(
         val existentes = movimientoDao.obtenerMovimientos().filter { it.idUnico == idUnico }
         val timestamp = System.currentTimeMillis()
         if (existentes.isNotEmpty()) {
-            // Ya existe, actualizar
+            // Ya existe, actualizar — pero preservar campos clasificados manualmente
             val existente = existentes.first()
             val movimientoActualizado = movimiento.copy(
                 id = existente.id,
+                // Preservar categoría si el nuevo no trae ninguna (evita que el correo borre clasificaciones manuales)
+                categoriaId = movimiento.categoriaId ?: existente.categoriaId,
+                // Preservar scope y userId del existente si el nuevo no los define
+                scope = movimiento.scope.ifEmpty { existente.scope },
+                userId_internal = movimiento.userId_internal ?: existente.userId_internal,
+                // Preservar tipo si el existente fue marcado como OMITIR
+                tipo = if (existente.tipo == "OMITIR") "OMITIR" else movimiento.tipo,
                 fechaActualizacion = timestamp,
                 metodoActualizacion = "UPDATE_POR_DUPLICADO",
                 daoResponsable = dao
@@ -144,6 +184,18 @@ class MovimientoRepository @Inject constructor(
             daoResponsable = "MovimientoDao"
         )
         
+        // Registrar tombstone para sincronización web (solo si tiene idUnico no vacío)
+        if (movimiento.idUnico.isNotEmpty()) {
+            movimientoEliminadoDao.insertarEliminado(
+                MovimientoEliminadoEntity(
+                    idUnico = movimiento.idUnico,
+                    deletedAt = timestamp,
+                    syncPending = true
+                )
+            )
+            println("🗑️ SYNC: Tombstone registrada para idUnico: ${movimiento.idUnico}")
+        }
+        
         // Ahora eliminar el movimiento
         movimientoDao.eliminarMovimiento(movimiento)
         
@@ -171,14 +223,14 @@ class MovimientoRepository @Inject constructor(
         val timestamp = System.currentTimeMillis()
         println("📝 AUDITORÍA: Eliminando movimientos por período - Período: $periodo, Timestamp: $timestamp")
         
-        // Obtener los movimientos que se van a eliminar para registrar auditoría
+        // Obtener los movimientos que se van a eliminar para registrar auditoría y registrar tombstones
         val movimientosAEliminar = movimientoDao.obtenerMovimientos().filter { 
             it.periodoFacturacion == periodo 
         }
         
         println("📝 AUDITORÍA: Movimientos a eliminar: ${movimientosAEliminar.size}")
         
-        // Registrar auditoría para cada movimiento antes de eliminarlo
+        // Registrar auditoría y tombstone para cada movimiento antes de eliminarlo
         movimientosAEliminar.forEach { movimiento ->
             auditoriaService.registrarOperacion(
                 tabla = "movimientos",
@@ -187,7 +239,16 @@ class MovimientoRepository @Inject constructor(
                 detalles = "Movimiento eliminado por período $periodo: ${movimiento.descripcion} - Monto: ${movimiento.monto}",
                 daoResponsable = "MovimientoDao"
             )
-            println("📝 AUDITORÍA: Registrada eliminación para movimiento ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}")
+            if (movimiento.idUnico.isNotEmpty()) {
+                movimientoEliminadoDao.insertarEliminado(
+                    MovimientoEliminadoEntity(
+                        idUnico = movimiento.idUnico,
+                        deletedAt = timestamp,
+                        syncPending = true
+                    )
+                )
+            }
+            println("📝 AUDITORÍA: Registrada eliminación y tombstone para movimiento ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}")
         }
         
         // Ahora eliminar los movimientos

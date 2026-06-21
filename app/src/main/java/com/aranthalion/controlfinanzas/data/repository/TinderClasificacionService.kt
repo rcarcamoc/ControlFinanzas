@@ -101,7 +101,11 @@ class TinderClasificacionService @Inject constructor(
                 val existentes = movimientoDao.obtenerMovimientos().filter { it.idUnico == movimiento.idUnico }
                 if (existentes.isNotEmpty()) {
                     val existente = existentes.first()
-                    val movimientoActualizado = movimiento.copy(id = existente.id)
+                    val movimientoActualizado = movimiento.copy(
+                        id = existente.id,
+                        scope = existente.scope,
+                        userId_internal = existente.userId_internal
+                    )
                     movimientoDao.actualizarMovimiento(movimientoActualizado)
                     Log.d("TinderService", "⚠️ DUPLICADO: Movimiento actualizado - idUnico: ${movimiento.idUnico}")
                 } else {
@@ -131,9 +135,20 @@ class TinderClasificacionService @Inject constructor(
                 
                 // Convertir a MovimientoEntity y guardar en BD sin categoría
                 val movimiento = convertirAMovimientoEntity(transaccionTinder, asignarCategoria = false)
-                movimientoDao.agregarMovimiento(movimiento)
-                
-                Log.d("TinderService", "❌ Transacción rechazada y guardada sin categoría")
+                val existentes = movimientoDao.obtenerMovimientos().filter { it.idUnico == movimiento.idUnico }
+                if (existentes.isNotEmpty()) {
+                    val existente = existentes.first()
+                    val movimientoActualizado = movimiento.copy(
+                        id = existente.id,
+                        scope = existente.scope,
+                        userId_internal = existente.userId_internal
+                    )
+                    movimientoDao.actualizarMovimiento(movimientoActualizado)
+                    Log.d("TinderService", "❌ Transacción rechazada y actualizada sin categoría")
+                } else {
+                    movimientoDao.agregarMovimiento(movimiento)
+                    Log.d("TinderService", "❌ Transacción rechazada y guardada sin categoría")
+                }
                 
             } catch (e: Exception) {
                 Log.e("TinderService", "❌ Error al registrar rechazo: ${e.message}")

@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,6 +70,7 @@ fun HomeScreen(
     val resumenPresupuestos by presupuestosViewModel.resumen.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    val scopeGlobal by periodoGlobalViewModel.scopeSeleccionado.collectAsState()
     val periodosDisponibles by periodoGlobalViewModel.periodosDisponibles.collectAsState()
     var expanded by remember { mutableStateOf(false) }
     val currentTime = remember { 
@@ -102,18 +104,20 @@ fun HomeScreen(
         }
     }
     
-    // Observar cambios en el período global y actualizar los ViewModels
-    LaunchedEffect(periodoGlobal) {
-        println("🏠 HOME: Cargando datos para período: $periodoGlobal")
+    // Observar cambios en el período global y el scope global y actualizar los ViewModels
+    LaunchedEffect(periodoGlobal, scopeGlobal) {
+        println("🏠 HOME: Cargando datos para período: $periodoGlobal, scope: $scopeGlobal")
         viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
         presupuestosViewModel.cargarPresupuestos(periodoGlobal)
     }
-    // Forzar carga inicial si el estado es Loading
+    // Forzar carga inicial si el estado es Loading y ejecutar auto-sincronización de correo silenciosa si está activa
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (uiState is MovimientosUiState.Loading) {
             println("🏠 HOME: Carga inicial forzada...")
             viewModel.cargarMovimientosPorPeriodo(periodoGlobal)
         }
+        viewModel.ejecutarAutoSincronizacionCorreoSilenciosa(context)
     }
 
     Column(

@@ -2,6 +2,7 @@ package com.aranthalion.controlfinanzas.domain.usecase
 
 import com.aranthalion.controlfinanzas.data.repository.MovimientoRepository
 import com.aranthalion.controlfinanzas.data.repository.PresupuestoCategoriaRepository
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 import com.aranthalion.controlfinanzas.domain.movimiento.TipoMovimiento
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import java.util.*
@@ -10,7 +11,8 @@ import kotlin.math.abs
 
 class AnalisisFinancieroUseCase @Inject constructor(
     private val movimientoRepository: MovimientoRepository,
-    private val presupuestoRepository: PresupuestoCategoriaRepository
+    private val presupuestoRepository: PresupuestoCategoriaRepository,
+    private val configuracionPreferences: ConfiguracionPreferences
 ) {
     
     suspend fun obtenerResumenFinanciero(fechaInicio: Date, fechaFin: Date): ResumenFinanciero {
@@ -54,9 +56,11 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val movimientos = movimientoRepository.obtenerMovimientos()
         val categorias = movimientoRepository.obtenerCategorias()
         
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
         val gastosDelPeriodo = movimientos.filter { 
             it.tipo == TipoMovimiento.GASTO.name && 
-            it.periodoFacturacion == periodo 
+            it.periodoFacturacion == periodo &&
+            it.scope == activeScope
         }
         
         val totalGastos = gastosDelPeriodo.sumOf { abs(it.monto) }
@@ -297,7 +301,7 @@ class AnalisisFinancieroUseCase @Inject constructor(
         
         for (gasto in gastosDelPeriodo) {
             val categoria = categorias.find { it.id == gasto.categoriaId }
-            val historialCategoria = AnalisisFinancieroHelper.extraerHistorialCategoria(movimientos, gasto.categoriaId ?: 0, 3)
+            val historialCategoria = AnalisisFinancieroHelper.extraerHistorialCategoria(movimientos, gasto.categoriaId ?: 0, 6)
             
             if (historialCategoria.isNotEmpty()) {
                 val promedio = historialCategoria.average()
@@ -365,7 +369,11 @@ class AnalisisFinancieroUseCase @Inject constructor(
 
     suspend fun obtenerResumenFinancieroPorPeriodo(periodo: String): ResumenFinanciero {
         val movimientos = movimientoRepository.obtenerMovimientos()
-        val movimientosDelPeriodo = movimientos.filter { it.periodoFacturacion == periodo }
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
+        val movimientosDelPeriodo = movimientos.filter { 
+            it.periodoFacturacion == periodo &&
+            it.scope == activeScope
+        }
         val movimientosFiltrados = movimientosDelPeriodo.filter { it.tipo != TipoMovimiento.OMITIR.name }
         return AnalisisFinancieroHelper.calcularResumen(movimientosFiltrados)
     }
@@ -379,6 +387,7 @@ class AnalisisFinancieroUseCase @Inject constructor(
     ): List<ResumenHistoricoCategoria> {
         val movimientos = movimientoRepository.obtenerMovimientos()
         val categorias = movimientoRepository.obtenerCategorias()
+        val activeScope = configuracionPreferences.obtenerScopeGlobal()
         
         val historico = mutableListOf<ResumenHistoricoCategoria>()
         
@@ -393,7 +402,8 @@ class AnalisisFinancieroUseCase @Inject constructor(
                     it.periodoFacturacion == periodo &&
                     it.categoriaId == categoria.id &&
                     it.tipo == TipoMovimiento.GASTO.name &&
-                    it.tipo != TipoMovimiento.OMITIR.name
+                    it.tipo != TipoMovimiento.OMITIR.name &&
+                    it.scope == activeScope
                 }
                 
                 val totalGasto = abs(gastosDelPeriodo.sumOf { it.monto })
@@ -442,12 +452,12 @@ class AnalisisFinancieroUseCase @Inject constructor(
         for (presupuesto in budgets) {
             val categoria = categorias.find { it.id == presupuesto.categoriaId }
             if (categoria != null) {
-                // Calcular gasto actual
                 val gastosActuales = movimientos.filter { 
                     it.periodoFacturacion == periodo &&
                     it.categoriaId == presupuesto.categoriaId &&
                     it.tipo == TipoMovimiento.GASTO.name &&
-                    it.tipo != TipoMovimiento.OMITIR.name
+                    it.tipo != TipoMovimiento.OMITIR.name &&
+                    it.scope == presupuesto.scope
                 }
                 val gastoActual = abs(gastosActuales.sumOf { it.monto })
                 

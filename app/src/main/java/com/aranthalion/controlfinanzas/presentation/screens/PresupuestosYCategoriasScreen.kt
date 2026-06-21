@@ -41,6 +41,7 @@ fun PresupuestosYCategoriasScreen(
     val presupuestosUiState by presupuestosViewModel.uiState.collectAsState()
     val categoriasUiState by categoriasViewModel.uiState.collectAsState()
     val periodoSeleccionado by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    val scopeSeleccionado by periodoGlobalViewModel.scopeSeleccionado.collectAsState()
     val categorias by presupuestosViewModel.categorias.collectAsState()
     val presupuestosPorCategoria by presupuestosViewModel.presupuestosPorCategoria.collectAsState()
     val presupuestosCompletos by presupuestosViewModel.presupuestosCompletos.collectAsState()
@@ -54,13 +55,13 @@ fun PresupuestosYCategoriasScreen(
     var showPeriodoSelector by remember { mutableStateOf(false) }
     var categoriaParaPresupuesto by remember { mutableStateOf<Categoria?>(null) }
     
-    // Cuando cambie el período seleccionado, aplicar lazy copy si es necesario antes de cargar los presupuestos
-    LaunchedEffect(periodoSeleccionado) {
+    // Cuando cambie el período seleccionado o el scope seleccionado, aplicar lazy copy si es necesario antes de cargar los presupuestos
+    LaunchedEffect(periodoSeleccionado, scopeSeleccionado) {
         presupuestosViewModel.cargarPresupuestos(periodoSeleccionado)
     }
     
-    // Cuando cambien las categorías, aplicar lazy copy solo si es necesario
-    LaunchedEffect(categorias, periodoSeleccionado) {
+    // Cuando cambien las categorías o el scope seleccionado, aplicar lazy copy solo si es necesario
+    LaunchedEffect(categorias, periodoSeleccionado, scopeSeleccionado) {
         println("🔍 LAUNCHED_EFFECT: Categorías o período cambiaron - Categorías: ${categorias.size}, Período: $periodoSeleccionado")
         
         // Solo ejecutar si hay categorías y no se ha ejecutado recientemente

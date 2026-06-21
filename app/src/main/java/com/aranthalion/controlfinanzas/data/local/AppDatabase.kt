@@ -18,10 +18,12 @@ import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
 import com.aranthalion.controlfinanzas.data.local.dao.UsuarioDao
 import com.aranthalion.controlfinanzas.data.local.dao.CuentaPorCobrarDao
+import com.aranthalion.controlfinanzas.data.local.dao.MovimientoEliminadoDao
 import com.aranthalion.controlfinanzas.data.local.entity.AuditoriaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.ClasificacionAutomaticaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
+import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEliminadoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.SueldoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity
@@ -38,9 +40,10 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
         SueldoEntity::class,
         UsuarioEntity::class,
         CuentaPorCobrarEntity::class,
-        AuditoriaEntity::class
+        AuditoriaEntity::class,
+        MovimientoEliminadoEntity::class
     ],
-    version = 18,
+    version = 21,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -54,6 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
     abstract fun cuentaPorCobrarDao(): CuentaPorCobrarDao
     abstract fun auditoriaDao(): AuditoriaDao
+    abstract fun movimientoEliminadoDao(): MovimientoEliminadoDao
 
     companion object {
         private const val TAG = "AppDatabase"
@@ -203,6 +207,44 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migración de la versión 18 a la 19: agregar scope y userId_internal a movimientos, e idServidor a usuarios
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d(TAG, "Ejecutando migración 18->19: agregando scope y userId_internal a movimientos, e idServidor a usuarios")
+                database.execSQL("ALTER TABLE movimientos ADD COLUMN scope TEXT NOT NULL DEFAULT 'HOUSEHOLD'")
+                database.execSQL("ALTER TABLE movimientos ADD COLUMN userId_internal TEXT")
+                database.execSQL("ALTER TABLE usuarios ADD COLUMN idServidor TEXT")
+                Log.d(TAG, "Migración 18->19 completada")
+            }
+        }
+
+        // Migración de la versión 19 a la 20: agregar scope a presupuesto_categoria y actualizar índice
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d(TAG, "Ejecutando migración 19->20: agregando scope a presupuesto_categoria")
+                database.execSQL("ALTER TABLE presupuesto_categoria ADD COLUMN scope TEXT NOT NULL DEFAULT 'HOUSEHOLD'")
+                database.execSQL("DROP INDEX IF EXISTS index_presupuesto_categoria_categoriaId_periodo")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_presupuesto_categoria_categoriaId_periodo_scope ON presupuesto_categoria(categoriaId, periodo, scope)")
+                Log.d(TAG, "Migración 19->20 completada")
+            }
+        }
+
+        // Migración de la versión 20 a la 21: agregar tabla movimientos_eliminados para sincronización
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d(TAG, "Ejecutando migración 20->21: creando tabla movimientos_eliminados")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS movimientos_eliminados (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        idUnico TEXT NOT NULL,
+                        deletedAt INTEGER NOT NULL,
+                        syncPending INTEGER NOT NULL DEFAULT 1
+                    )
+                """)
+                Log.d(TAG, "Migración 20->21 completada")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Log.d(TAG, "Inicializando base de datos...")
@@ -211,7 +253,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "control_finanzas_db"
                 )
-                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
                 .fallbackToDestructiveMigration() // Permite recrear la BD si la migración falla
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

@@ -28,14 +28,16 @@ object ClasificacionNormalizer {
         "starbucks" to listOf("starbucks sc", "starbucks av. libertad", "starbucks*", "starbucks coffee"),
         "netflix" to listOf("netflix.com", "nfx*", "netflix streaming"),
         "spotify" to listOf("spotify", "spotify premium", "spotify*"),
-        "uber" to listOf("uber", "uber eats", "uber*"),
+        "uber" to listOf("uber", "uber*"),
+        "uber eats" to listOf("uber eats", "ubereats"),
         "copec" to listOf("copec app", "copec santiago", "copec*"),
         "shell" to listOf("shell", "shell.fuel", "shell*"),
         "falabella" to listOf("falabella", "falabella.com", "falabella*"),
-        "amazon" to listOf("amazon", "amazon.com", "amazon web services", "aws"),
+        "amazon" to listOf("amazon", "amazon.com", "amazon*"),
+        "aws" to listOf("amazon web services", "aws"),
         "google" to listOf("google", "google play", "google*"),
         "youtube" to listOf("youtube", "youtube premium", "youtube*"),
-        "walmart" to listOf("walmart", "lider", "lider.cl"),
+        "lider" to listOf("lider", "lider.cl", "lider*"),
         "jumbo" to listOf("jumbo", "jumbo.cl"),
         "santa isabel" to listOf("santa isabel", "santaisabel"),
         "unimarc" to listOf("unimarc", "unimarc.cl"),
@@ -52,11 +54,6 @@ object ClasificacionNormalizer {
         "concha y toro" to listOf("concha y toro", "conchaytoro"),
         "undurraga" to listOf("undurraga", "undurraga.cl"),
         "santa rita" to listOf("santa rita", "santarita"),
-        "santa carolina" to listOf("santa carolina", "santacarolina"),
-        "santa emiliana" to listOf("santa emiliana", "santaemiliana"),
-        "concha y toro" to listOf("concha y toro", "conchaytoro"),
-        "undurraga" to listOf("undurraga", "undurraga.cl"),
-        "santa rita" to listOf("santa rita", "santarita"),
         "santa carolina" to listOf("santa carolina", "santacarolina")
     )
     
@@ -66,6 +63,11 @@ object ClasificacionNormalizer {
     fun normalizarDescripcion(descripcion: String): String {
         var normalizada = descripcion.trim().lowercase()
         
+        // Limpiar prefijos de MercadoPago / MercadoLibre para no perder el comercio real
+        normalizada = normalizada
+            .replace(Regex("^(mercado\\s?pago|mercadopago|mercadolibre)\\s?\\*?\\s?"), "")
+            .trim()
+            
         // Eliminar caracteres especiales pero mantener espacios
         normalizada = normalizada.replace(Regex("[^a-z0-9\\s]"), " ")
         
@@ -149,21 +151,49 @@ object ClasificacionNormalizer {
     }
     
     /**
+     * Calcula el porcentaje de cobertura de palabras entre dos strings normalizados
+     */
+    private fun calcularCoberturaPalabras(str1: String, str2: String): Double {
+        val palabras1 = str1.split(" ").filter { it.isNotBlank() }.toSet()
+        val palabras2 = str2.split(" ").filter { it.isNotBlank() }.toSet()
+        if (palabras1.isEmpty() || palabras2.isEmpty()) return 0.0
+        
+        val interseccion = palabras1.intersect(palabras2).size
+        val maxPalabras = maxOf(palabras1.size, palabras2.size)
+        return interseccion.toDouble() / maxPalabras.toDouble()
+    }
+
+    /**
      * Busca coincidencias parciales en el historial
      */
     fun buscarCoincidenciaParcial(descripcion: String, historial: Map<String, Long>): Pair<Long, Double>? {
         val normalizada = normalizarDescripcion(descripcion)
         if (normalizada.isBlank()) return null
         
-        // Buscar si la descripción contiene algún patrón del historial
+        var mejorCoincidencia: Pair<Long, Double>? = null
+        var mejorConfianza = 0.0
+        
+        // Buscar si la descripción contiene algún patrón del historial o viceversa
         for ((patron, categoriaId) in historial) {
             if (patron.isNotBlank() && (normalizada.contains(patron) || patron.contains(normalizada))) {
-                Log.d("ClasificacionNormalizer", "🎯 Coincidencia parcial: '$descripcion' contiene '$patron'")
-                return categoriaId to UMBRAL_COINCIDENCIA_PARCIAL
+                val cobertura = calcularCoberturaPalabras(normalizada, patron)
+                
+                // La confianza se escala según la cantidad de palabras que coinciden
+                val confianza = if (cobertura >= 0.7) {
+                    UMBRAL_COINCIDENCIA_PARCIAL
+                } else {
+                    UMBRAL_COINCIDENCIA_PARCIAL * cobertura
+                }
+                
+                if (confianza > mejorConfianza) {
+                    mejorConfianza = confianza
+                    mejorCoincidencia = categoriaId to confianza
+                    Log.d("ClasificacionNormalizer", "🎯 Coincidencia parcial candidata: '$descripcion' con '$patron' - Cobertura: ${(cobertura * 100).toInt()}%, Confianza: ${(confianza * 100).toInt()}%")
+                }
             }
         }
         
-        return null
+        return mejorCoincidencia
     }
     
     /**

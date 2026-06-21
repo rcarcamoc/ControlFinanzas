@@ -318,6 +318,7 @@ private fun CategoriaSelector(
     onCategoriaChanged: (Categoria?) -> Unit
 ) {
     var expandedCategoria by remember { mutableStateOf(false) }
+    val sortedCategorias = remember(categorias) { categorias.sortedBy { it.nombre.lowercase() } }
     
     ExposedDropdownMenuBox(
         expanded = expandedCategoria,
@@ -346,7 +347,7 @@ private fun CategoriaSelector(
                     expandedCategoria = false
                 }
             )
-            categorias.forEach { categoria ->
+            sortedCategorias.forEach { categoria ->
                 DropdownMenuItem(
                     text = { Text(categoria.nombre) },
                     onClick = {

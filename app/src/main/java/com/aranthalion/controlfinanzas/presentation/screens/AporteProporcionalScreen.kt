@@ -44,6 +44,7 @@ fun AporteProporcionalScreen(
     val uiState by viewModel.uiState.collectAsState()
     val periodoGlobalViewModel: PeriodoGlobalViewModel = hiltViewModel()
     val periodoGlobal by periodoGlobalViewModel.periodoSeleccionado.collectAsState()
+    val scopeGlobal by periodoGlobalViewModel.scopeSeleccionado.collectAsState()
     val periodosDisponibles by viewModel.periodosDisponibles.collectAsState()
     val personasDisponibles by viewModel.personasDisponibles.collectAsState()
     val sueldosActuales by viewModel.sueldosActuales.collectAsState()
@@ -53,7 +54,7 @@ fun AporteProporcionalScreen(
     var showHistorialDialog by remember { mutableStateOf(false) }
     var sueldoToEdit by remember { mutableStateOf<SueldoEntity?>(null) }
 
-    LaunchedEffect(periodoGlobal) {
+    LaunchedEffect(periodoGlobal, scopeGlobal) {
         viewModel.calcularAporteProporcional(periodoGlobal)
     }
 

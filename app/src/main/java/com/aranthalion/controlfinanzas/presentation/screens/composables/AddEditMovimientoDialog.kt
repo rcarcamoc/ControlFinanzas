@@ -4,6 +4,8 @@ package com.aranthalion.controlfinanzas.presentation.screens.composables
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -25,8 +27,10 @@ import java.util.Locale
 @Composable
 fun AddEditMovimientoDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, String, Categoria?, Date, String) -> Unit,
-    categorias: List<Categoria>
+    onConfirm: (String, Double, String, Categoria?, Date, String, String, String?) -> Unit,
+    categorias: List<Categoria>,
+    usuarios: List<com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity>,
+    periodConfigs: Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig> = emptyMap()
 ) {
     var descripcion by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
@@ -35,13 +39,17 @@ fun AddEditMovimientoDialog(
     var fechaSeleccionada by remember { mutableStateOf(Date()) }
     var showDatePicker by remember { mutableStateOf(false) }
     
+    var scope by remember { mutableStateOf("HOUSEHOLD") }
+    var selectedUsuario by remember { mutableStateOf<com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity?>(null) }
+
     val periodos = remember { generarPeriodos() }
     var expandedPeriodo by remember { mutableStateOf(false) }
     var periodoSeleccionado by remember {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH) + 1
-        mutableStateOf(String.format("%04d-%02d", year, month))
+        mutableStateOf(com.aranthalion.controlfinanzas.data.util.BillingPeriodHelper.obtenerPeriodoParaFecha(Date(), periodConfigs))
+    }
+
+    LaunchedEffect(fechaSeleccionada) {
+        periodoSeleccionado = com.aranthalion.controlfinanzas.data.util.BillingPeriodHelper.obtenerPeriodoParaFecha(fechaSeleccionada, periodConfigs)
     }
 
     AlertDialog(
@@ -56,7 +64,9 @@ fun AddEditMovimientoDialog(
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
             ) {
                 // Selector de tipo (Gasto / Ingreso)
                 TipoTransaccionSelector(
@@ -120,17 +130,28 @@ fun AddEditMovimientoDialog(
                     categorias = categorias,
                     onCategoriaChanged = { selectedCategoria = it }
                 )
+
+                // Selector de Scope (Familia vs Personal)
+                ScopeSelector(
+                    scope = scope,
+                    selectedUsuario = selectedUsuario,
+                    usuarios = usuarios,
+                    onScopeChanged = { newScope, newUsr ->
+                        scope = newScope
+                        selectedUsuario = newUsr
+                    }
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     val montoDouble = monto.toDoubleOrNull() ?: 0.0
-                    if (descripcion.isNotBlank() && montoDouble > 0) {
-                        onConfirm(descripcion, montoDouble, tipo, selectedCategoria, fechaSeleccionada, periodoSeleccionado)
+                    if (descripcion.isNotBlank() && (tipo == "OMITIR" || montoDouble > 0)) {
+                        onConfirm(descripcion, montoDouble, tipo, selectedCategoria, fechaSeleccionada, periodoSeleccionado, scope, selectedUsuario?.idServidor)
                     }
                 },
-                enabled = descripcion.isNotBlank() && (monto.toDoubleOrNull() ?: 0.0) > 0,
+                enabled = descripcion.isNotBlank() && (tipo == "OMITIR" || (monto.toDoubleOrNull() ?: 0.0) > 0),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -156,59 +177,56 @@ private fun TipoTransaccionSelector(
     tipoSeleccionado: String,
     onTipoChanged: (String) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TipoTransaccionButton(
-            text = "Gasto",
-            isSelected = tipoSeleccionado == "GASTO",
-            onClick = { onTipoChanged("GASTO") },
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            onContainerColor = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.weight(1f)
-        )
-        
-        TipoTransaccionButton(
-            text = "Ingreso",
-            isSelected = tipoSeleccionado == "INGRESO",
-            onClick = { onTipoChanged("INGRESO") },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.weight(1f)
-        )
+    var expanded by remember { mutableStateOf(false) }
+    val tipoLabel = when (tipoSeleccionado) {
+        "GASTO" -> "Gasto"
+        "INGRESO" -> "Ingreso"
+        "OMITIR" -> "Omitir (no afecta cálculos)"
+        else -> tipoSeleccionado
     }
-}
-
-@Composable
-private fun TipoTransaccionButton(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    containerColor: androidx.compose.ui.graphics.Color,
-    onContainerColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .background(if (isSelected) containerColor else MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+    
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
     ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = onClick
+        OutlinedTextField(
+            value = tipoLabel,
+            onValueChange = {},
+            label = { Text("Tipo de transacción") },
+            readOnly = true,
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
         )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (isSelected) onContainerColor else MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Gasto") },
+                onClick = {
+                    onTipoChanged("GASTO")
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Ingreso") },
+                onClick = {
+                    onTipoChanged("INGRESO")
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Omitir (no afecta cálculos)") },
+                onClick = {
+                    onTipoChanged("OMITIR")
+                    expanded = false
+                }
+            )
+        }
     }
 }
 
@@ -334,6 +352,7 @@ private fun CategoriaSelector(
     onCategoriaChanged: (Categoria?) -> Unit
 ) {
     var expandedCategoria by remember { mutableStateOf(false) }
+    val sortedCategorias = remember(categorias) { categorias.sortedBy { it.nombre.lowercase() } }
     
     ExposedDropdownMenuBox(
         expanded = expandedCategoria,
@@ -362,7 +381,7 @@ private fun CategoriaSelector(
                     expandedCategoria = false
                 }
             )
-            categorias.forEach { categoria ->
+            sortedCategorias.forEach { categoria ->
                 DropdownMenuItem(
                     text = { Text(categoria.nombre) },
                     onClick = {
@@ -385,5 +404,66 @@ private fun generarPeriodos(): List<String> {
         val year = cal.get(Calendar.YEAR)
         val month = (cal.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
         "$year-$month"
+    }
+}
+
+@Composable
+private fun ScopeSelector(
+    scope: String,
+    selectedUsuario: com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity?,
+    usuarios: List<com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity>,
+    onScopeChanged: (String, com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity?) -> Unit
+) {
+    var expandedScope by remember { mutableStateOf(false) }
+    val displayText = when {
+        scope == "HOUSEHOLD" -> "🏠 Compartido (Grupo Familiar)"
+        selectedUsuario != null -> "👤 Personal - ${selectedUsuario.nombre}"
+        else -> "👤 Personal (Sin asignar)"
+    }
+    
+    ExposedDropdownMenuBox(
+        expanded = expandedScope,
+        onExpandedChange = { expandedScope = !expandedScope }
+    ) {
+        OutlinedTextField(
+            value = displayText,
+            onValueChange = {},
+            label = { Text("Imputación") },
+            readOnly = true,
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedScope) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
+        ExposedDropdownMenu(
+            expanded = expandedScope,
+            onDismissRequest = { expandedScope = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("🏠 Compartido (Grupo Familiar)") },
+                onClick = {
+                    onScopeChanged("HOUSEHOLD", null)
+                    expandedScope = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("👤 Gastos Personales") },
+                onClick = {
+                    onScopeChanged("PERSONAL", null)
+                    expandedScope = false
+                }
+            )
+            usuarios.forEach { usr ->
+                DropdownMenuItem(
+                    text = { Text("👤 Personal - ${usr.nombre}") },
+                    onClick = {
+                        onScopeChanged("PERSONAL", usr)
+                        expandedScope = false
+                    }
+                )
+            }
+        }
     }
 }

@@ -85,6 +85,9 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.52")
     ksp("com.google.dagger:hilt-android-compiler:2.52")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    // Hilt + WorkManager integration (obligatorio para Workers con inyección)
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -122,4 +125,7 @@ dependencies {
     // JavaMail / Jakarta Mail compatible with Android
     implementation("com.sun.mail:android-mail:1.6.7")
     implementation("com.sun.mail:android-activation:1.6.7")
+
+    // WorkManager background processing
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

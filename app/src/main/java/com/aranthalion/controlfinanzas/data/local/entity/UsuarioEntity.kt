@@ -13,5 +13,6 @@ data class UsuarioEntity(
     val telefono: String? = null,
     val activo: Boolean = true,
     val fechaCreacion: Long = System.currentTimeMillis(),
-    val fechaActualizacion: Long = System.currentTimeMillis()
+    val fechaActualizacion: Long = System.currentTimeMillis(),
+    val idServidor: String? = null
 ) 

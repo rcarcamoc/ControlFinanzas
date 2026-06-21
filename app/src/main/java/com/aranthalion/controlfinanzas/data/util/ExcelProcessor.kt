@@ -403,7 +403,8 @@ object ExcelProcessor {
     }
 
     fun generarIdUnico(fecha: Date?, monto: Double, descripcion: String): String {
-        val input = "${fecha?.time ?: 0}-$monto-$descripcion"
+        val patron = ClasificacionNormalizer.normalizarDescripcion(descripcion)
+        val input = "${fecha?.time ?: 0}-$monto-$patron"
         val md = MessageDigest.getInstance("SHA-256")
         val hash = md.digest(input.toByteArray())
         return hash.joinToString("") { "%02x".format(it) }

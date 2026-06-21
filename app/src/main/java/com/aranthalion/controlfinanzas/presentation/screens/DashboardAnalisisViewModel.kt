@@ -133,7 +133,10 @@ class DashboardAnalisisViewModel @Inject constructor(
                 val calendar = Calendar.getInstance()
                 val esPeriodoActual = calendar.get(Calendar.YEAR) == anio && (calendar.get(Calendar.MONTH) + 1) == mes
 
-                val diasTotales = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                // Posicionar el calendario en el mes del período para obtener los días correctos
+                val calPeriodo = Calendar.getInstance()
+                calPeriodo.set(anio, mes - 1, 1)
+                val diasTotales = calPeriodo.getActualMaximum(Calendar.DAY_OF_MONTH)
                 val diaActual = if (esPeriodoActual) {
                     calendar.get(Calendar.DAY_OF_MONTH)
                 } else {

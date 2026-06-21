@@ -12,6 +12,7 @@ import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
 import com.aranthalion.controlfinanzas.data.local.dao.UsuarioDao
 import com.aranthalion.controlfinanzas.data.local.dao.CuentaPorCobrarDao
+import com.aranthalion.controlfinanzas.data.local.dao.MovimientoEliminadoDao
 import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.ClasificacionAutomaticaRepositoryImpl
@@ -152,6 +153,12 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideMovimientoEliminadoDao(database: AppDatabase): MovimientoEliminadoDao {
+            return database.movimientoEliminadoDao()
+        }
+
+        @Provides
+        @Singleton
         fun provideMovimientoManualMapper(): MovimientoManualMapper {
             return MovimientoManualMapper()
         }
@@ -169,12 +176,14 @@ abstract class AppModule {
         fun provideMovimientoRepository(
             movimientoDao: MovimientoDao, 
             categoriaDao: CategoriaDao,
+            movimientoEliminadoDao: MovimientoEliminadoDao,
             @ApplicationContext context: Context,
             auditoriaService: AuditoriaService,
             normalizacionService: NormalizacionService,
-            cacheService: CacheService
+            cacheService: CacheService,
+            configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
         ): MovimientoRepository {
-            return MovimientoRepository(movimientoDao, categoriaDao, context, auditoriaService, normalizacionService, cacheService)
+            return MovimientoRepository(movimientoDao, categoriaDao, movimientoEliminadoDao, context, auditoriaService, normalizacionService, cacheService, configuracionPreferences)
         }
 
         @Provides
@@ -226,9 +235,10 @@ abstract class AppModule {
         @Singleton
         fun provideAnalisisFinancieroUseCase(
             movimientoRepository: MovimientoRepository,
-            presupuestoRepository: PresupuestoCategoriaRepository
+            presupuestoRepository: PresupuestoCategoriaRepository,
+            configuracionPreferences: ConfiguracionPreferences
         ): AnalisisFinancieroUseCase {
-            return AnalisisFinancieroUseCase(movimientoRepository, presupuestoRepository)
+            return AnalisisFinancieroUseCase(movimientoRepository, presupuestoRepository, configuracionPreferences)
         }
 
         @Provides
@@ -289,9 +299,10 @@ abstract class AppModule {
         fun provideAnalisisGastoPorCategoriaUseCase(
             movimientoRepository: MovimientoRepository,
             presupuestoRepository: PresupuestoCategoriaRepository,
-            categoriaRepository: CategoriaRepository
+            categoriaRepository: CategoriaRepository,
+            configuracionPreferences: ConfiguracionPreferences
         ): AnalisisGastoPorCategoriaUseCase {
-            return AnalisisGastoPorCategoriaUseCase(movimientoRepository, presupuestoRepository, categoriaRepository)
+            return AnalisisGastoPorCategoriaUseCase(movimientoRepository, presupuestoRepository, categoriaRepository, configuracionPreferences)
         }
 
         @Provides
@@ -303,9 +314,10 @@ abstract class AppModule {
         @Provides
         fun providePresupuestoCategoriaRepository(
             dao: PresupuestoCategoriaDao,
-            auditoriaService: AuditoriaService
+            auditoriaService: AuditoriaService,
+            configuracionPreferences: ConfiguracionPreferences
         ): PresupuestoCategoriaRepository =
-            PresupuestoCategoriaRepositoryImpl(dao, auditoriaService)
+            PresupuestoCategoriaRepositoryImpl(dao, auditoriaService, configuracionPreferences)
 
         @Provides
         @Singleton

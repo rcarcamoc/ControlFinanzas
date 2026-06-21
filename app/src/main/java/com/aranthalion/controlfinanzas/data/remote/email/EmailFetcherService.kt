@@ -5,10 +5,14 @@ import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import java.util.*
 import java.util.regex.Pattern
+import javax.mail.Flags
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.mail.*
 import javax.mail.internet.MimeMultipart
+import javax.mail.search.ComparisonTerm
+import javax.mail.search.FlagTerm
+import javax.mail.search.SentDateTerm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -21,17 +25,41 @@ class EmailFetcherService @Inject constructor(
         properties["mail.store.protocol"] = config.protocol
         
         if (config.useSSL) {
-            properties["mail.imap.ssl.enable"] = "true"
-            properties["mail.imap.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
-            properties["mail.imap.socketFactory.fallback"] = "false"
-            properties["mail.imap.socketFactory.port"] = config.port.toString()
+            if (config.protocol.startsWith("pop3")) {
+                properties["mail.pop3.ssl.enable"] = "true"
+                properties["mail.pop3.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                properties["mail.pop3.socketFactory.fallback"] = "false"
+                properties["mail.pop3.socketFactory.port"] = config.port.toString()
+                
+                properties["mail.pop3s.ssl.enable"] = "true"
+                properties["mail.pop3s.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                properties["mail.pop3s.socketFactory.fallback"] = "false"
+                properties["mail.pop3s.socketFactory.port"] = config.port.toString()
+            } else {
+                properties["mail.imap.ssl.enable"] = "true"
+                properties["mail.imap.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                properties["mail.imap.socketFactory.fallback"] = "false"
+                properties["mail.imap.socketFactory.port"] = config.port.toString()
+                
+                properties["mail.imaps.ssl.enable"] = "true"
+                properties["mail.imaps.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                properties["mail.imaps.socketFactory.fallback"] = "false"
+                properties["mail.imaps.socketFactory.port"] = config.port.toString()
+            }
         }
 
         var store: Store? = null
         try {
-            val session = Session.getDefaultInstance(properties, null)
+            val usernameToUse = if (config.protocol.startsWith("pop3") && 
+                                   config.host.contains("gmail.com", ignoreCase = true) && 
+                                   !config.username.startsWith("recent:", ignoreCase = true)) {
+                "recent:${config.username}"
+            } else {
+                config.username
+            }
+            val session = Session.getInstance(properties, null)
             store = session.getStore(config.protocol)
-            store.connect(config.host, config.port, config.username, config.password)
+            store.connect(config.host, config.port, usernameToUse, config.password)
             return@withContext true
         } catch (e: Exception) {
             Log.e("EmailFetcherService", "Connection test failed", e)
@@ -44,60 +72,161 @@ class EmailFetcherService @Inject constructor(
     }
 
     suspend fun fetchTransactionsFromEmail(): List<MovimientoEntity> = withContext(Dispatchers.IO) {
-        val config = configuracionPreferences.obtenerEmailConfig()
+        val configs = configuracionPreferences.obtenerEmailConfigs().filter { it.enabled }
         val movements = mutableListOf<MovimientoEntity>()
         
-        val properties = Properties()
-        properties["mail.store.protocol"] = config.protocol
-        
-        if (config.useSSL) {
-            properties["mail.imap.ssl.enable"] = "true"
-            properties["mail.imap.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
-            properties["mail.imap.socketFactory.fallback"] = "false"
-            properties["mail.imap.socketFactory.port"] = config.port.toString()
-        }
-
-        var store: Store? = null
-        var inbox: Folder? = null
-        try {
-            val session = Session.getDefaultInstance(properties, null)
-            store = session.getStore(config.protocol)
-            store.connect(config.host, config.port, config.username, config.password)
+        for (config in configs) {
+            val properties = Properties()
+            properties["mail.store.protocol"] = config.protocol
             
-            inbox = store.getFolder("INBOX")
-            inbox.open(Folder.READ_ONLY)
-            
-            val messageCount = inbox.messageCount
-            val limit = if (messageCount > 30) messageCount - 30 else 1
-            
-            val messages = inbox.getMessages(limit, messageCount)
-            Log.d("EmailFetcherService", "Leídos ${messages.size} correos de la bandeja de entrada")
-            
-            for (message in messages) {
-                try {
-                    val subject = message.subject ?: ""
-                    val body = getTextFromMessage(message)
+            if (config.useSSL) {
+                if (config.protocol.startsWith("pop3")) {
+                    properties["mail.pop3.ssl.enable"] = "true"
+                    properties["mail.pop3.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                    properties["mail.pop3.socketFactory.fallback"] = "false"
+                    properties["mail.pop3.socketFactory.port"] = config.port.toString()
                     
-                    // Solo parsear si parece ser una notificación bancaria o financiera
-                    if (esCorreoBancario(subject, body)) {
-                        val movimiento = parsearCorreoAMovimiento(subject, body, message.sentDate ?: Date())
-                        if (movimiento != null) {
-                            movements.add(movimiento)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("EmailFetcherService", "Error al procesar mensaje individual", e)
+                    properties["mail.pop3s.ssl.enable"] = "true"
+                    properties["mail.pop3s.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                    properties["mail.pop3s.socketFactory.fallback"] = "false"
+                    properties["mail.pop3s.socketFactory.port"] = config.port.toString()
+                } else {
+                    properties["mail.imap.ssl.enable"] = "true"
+                    properties["mail.imap.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                    properties["mail.imap.socketFactory.fallback"] = "false"
+                    properties["mail.imap.socketFactory.port"] = config.port.toString()
+                    
+                    properties["mail.imaps.ssl.enable"] = "true"
+                    properties["mail.imaps.socketFactory.class"] = "javax.net.ssl.SSLSocketFactory"
+                    properties["mail.imaps.socketFactory.fallback"] = "false"
+                    properties["mail.imaps.socketFactory.port"] = config.port.toString()
                 }
             }
-        } catch (e: Exception) {
-            Log.e("EmailFetcherService", "Error general al descargar correos", e)
-        } finally {
+
+            var store: Store? = null
+            var inbox: Folder? = null
             try {
-                inbox?.close(false)
-            } catch (ignored: Exception) {}
-            try {
-                store?.close()
-            } catch (ignored: Exception) {}
+                val usernameToUse = if (config.protocol.startsWith("pop3") && 
+                                       config.host.contains("gmail.com", ignoreCase = true) && 
+                                       !config.username.startsWith("recent:", ignoreCase = true)) {
+                    "recent:${config.username}"
+                } else {
+                    config.username
+                }
+                val session = Session.getInstance(properties, null)
+                store = session.getStore(config.protocol)
+                store.connect(config.host, config.port, usernameToUse, config.password)
+                
+                inbox = store.getFolder("INBOX")
+                inbox.open(Folder.READ_WRITE)
+                
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.DAY_OF_YEAR, -30)
+                val thresholdDate = calendar.time
+
+                val messages = if (config.protocol.startsWith("imap")) {
+                    Log.d("EmailFetcherService", "Buscando correos no leídos por IMAP desde: $thresholdDate")
+                    val dateTerm = SentDateTerm(ComparisonTerm.GE, thresholdDate)
+                    val unseenTerm = FlagTerm(Flags(Flags.Flag.SEEN), false)
+                    val combinedTerm = javax.mail.search.AndTerm(unseenTerm, dateTerm)
+                    val result = inbox.search(combinedTerm)
+                    Log.d("EmailFetcherService", "IMAP search (no leídos + fecha) devolvió ${result.size} correos")
+                    if (result.isEmpty()) {
+                        // Fallback: solo buscar por no leídos sin filtro de fecha
+                        val unseenOnly = inbox.search(FlagTerm(Flags(Flags.Flag.SEEN), false))
+                        Log.d("EmailFetcherService", "IMAP search (solo no leídos) devolvió ${unseenOnly.size} correos")
+                        unseenOnly
+                    } else {
+                        result
+                    }
+                } else {
+                    // POP3: iterate backwards from the newest messages
+                    val messageCount = inbox.messageCount
+                    Log.d("EmailFetcherService", "Bandeja POP3 tiene un total de $messageCount correos")
+                    
+                    // Log the last 10 messages for debugging
+                    val startDebug = messageCount
+                    val endDebug = if (messageCount > 10) messageCount - 9 else 1
+                    for (debugIdx in startDebug downTo endDebug) {
+                        try {
+                            val msg = inbox.getMessage(debugIdx)
+                            Log.d("EmailFetcherService", "Debug POP3 - Índice: $debugIdx, Asunto: ${msg.subject}, Fecha: ${msg.sentDate}")
+                        } catch (e: Exception) {
+                            Log.e("EmailFetcherService", "Error leyendo debug msg $debugIdx", e)
+                        }
+                    }
+
+                    val messagesList = mutableListOf<Message>()
+                    var olderCount = 0
+                    for (i in messageCount downTo 1) {
+                        try {
+                            val msg = inbox.getMessage(i)
+                            val sentDate = msg.sentDate
+                            if (sentDate != null) {
+                                if (sentDate.before(thresholdDate)) {
+                                    olderCount++
+                                    // Stop scanning once we see a few messages older than 30 days
+                                    if (olderCount >= 3) {
+                                        Log.d("EmailFetcherService", "POP3: Deteniendo escaneo en índice $i porque detectamos $olderCount mensajes antiguos")
+                                        break
+                                    }
+                                } else {
+                                    messagesList.add(msg)
+                                }
+                            } else {
+                                messagesList.add(msg)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("EmailFetcherService", "Error reading headers for message index $i", e)
+                        }
+                        if (messagesList.size >= 100) {
+                            break
+                        }
+                    }
+                    messagesList.toTypedArray()
+                }
+
+                Log.d("EmailFetcherService", "Leídos ${messages.size} correos de la bandeja de entrada para ${config.username}")
+                
+                for (message in messages) {
+                    try {
+                        val sentDate = message.sentDate ?: Date()
+                        if (sentDate.before(thresholdDate)) {
+                            continue
+                        }
+                        val subject = message.subject ?: ""
+                        val body = getTextFromMessage(message)
+                        
+                        if (esCorreoBancario(subject, body)) {
+                            val movimiento = parsearCorreoAMovimiento(subject, body, sentDate)
+                            if (movimiento != null) {
+                                if (movements.none { it.idUnico == movimiento.idUnico }) {
+                                    movements.add(movimiento)
+                                }
+                            }
+                        }
+
+                        // Marcar correo como leído después de procesarlo
+                        try {
+                            message.setFlag(Flags.Flag.SEEN, true)
+                            Log.d("EmailFetcherService", "Correo marcado como leído: $subject")
+                        } catch (flagEx: Exception) {
+                            Log.w("EmailFetcherService", "No se pudo marcar como leído: ${flagEx.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("EmailFetcherService", "Error al procesar mensaje individual", e)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("EmailFetcherService", "Error general al descargar correos para ${config.username}", e)
+            } finally {
+                try {
+                    inbox?.close(true) // true = expunge + persiste cambios de flags (leído/no leído)
+                } catch (ignored: Exception) {}
+                try {
+                    store?.close()
+                } catch (ignored: Exception) {}
+            }
         }
         
         return@withContext movements
@@ -222,11 +351,8 @@ class EmailFetcherService @Inject constructor(
             Log.e("EmailFetcherService", "Error parsing transaction date/time from body, using sentDate", e)
         }
 
-        val calendar = Calendar.getInstance()
-        calendar.time = fechaTransaccion
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH) + 1
-        val periodo = String.format("%04d-%02d", year, month)
+        val customPeriodConfigs = configuracionPreferences.obtenerPeriodoDatesMap()
+        val periodo = com.aranthalion.controlfinanzas.data.util.BillingPeriodHelper.obtenerPeriodoParaFecha(fechaTransaccion, customPeriodConfigs)
 
         return MovimientoEntity(
             tipo = tipo,

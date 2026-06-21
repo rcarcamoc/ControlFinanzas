@@ -12,6 +12,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -40,6 +42,7 @@ import java.util.Locale
 fun EditarMovimientoDialog(
     movimiento: MovimientoEntity,
     categoriasUiState: CategoriasUiState,
+    usuarios: List<com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity>,
     onDismiss: () -> Unit,
     onConfirm: (MovimientoEntity) -> Unit
 ) {
@@ -53,6 +56,19 @@ fun EditarMovimientoDialog(
     var periodoSeleccionado by remember { mutableStateOf(movimiento.periodoFacturacion) }
     var fechaSeleccionada by remember { mutableStateOf(movimiento.fecha) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var tarjeta by remember { mutableStateOf(movimiento.tipoTarjeta ?: "") }
+    
+    var scope by remember { mutableStateOf(movimiento.scope) }
+    var selectedUsuario by remember {
+        mutableStateOf<com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity?>(
+            usuarios.find { it.idServidor == movimiento.userId_internal }
+        )
+    }
+
+    var horaStr by remember {
+        val cal = Calendar.getInstance().apply { time = movimiento.fecha }
+        mutableStateOf(String.format("%02d:%02d", cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)))
+    }
     
     val periodos = generarPeriodos()
     val categorias = obtenerCategorias(categoriasUiState)
@@ -79,6 +95,7 @@ fun EditarMovimientoDialog(
             },
             text = {
                 Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     // Selector de tipo
@@ -133,6 +150,37 @@ fun EditarMovimientoDialog(
                         onFechaChanged = { fechaSeleccionada = it }
                     )
                     
+                    // Campo de Hora
+                    OutlinedTextField(
+                        value = horaStr,
+                        onValueChange = { input ->
+                            if (input.length <= 5) {
+                                horaStr = input
+                            }
+                        },
+                        label = { Text("Hora (HH:mm)") },
+                        placeholder = { Text("HH:mm") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+
+                    // Campo de Tarjeta de Crédito
+                    OutlinedTextField(
+                        value = tarjeta,
+                        onValueChange = { tarjeta = it },
+                        label = { Text("Número tarjeta crédito") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+
                     // Selector de período
                     PeriodoSelector(
                         periodoSeleccionado = periodoSeleccionado,
@@ -153,6 +201,17 @@ fun EditarMovimientoDialog(
                             onCategoriaChanged = { categoriaSeleccionada = it }
                         )
                     }
+
+                    // Selector de imputación
+                    ScopeSelector(
+                        scope = scope,
+                        selectedUsuario = selectedUsuario,
+                        usuarios = usuarios,
+                        onScopeChanged = { newScope, newUsr ->
+                            scope = newScope
+                            selectedUsuario = newUsr
+                        }
+                    )
                 }
             },
             confirmButton = {
@@ -165,14 +224,34 @@ fun EditarMovimientoDialog(
                             "OMITIR" -> true
                             else -> false
                         }
-                        if (isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()) {
+                        val isValidHora = horaStr.matches(Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"))
+                        if (isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank() && isValidHora) {
+                            val finalDate = try {
+                                val parts = horaStr.split(":")
+                                val hr = parts.getOrNull(0)?.toIntOrNull() ?: 0
+                                val min = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                                val cal = Calendar.getInstance().apply {
+                                    time = fechaSeleccionada
+                                    set(Calendar.HOUR_OF_DAY, hr)
+                                    set(Calendar.MINUTE, min)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                cal.time
+                            } catch (e: Exception) {
+                                fechaSeleccionada
+                            }
+
                             val movimientoEditado = movimiento.copy(
                                 tipo = tipoSeleccionado,
                                 monto = montoDouble,
                                 descripcion = descripcion,
-                                fecha = fechaSeleccionada,
+                                fecha = finalDate,
                                 periodoFacturacion = periodoSeleccionado,
-                                categoriaId = categoriaSeleccionada?.id
+                                categoriaId = categoriaSeleccionada?.id,
+                                tipoTarjeta = tarjeta.ifEmpty { null },
+                                scope = scope,
+                                userId_internal = selectedUsuario?.idServidor
                             )
                             onConfirm(movimientoEditado)
                         }
@@ -184,7 +263,8 @@ fun EditarMovimientoDialog(
                             "OMITIR" -> true
                             else -> false
                         }
-                        isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank()
+                        val isValidHora = horaStr.matches(Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"))
+                        isValidAmount && descripcion.isNotBlank() && periodoSeleccionado.isNotBlank() && isValidHora
                     }(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -287,76 +367,56 @@ private fun TipoTransaccionSelector(
     tipoSeleccionado: String,
     onTipoChanged: (String) -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    var expanded by remember { mutableStateOf(false) }
+    val tipoLabel = when (tipoSeleccionado) {
+        "GASTO" -> "Gasto"
+        "INGRESO" -> "Ingreso"
+        "OMITIR" -> "Omitir (no afecta cálculos)"
+        else -> tipoSeleccionado
+    }
+    
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
     ) {
-        Text(
-            text = "Tipo de transacción",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium
-        )
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            TipoTransaccionButton(
-                text = "Gasto",
-                isSelected = tipoSeleccionado == "GASTO",
-                onClick = { onTipoChanged("GASTO") },
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                onContainerColor = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.weight(1f)
+        OutlinedTextField(
+            value = tipoLabel,
+            onValueChange = {},
+            label = { Text("Tipo de transacción") },
+            readOnly = true,
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
-            
-            TipoTransaccionButton(
-                text = "Ingreso",
-                isSelected = tipoSeleccionado == "INGRESO",
-                onClick = { onTipoChanged("INGRESO") },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.weight(1f)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Gasto") },
+                onClick = {
+                    onTipoChanged("GASTO")
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Ingreso") },
+                onClick = {
+                    onTipoChanged("INGRESO")
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Omitir (no afecta cálculos)") },
+                onClick = {
+                    onTipoChanged("OMITIR")
+                    expanded = false
+                }
             )
         }
-        
-        // Opción Omitir
-        TipoTransaccionButton(
-            text = "Omitir (no afecta cálculos)",
-            isSelected = tipoSeleccionado == "OMITIR",
-            onClick = { onTipoChanged("OMITIR") },
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            onContainerColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-private fun TipoTransaccionButton(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    containerColor: androidx.compose.ui.graphics.Color,
-    onContainerColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(12.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .background(if (isSelected) containerColor else MaterialTheme.colorScheme.surfaceVariant),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = onClick
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isSelected) onContainerColor else MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -471,8 +531,69 @@ private fun obtenerCategorias(categoriasUiState: CategoriasUiState): List<Catego
                     descripcion = domainCategoria.descripcion,
                     tipo = "GASTO"
                 )
-            }
+            }.sortedBy { it.nombre.lowercase() }
         }
         else -> emptyList()
+    }
+}
+
+@Composable
+private fun ScopeSelector(
+    scope: String,
+    selectedUsuario: com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity?,
+    usuarios: List<com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity>,
+    onScopeChanged: (String, com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity?) -> Unit
+) {
+    var expandedScope by remember { mutableStateOf(false) }
+    val displayText = when {
+        scope == "HOUSEHOLD" -> "🏠 Compartido (Grupo Familiar)"
+        selectedUsuario != null -> "👤 Personal - ${selectedUsuario.nombre}"
+        else -> "👤 Personal (Sin asignar)"
+    }
+    
+    ExposedDropdownMenuBox(
+        expanded = expandedScope,
+        onExpandedChange = { expandedScope = !expandedScope }
+    ) {
+        OutlinedTextField(
+            value = displayText,
+            onValueChange = {},
+            label = { Text("Imputación") },
+            readOnly = true,
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedScope) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
+        ExposedDropdownMenu(
+            expanded = expandedScope,
+            onDismissRequest = { expandedScope = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("🏠 Compartido (Grupo Familiar)") },
+                onClick = {
+                    onScopeChanged("HOUSEHOLD", null)
+                    expandedScope = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("👤 Gastos Personales") },
+                onClick = {
+                    onScopeChanged("PERSONAL", null)
+                    expandedScope = false
+                }
+            )
+            usuarios.forEach { usr ->
+                DropdownMenuItem(
+                    text = { Text("👤 Personal - ${usr.nombre}") },
+                    onClick = {
+                        onScopeChanged("PERSONAL", usr)
+                        expandedScope = false
+                    }
+                )
+            }
+        }
     }
 }

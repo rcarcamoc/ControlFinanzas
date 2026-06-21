@@ -161,14 +161,22 @@ class GeminiClasificadorService @Inject constructor(
             
             Instrucciones de clasificación semántica:
             1. Analiza QUÉ TIPO de negocio, comercio o gasto representa la descripción.
-            2. Considera SIMILITUDES CONCEPTUALES entre el negocio y las categorías disponibles:
-               - Una panadería, pastelería, carnicería, verdulería son tipos de "almacén" o "supermercado"
-               - Una farmacia puede ser "salud" o "cuidado personal"
-               - Un restaurante, café, bar son "alimentación" o "restaurantes"
-               - Servicios digitales como streaming son "entretenimiento" o "suscripciones"
-            3. NO te limites a buscar coincidencias textuales exactas. Piensa en la NATURALEZA del gasto.
-            4. Si no existe una categoría perfecta, sugiere la más cercana conceptualmente.
-            5. Para cada sugerencia, asigna una confianza realista (0.0 a 1.0).
+            2. Identifica marcas comerciales conocidas y prioriza su categoría real:
+               - Supermercados / Almacén: "Santa Isabel", "Jumbo", "Lider", "Unimarc", "Oxxo", "Tottus", "Mayorista 10", "Alvi"
+               - Hogar y Construcción: "Sodimac", "Easy", "Homecenter", "Construmart"
+               - Farmacias / Salud: "Cruz Verde", "Ahumada", "Salcobrand", "Dr. Simi"
+               - Combustible / Transporte: "Copec", "Shell", "Petrobras", "Upa", "Pronto"
+               - Retail / Tiendas: "Falabella", "Ripley", "Paris", "Hites", "La Polar"
+            3. FILTRA Y DESESTIMA ubicaciones secundarias, nombres de calles o sucursales:
+               - Si la transacción dice "santa isabel san diego santiago", identifica "Santa Isabel" como la marca principal (Supermercado). "san diego" (calle) y "santiago" (comuna) son solo la dirección de la sucursal. NO lo clasifiques como "gastos comunes" ni "arriendo de departamento".
+               - Si la transacción dice "copec providencia", clasifícalo como Combustible/Transporte, no como gastos de la comuna.
+            4. Considera similitudes conceptuales:
+               - Una panadería, pastelería, carnicería, verdulería son tipos de "almacén" o "supermercado".
+               - Un restaurante, café, bar son "alimentación" o "restaurantes".
+               - Servicios digitales como streaming son "entretenimiento" o "suscripciones".
+            5. NO te limites a buscar coincidencias textuales exactas. Piensa en la NATURALEZA del gasto.
+            6. Si no existe una categoría perfecta, sugiere la más cercana conceptualmente.
+            7. Para cada sugerencia, asigna una confianza realista (0.0 a 1.0).
             
             Retorna un array JSON con exactamente 3 objetos, cada uno con:
             - "categoriaId": (número) ID de la categoría sugerida

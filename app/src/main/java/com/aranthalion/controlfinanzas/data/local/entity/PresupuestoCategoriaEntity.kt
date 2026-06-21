@@ -6,11 +6,12 @@ import androidx.room.Index
 
 @Entity(
     tableName = "presupuesto_categoria",
-    indices = [Index(value = ["categoriaId", "periodo"], unique = true)]
+    indices = [Index(value = ["categoriaId", "periodo", "scope"], unique = true)]
 )
 data class PresupuestoCategoriaEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val categoriaId: Long,
     val monto: Double,
-    val periodo: String // formato YYYY-MM
+    val periodo: String, // formato YYYY-MM
+    val scope: String = "HOUSEHOLD"
 ) 

@@ -232,23 +232,34 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
 
     private suspend fun obtenerSugerenciasBajaConfianza(descripcion: String): List<SugerenciaClasificacion> {
         val sugerencias = mutableListOf<SugerenciaClasificacion>()
-        
-        // Buscar en patrones aprendidos con confianza baja
+        val descripcionNorm = ClasificacionNormalizer.normalizarDescripcion(descripcion)
+        val prefijoDescripcion = descripcionNorm.take(5)
+
+        // Buscar en patrones aprendidos con confianza baja SOLO si hay coincidencia con la descripción
         val patrones = clasificacionDao.obtenerTodosLosPatrones()
         for (patron in patrones) {
             if (patron.nivelConfianza < 0.6 && patron.nivelConfianza > 0.3) {
-                sugerencias.add(
-                    SugerenciaClasificacion(
-                        categoriaId = patron.categoriaId,
-                        nivelConfianza = patron.nivelConfianza,
-                        patron = patron.patron
+                val patronNorm = patron.patron
+                // Solo sugerir si hay alguna coincidencia con la descripción actual
+                if (descripcionNorm.isNotBlank() && (
+                    descripcionNorm.contains(patronNorm) ||
+                    patronNorm.contains(prefijoDescripcion) ||
+                    (prefijoDescripcion.length >= 4 && patronNorm.startsWith(prefijoDescripcion))
+                )) {
+                    sugerencias.add(
+                        SugerenciaClasificacion(
+                            categoriaId = patron.categoriaId,
+                            nivelConfianza = patron.nivelConfianza,
+                            patron = patron.patron
+                        )
                     )
-                )
+                }
             }
         }
-        
+
         return sugerencias.sortedByDescending { it.nivelConfianza }.take(3)
     }
+
 
     // Métodos existentes (mantener compatibilidad)
     override suspend fun guardarPatron(patron: String, categoriaId: Long) {
@@ -261,7 +272,7 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
                 val existe = clasificacionDao.existePatron(patronNormalizado, categoriaId)
                 if (existe > 0) {
                     Log.d("ClasificacionRepo", "⏭️ Patrón ya existe, actualizando frecuencia: '$patronNormalizado'")
-                    val patronExistente = clasificacionDao.obtenerPatronPorDescripcion(patronNormalizado)
+                    val patronExistente = clasificacionDao.obtenerPatronPorPatronYCategoria(patronNormalizado, categoriaId)
                     if (patronExistente != null) {
                         val nuevaFrecuencia = patronExistente.frecuencia + 1
                         val nuevaConfianza = calcularConfianza(nuevaFrecuencia, patronNormalizado.length)

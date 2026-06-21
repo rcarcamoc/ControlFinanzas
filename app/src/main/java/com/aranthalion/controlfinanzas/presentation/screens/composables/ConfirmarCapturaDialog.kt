@@ -31,7 +31,8 @@ fun ConfirmarCapturaDialog(
     onConfirm: (List<MovimientoEntity>) -> Unit,
     transaccionesExtraidas: List<VisionImportService.ParsedTransaction>,
     categorias: List<Categoria>,
-    periodoFacturacionActual: String
+    periodoFacturacionActual: String,
+    existingIdUnicos: Set<String>
 ) {
     // Estado interno para las transacciones editables
     val transaccionesState = remember {
@@ -40,13 +41,23 @@ fun ConfirmarCapturaDialog(
                 val suggestedCat = categorias.find { 
                     it.nombre.equals(tx.suggestedCategoryName, ignoreCase = true) 
                 }
+                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val dateObj = try {
+                    sdf.parse(tx.date)
+                } catch (e: Exception) {
+                    null
+                }
+                val idUnico = com.aranthalion.controlfinanzas.data.util.ExcelProcessor.generarIdUnico(dateObj, tx.amount, tx.description)
+                val isDuplicate = existingIdUnicos.contains(idUnico)
                 EditableTransaction(
                     date = tx.date,
                     description = tx.description,
                     amount = tx.amount.toInt().toString(),
                     category = suggestedCat,
                     cardType = tx.cardType,
-                    selected = true
+                    selected = !isDuplicate,
+                    idUnico = idUnico,
+                    isDuplicate = isDuplicate
                 )
             })
         }
@@ -97,7 +108,19 @@ fun ConfirmarCapturaDialog(
                             item = item,
                             categorias = categorias,
                             onItemChanged = { updated ->
-                                transaccionesState[index] = updated
+                                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                val dateObj = try {
+                                    sdf.parse(updated.date)
+                                } catch (e: Exception) {
+                                    null
+                                }
+                                val amountDouble = updated.amount.toDoubleOrNull() ?: 0.0
+                                val newIdUnico = com.aranthalion.controlfinanzas.data.util.ExcelProcessor.generarIdUnico(dateObj, amountDouble, updated.description)
+                                val isDuplicate = existingIdUnicos.contains(newIdUnico)
+                                transaccionesState[index] = updated.copy(
+                                    idUnico = newIdUnico,
+                                    isDuplicate = isDuplicate
+                                )
                             }
                         )
                     }
@@ -134,7 +157,7 @@ fun ConfirmarCapturaDialog(
                                     fecha = dateObj,
                                     periodoFacturacion = periodoFacturacionActual,
                                     tipoTarjeta = tx.cardType,
-                                    idUnico = UUID.randomUUID().toString()
+                                    idUnico = tx.idUnico
                                 )
                             }
                             onConfirm(entities)
@@ -160,7 +183,9 @@ data class EditableTransaction(
     val amount: String,
     val category: Categoria?,
     val cardType: String?,
-    val selected: Boolean
+    val selected: Boolean,
+    val idUnico: String,
+    val isDuplicate: Boolean
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -170,6 +195,7 @@ private fun TransactionEditItem(
     categorias: List<Categoria>,
     onItemChanged: (EditableTransaction) -> Unit
 ) {
+    val sortedCategorias = remember(categorias) { categorias.sortedBy { it.nombre.lowercase() } }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -201,6 +227,15 @@ private fun TransactionEditItem(
             Spacer(modifier = Modifier.width(8.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                if (item.isDuplicate) {
+                    Text(
+                        text = "⚠️ Posible Duplicado",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
                 // Fecha y Monto
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -290,7 +325,7 @@ private fun TransactionEditItem(
                                 expandedCategoria = false
                             }
                         )
-                        categorias.forEach { categoria ->
+                        sortedCategorias.forEach { categoria ->
                             DropdownMenuItem(
                                 text = { Text(categoria.nombre) },
                                 onClick = {

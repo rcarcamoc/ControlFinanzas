@@ -31,5 +31,7 @@ data class MovimientoEntity(
     val fechaActualizacion: Long = System.currentTimeMillis(),
     val metodoActualizacion: String = "", // "INSERT", "UPDATE", "IMPORT_EXCEL", etc.
     val daoResponsable: String = "", // "MovimientoDao", "ClasificacionAutomaticaDao", etc.
-    val usuarioResponsable: String = "SYSTEM" // Para futuras implementaciones de usuarios
+    val usuarioResponsable: String = "SYSTEM", // Para futuras implementaciones de usuarios
+    val scope: String = "HOUSEHOLD", // "HOUSEHOLD" or "PERSONAL"
+    val userId_internal: String? = null
 ) 

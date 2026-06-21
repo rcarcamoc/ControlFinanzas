@@ -17,7 +17,9 @@ import androidx.compose.ui.unit.dp
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
 import com.aranthalion.controlfinanzas.data.util.FormatUtils
 import com.aranthalion.controlfinanzas.data.util.ParDuplicadoSimilar
+import com.aranthalion.controlfinanzas.data.util.ParDuplicadoMovimientos
 import com.aranthalion.controlfinanzas.presentation.components.PeriodoSelectorGlobal
+import androidx.compose.foundation.BorderStroke
 
 @Composable
 fun PanelSelectorArchivo(
@@ -230,124 +232,143 @@ fun DialogoConfirmacionDuplicados(
     duplicado: ParDuplicadoSimilar,
     indice: Int,
     total: Int,
-    onConfirmarDuplicado: () -> Unit,
-    onRechazarDuplicado: () -> Unit,
+    onOmitirNueva: () -> Unit,
+    onFusionar: () -> Unit,
+    onSobrescribir: () -> Unit,
+    onConservarAmbas: () -> Unit,
     onCancelar: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onCancelar,
         title = {
-            Text(
-                "¿Es un duplicado?",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = "¿Transacción Duplicada?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         },
         text = {
             Column(
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    "Se encontró una transacción similar ($indice de $total):",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "Detectamos un posible duplicado (${indice + 1} de $total). Similitud: ${(duplicado.similitud * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
-                // Nueva transacción
+
+                // Transacción Existente (En base de datos)
                 Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "EXISTENTE EN APP",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = duplicado.existente.descripcion, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "${FormatUtils.formatMoneyCLP(duplicado.existente.monto)} • ${duplicado.existente.fecha} • Tarjeta: ${duplicado.existente.tipoTarjeta ?: "No especificada"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Transacción Nueva (A Importar)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            "Nueva transacción:",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = "NUEVA A IMPORTAR",
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = duplicado.nueva.descripcion, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Descripción: ${duplicado.nueva.descripcion}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            "Fecha: ${duplicado.nueva.fecha}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            "Monto: ${FormatUtils.formatMoneyCLP(duplicado.nueva.monto)}",
+                            text = "${FormatUtils.formatMoneyCLP(duplicado.nueva.monto)} • ${duplicado.nueva.fecha} • Tarjeta: ${duplicado.nueva.tipoTarjeta ?: "No especificada"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
-                
-                // Transacción existente
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            "Transacción existente:",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Descripción: ${duplicado.existente.descripcion}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            "Fecha: ${duplicado.existente.fecha}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            "Monto: ${FormatUtils.formatMoneyCLP(duplicado.existente.monto)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-                
+
+                HorizontalDivider()
+
                 Text(
-                    "Similitud: ${(duplicado.similitud * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                Text(
-                    "¿Son la misma transacción?",
+                    text = "Seleccione cómo resolver este conflicto:",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Bold
                 )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Opción 1: Fusionar
+                    Button(
+                        onClick = onFusionar,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Fusionar datos (Recomendado)")
+                    }
+
+                    // Opción 2: Omitir Nueva
+                    OutlinedButton(
+                        onClick = onOmitirNueva,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Omitir importación (Mantener existente)")
+                    }
+
+                    // Opción 3: Sobrescribir
+                    OutlinedButton(
+                        onClick = onSobrescribir,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Sobrescribir (Usar nueva)")
+                    }
+
+                    // Opción 4: Conservar Ambas
+                    TextButton(
+                        onClick = onConservarAmbas,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Son distintas (Conservar ambas)")
+                    }
+                }
             }
         },
-        confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(onClick = onRechazarDuplicado) {
-                    Text("No, es diferente")
-                }
-                Button(onClick = onConfirmarDuplicado) {
-                    Text("Sí, es duplicado")
-                }
-            }
-        },
+        confirmButton = {},
         dismissButton = {
             TextButton(onClick = onCancelar) {
-                Text("Cancelar")
+                Text("Cancelar proceso")
             }
         }
     )
@@ -381,3 +402,150 @@ data class ResumenImportacion(
     val clasificadasAutomaticamente: Int,
     val pendientesClasificacion: Int
 )
+
+@Composable
+fun DialogoConfirmacionDuplicadosInternos(
+    duplicado: ParDuplicadoMovimientos,
+    indice: Int,
+    total: Int,
+    onConservarExistenteOmitirNueva: () -> Unit,
+    onFusionar: () -> Unit,
+    onSobrescribir: () -> Unit,
+    onConservarAmbas: () -> Unit,
+    onCancelar: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = "Registros Duplicados en App",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Detectamos transacciones similares guardadas en la app (${indice + 1} de $total). Similitud: ${(duplicado.similitud * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Transacción Existente 1
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "REGISTRO EXISTENTE 1 (ID: ${duplicado.existente.id})",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = duplicado.existente.descripcion, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "${FormatUtils.formatMoneyCLP(duplicado.existente.monto)} • ${duplicado.existente.fecha} • Tarjeta: ${duplicado.existente.tipoTarjeta ?: "No especificada"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Transacción Existente 2 (La sospechosa)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "REGISTRO EXISTENTE 2 (ID: ${duplicado.nueva.id})",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = duplicado.nueva.descripcion, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "${FormatUtils.formatMoneyCLP(duplicado.nueva.monto)} • ${duplicado.nueva.fecha} • Tarjeta: ${duplicado.nueva.tipoTarjeta ?: "No especificada"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                Text(
+                    text = "Seleccione cómo resolver esta duplicación:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Opción 1: Fusionar
+                    Button(
+                        onClick = onFusionar,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Fusionar (Mantener Registro 1 actualizado)")
+                    }
+
+                    // Opción 2: Eliminar Registro 2
+                    OutlinedButton(
+                        onClick = onConservarExistenteOmitirNueva,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Conservar Registro 1 (Eliminar Registro 2)")
+                    }
+
+                    // Opción 3: Eliminar Registro 1
+                    OutlinedButton(
+                        onClick = onSobrescribir,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Conservar Registro 2 (Eliminar Registro 1)")
+                    }
+
+                    // Opción 4: Mantener Ambos
+                    TextButton(
+                        onClick = onConservarAmbas,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Ambos son correctos (Mantener ambos)")
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onCancelar) {
+                Text("Cancelar revisión")
+            }
+        }
+    )
+}

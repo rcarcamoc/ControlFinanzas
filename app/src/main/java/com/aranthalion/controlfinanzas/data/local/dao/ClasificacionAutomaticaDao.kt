@@ -12,6 +12,9 @@ interface ClasificacionAutomaticaDao {
     
     @Query("SELECT * FROM clasificacion_automatica WHERE patron = :patron LIMIT 1")
     suspend fun obtenerPatronPorDescripcion(patron: String): ClasificacionAutomaticaEntity?
+
+    @Query("SELECT * FROM clasificacion_automatica WHERE patron = :patron AND categoriaId = :categoriaId LIMIT 1")
+    suspend fun obtenerPatronPorPatronYCategoria(patron: String, categoriaId: Long): ClasificacionAutomaticaEntity?
     
     @Query("SELECT * FROM clasificacion_automatica WHERE patron LIKE '%' || :descripcion || '%' OR :descripcion LIKE '%' || patron || '%' ORDER BY nivelConfianza DESC, frecuencia DESC LIMIT 1")
     suspend fun buscarMejorCoincidencia(descripcion: String): ClasificacionAutomaticaEntity?

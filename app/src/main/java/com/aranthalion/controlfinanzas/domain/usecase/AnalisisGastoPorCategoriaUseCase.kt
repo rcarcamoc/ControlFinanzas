@@ -7,7 +7,9 @@ import com.aranthalion.controlfinanzas.domain.categoria.Categoria
 import com.aranthalion.controlfinanzas.domain.movimiento.TipoMovimiento
 import java.util.*
 import javax.inject.Inject
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 import kotlin.math.abs
+
 
 data class AnalisisGastoCategoria(
     val categoria: Categoria,
@@ -38,10 +40,12 @@ data class ResumenAnalisisGasto(
     val categoriasExcelentes: Int
 )
 
+
 class AnalisisGastoPorCategoriaUseCase @Inject constructor(
     private val movimientoRepository: MovimientoRepository,
     private val presupuestoRepository: PresupuestoCategoriaRepository,
-    private val categoriaRepository: CategoriaRepository
+    private val categoriaRepository: CategoriaRepository,
+    private val config: ConfiguracionPreferences
 ) {
     
     /**
@@ -78,13 +82,15 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
             println("🔍 ANALISIS DEBUG: Sin categoría - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}, Período: ${movimiento.periodoFacturacion}, Tipo: ${movimiento.tipo}")
         }
         
+        val activeScope = config.obtenerScopeGlobal()
         val lista = categorias.mapNotNull { categoria ->
             val presupuesto = presupuestos.find { it.categoriaId == categoria.id }?.monto ?: 0.0
             val movimientosCategoria = movimientos.filter {
                 it.categoriaId == categoria.id &&
                 it.periodoFacturacion == periodoActual &&
                 it.tipo == TipoMovimiento.GASTO.name &&
-                it.tipo != TipoMovimiento.OMITIR.name
+                it.tipo != TipoMovimiento.OMITIR.name &&
+                it.scope == activeScope
             }
             val gastoActual = movimientosCategoria.sumOf { it.monto }
             
@@ -117,7 +123,8 @@ class AnalisisGastoPorCategoriaUseCase @Inject constructor(
             it.categoriaId == null &&
             it.periodoFacturacion == periodoActual &&
             it.tipo == TipoMovimiento.GASTO.name &&
-            it.tipo != TipoMovimiento.OMITIR.name
+            it.tipo != TipoMovimiento.OMITIR.name &&
+            it.scope == activeScope
         }
         val totalSinCategoria = sinCategoriaGastos.sumOf { it.monto }
         println("🔍 ANALISIS DEBUG: Movimientos sin categoría en período $periodoActual: ${sinCategoriaGastos.size}, Total: $totalSinCategoria")

@@ -41,7 +41,7 @@ fun TransaccionItem(
 ) {
     val categoria = categorias.find { it.id == movimiento.categoriaId }
     val formattedDate = remember(movimiento.fecha) {
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(movimiento.fecha)
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(movimiento.fecha)
     }
     
     var deleteConfirmCountdown by remember { mutableStateOf(0) }
@@ -188,12 +188,27 @@ fun TransaccionItem(
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    // Fecha
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // Fecha, hora y tarjeta
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = formattedDate,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        movimiento.tipoTarjeta?.let { tarjeta ->
+                            if (tarjeta.isNotEmpty()) {
+                                Text(
+                                    text = "•  TC: $tarjeta",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))

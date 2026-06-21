@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import android.content.SharedPreferences
 import javax.inject.Inject
+import com.google.gson.Gson
 
 val Context.configuracionDataStore by preferencesDataStore(name = "configuracion")
 
@@ -132,6 +133,24 @@ class ConfiguracionPreferences @Inject constructor(
     fun obtenerPeriodoGlobal(): String? {
         return prefs.getString(KEY_PERIODO_GLOBAL, null)
     }
+
+    fun guardarPeriodoDatesMap(configs: Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig>) {
+        val json = Gson().toJson(configs)
+        prefs.edit().putString("periodo_dates_map", json).apply()
+    }
+
+    fun obtenerPeriodoDatesMap(): Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig> {
+        val json = prefs.getString("periodo_dates_map", null)
+        if (json.isNullOrBlank()) {
+            return emptyMap()
+        }
+        val type = object : com.google.gson.reflect.TypeToken<Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig>>() {}.type
+        return try {
+            Gson().fromJson(json, type) ?: emptyMap()
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
     
     fun guardarDatosCargados(cargados: Boolean) {
         prefs.edit().putBoolean(KEY_DATOS_CARGADOS, cargados).apply()
@@ -169,5 +188,42 @@ class ConfiguracionPreferences @Inject constructor(
             protocol = prefs.getString("email_protocol", "imaps") ?: "imaps",
             useSSL = prefs.getBoolean("email_use_ssl", true)
         )
+    }
+
+    fun guardarEmailConfigs(configs: List<com.aranthalion.controlfinanzas.data.remote.email.EmailConfig>) {
+        val json = Gson().toJson(configs)
+        prefs.edit().putString("email_configs_list_json", json).apply()
+    }
+
+    fun obtenerEmailConfigs(): List<com.aranthalion.controlfinanzas.data.remote.email.EmailConfig> {
+        val json = prefs.getString("email_configs_list_json", null)
+        if (json.isNullOrBlank()) {
+            val oldSingle = obtenerEmailConfig()
+            val defaultList = listOf(oldSingle)
+            guardarEmailConfigs(defaultList)
+            return defaultList
+        }
+        val type = object : com.google.gson.reflect.TypeToken<List<com.aranthalion.controlfinanzas.data.remote.email.EmailConfig>>() {}.type
+        return try {
+            Gson().fromJson(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    var emailSyncAutoEnabled: Boolean
+        get() = prefs.getBoolean("email_sync_auto_enabled", false)
+        set(value) = prefs.edit().putBoolean("email_sync_auto_enabled", value).apply()
+
+    var emailSyncIntervalMinutes: Int
+        get() = prefs.getInt("email_sync_interval_minutes", 30)
+        set(value) = prefs.edit().putInt("email_sync_interval_minutes", value).apply()
+
+    fun guardarScopeGlobal(scope: String) {
+        prefs.edit().putString("scope_global", scope).apply()
+    }
+    
+    fun obtenerScopeGlobal(): String {
+        return prefs.getString("scope_global", "HOUSEHOLD") ?: "HOUSEHOLD"
     }
 } 

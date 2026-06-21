@@ -65,10 +65,27 @@ class ConfiguracionViewModel @Inject constructor(
     private val _syncStatus = MutableStateFlow("")
     val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
+    private val _periodoDatesMap = MutableStateFlow<Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig>>(prefs.obtenerPeriodoDatesMap())
+    val periodoDatesMap: StateFlow<Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig>> = _periodoDatesMap.asStateFlow()
+
     init {
         prefs.obtenerTema().onEach { tema ->
             _temaSeleccionado.value = tema
         }.launchIn(viewModelScope)
+    }
+
+    fun guardarPeriodoDate(periodo: String, startDate: String, endDate: String) {
+        val current = _periodoDatesMap.value.toMutableMap()
+        current[periodo] = com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig(startDate, endDate)
+        prefs.guardarPeriodoDatesMap(current)
+        _periodoDatesMap.value = current
+    }
+
+    fun eliminarPeriodoDate(periodo: String) {
+        val current = _periodoDatesMap.value.toMutableMap()
+        current.remove(periodo)
+        prefs.guardarPeriodoDatesMap(current)
+        _periodoDatesMap.value = current
     }
 
     fun cambiarTema(tema: TemaApp) {
@@ -116,6 +133,7 @@ class ConfiguracionViewModel @Inject constructor(
         _groqApiKey.value = prefs.groqApiKey
         _geminiApiKey.value = prefs.geminiApiKey
         _aiProvider.value = prefs.aiProvider
+        _periodoDatesMap.value = prefs.obtenerPeriodoDatesMap()
 
         // Si acabamos de vincular por deep link (tenemos overwrite action pendiente), sincronizamos de inmediato
         if (prefs.syncEnabled && prefs.syncEmail.isNotBlank() && prefs.syncHouseholdId.isNotBlank() && prefs.syncPassword.isNotBlank() && prefs.syncOverwriteAction.isNotBlank()) {

@@ -73,6 +73,10 @@ fun ImportarExcelScreen(
     var mostrarDialogoDuplicados by remember { mutableStateOf(false) }
     var duplicadoActual by remember { mutableStateOf<ParDuplicadoSimilar?>(null) }
     var indiceDuplicadoActual by remember { mutableStateOf(0) }
+    var duplicadosOmitidos by remember { mutableStateOf<List<ParDuplicadoSimilar>>(emptyList()) }
+    var duplicadosFusionados by remember { mutableStateOf<List<ParDuplicadoSimilar>>(emptyList()) }
+    var duplicadosSobrescritos by remember { mutableStateOf<List<ParDuplicadoSimilar>>(emptyList()) }
+    var duplicadosAmbos by remember { mutableStateOf<List<ParDuplicadoSimilar>>(emptyList()) }
     
     // Configurar el ExcelProcessor con el caso de uso de clasificación
     LaunchedEffect(clasificacionUseCase) {
@@ -87,11 +91,24 @@ fun ImportarExcelScreen(
                 val existentes = viewModel.obtenerIdUnicosExistentesPorPeriodo(periodoGlobal)
                 val categoriasPrevias = viewModel.obtenerCategoriasPorIdUnico(periodoGlobal)
                 
-                // Filtrar duplicados confirmados
-                val duplicadosConfirmados = duplicadosSimilares.map { 
-                    ExcelProcessor.generarIdUnico(it.nueva.fecha, it.nueva.monto, it.nueva.descripcion) 
+                // Obtener IDs únicos de transacciones a omitir/fusionar/sobrescribir (ya procesadas localmente)
+                val idsAOmitir = (duplicadosOmitidos + duplicadosFusionados + duplicadosSobrescritos).map {
+                    ExcelProcessor.generarIdUnico(it.nueva.fecha, it.nueva.monto, it.nueva.descripcion)
                 }.toSet()
-                val movimientosFiltrados = movimientos.filter { it.idUnico !in duplicadosConfirmados }
+                
+                // Obtener IDs únicos de transacciones que se quieren conservar a pesar de ser duplicadas
+                val idsAmbos = duplicadosAmbos.map {
+                    ExcelProcessor.generarIdUnico(it.nueva.fecha, it.nueva.monto, it.nueva.descripcion)
+                }.toSet()
+                
+                val movimientosFiltrados = movimientos.map { mov ->
+                    if (mov.idUnico in idsAmbos) {
+                        // Cambiar idUnico para evitar colisiones y asegurar inserción
+                        mov.copy(idUnico = "${mov.idUnico}-f")
+                    } else {
+                        mov
+                    }
+                }.filter { it.idUnico !in idsAOmitir }
                 
                 val nuevos = movimientosFiltrados.filter { it.idUnico !in existentes }
                 val duplicados = movimientos.size - nuevos.size
@@ -196,6 +213,10 @@ fun ImportarExcelScreen(
                 error = null
                 exito = false
                 transaccionesConClasificacion = null
+                duplicadosOmitidos = emptyList()
+                duplicadosFusionados = emptyList()
+                duplicadosSobrescritos = emptyList()
+                duplicadosAmbos = emptyList()
                 if (archivoUri != null) {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
@@ -214,12 +235,16 @@ fun ImportarExcelScreen(
                                     if (t.fecha == null) return@mapNotNull null
                                     val tipo = "GASTO"
                                     val montoFinal = t.monto
+                                    val periodoCalculado = t.fecha?.let {
+                                        com.aranthalion.controlfinanzas.data.util.BillingPeriodHelper.obtenerPeriodoParaFecha(it, viewModel.customPeriodConfigs)
+                                    } ?: t.periodoFacturacion ?: periodoGlobal
+
                                     MovimientoEntity(
                                         tipo = tipo,
                                         monto = montoFinal,
                                         descripcion = t.descripcion,
                                         fecha = t.fecha,
-                                        periodoFacturacion = t.periodoFacturacion ?: periodoGlobal,
+                                        periodoFacturacion = periodoCalculado,
                                         categoriaId = null,
                                         tipoTarjeta = t.tipoTarjeta,
                                         idUnico = ExcelProcessor.generarIdUnico(t.fecha, t.monto, t.descripcion)
@@ -422,28 +447,54 @@ fun ImportarExcelScreen(
         
         // Diálogo de confirmación de duplicados similares
         if (mostrarDialogoDuplicados && duplicadoActual != null) {
+            val avanzarDuplicado = {
+                if (indiceDuplicadoActual + 1 >= duplicadosSimilares.size) {
+                    mostrarDialogoDuplicados = false
+                    continuarImportacion()
+                } else {
+                    indiceDuplicadoActual++
+                    duplicadoActual = duplicadosSimilares[indiceDuplicadoActual]
+                }
+            }
+            
             DialogoConfirmacionDuplicados(
                 duplicado = duplicadoActual!!,
                 indice = indiceDuplicadoActual,
                 total = duplicadosSimilares.size,
-                onConfirmarDuplicado = {
-                    duplicadosSimilares = duplicadosSimilares.filterIndexed { index, _ -> index != indiceDuplicadoActual }
-                    if (duplicadosSimilares.isEmpty()) {
-                        mostrarDialogoDuplicados = false
-                        continuarImportacion()
-                    } else {
-                        indiceDuplicadoActual = 0
-                        duplicadoActual = duplicadosSimilares.first()
-                    }
+                onOmitirNueva = {
+                    duplicadosOmitidos = duplicadosOmitidos + duplicadoActual!!
+                    avanzarDuplicado()
                 },
-                onRechazarDuplicado = {
-                    indiceDuplicadoActual++
-                    if (indiceDuplicadoActual >= duplicadosSimilares.size) {
-                        mostrarDialogoDuplicados = false
-                        continuarImportacion()
-                    } else {
-                        duplicadoActual = duplicadosSimilares[indiceDuplicadoActual]
+                onFusionar = {
+                    val current = duplicadoActual!!
+                    duplicadosFusionados = duplicadosFusionados + current
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val merged = com.aranthalion.controlfinanzas.data.util.DuplicateTransactionDetector.fusionarMovimientoConExcel(
+                            current.existente, current.nueva
+                        )
+                        viewModel.actualizarMovimiento(merged)
                     }
+                    avanzarDuplicado()
+                },
+                onSobrescribir = {
+                    val current = duplicadoActual!!
+                    duplicadosSobrescritos = duplicadosSobrescritos + current
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val updated = current.existente.copy(
+                            monto = current.nueva.monto,
+                            descripcion = current.nueva.descripcion,
+                            fecha = current.nueva.fecha ?: current.existente.fecha,
+                            tipoTarjeta = current.nueva.tipoTarjeta?.ifBlank { null } ?: current.existente.tipoTarjeta,
+                            fechaActualizacion = System.currentTimeMillis(),
+                            metodoActualizacion = "OVERWRITE"
+                        )
+                        viewModel.actualizarMovimiento(updated)
+                    }
+                    avanzarDuplicado()
+                },
+                onConservarAmbas = {
+                    duplicadosAmbos = duplicadosAmbos + duplicadoActual!!
+                    avanzarDuplicado()
                 },
                 onCancelar = {
                     mostrarDialogoDuplicados = false

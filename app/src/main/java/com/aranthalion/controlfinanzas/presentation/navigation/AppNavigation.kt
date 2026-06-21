@@ -8,6 +8,7 @@ import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesScreen
 import com.aranthalion.controlfinanzas.presentation.screens.HomeScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
+import com.aranthalion.controlfinanzas.presentation.screens.ImportadoresScreen
 
 import com.aranthalion.controlfinanzas.presentation.screens.DashboardAnalisisScreen
 import com.aranthalion.controlfinanzas.presentation.screens.AporteProporcionalScreen
@@ -39,16 +40,27 @@ fun AppNavigation(navController: NavHostController) {
                 PresupuestosYCategoriasScreen(navController = navController)
             }
             composable(
-                route = "transacciones?categoriaId={categoriaId}",
+                route = "transacciones?categoriaId={categoriaId}&openVision={openVision}",
                 arguments = listOf(
                     androidx.navigation.navArgument("categoriaId") {
                         type = androidx.navigation.NavType.LongType
                         defaultValue = -1L
+                    },
+                    androidx.navigation.navArgument("openVision") {
+                        type = androidx.navigation.NavType.BoolType
+                        defaultValue = false
                     }
                 )
             ) { backStackEntry ->
                 val catId = backStackEntry.arguments?.getLong("categoriaId") ?: -1L
-                TransaccionesScreen(categoriaId = if (catId == -1L) null else catId)
+                val openVision = backStackEntry.arguments?.getBoolean("openVision") ?: false
+                TransaccionesScreen(
+                    categoriaId = if (catId == -1L) null else catId,
+                    openVision = openVision
+                )
+            }
+            composable("importadores") {
+                ImportadoresScreen(navController = navController)
             }
             composable("importar_excel") { 
                 ImportarExcelScreen() 

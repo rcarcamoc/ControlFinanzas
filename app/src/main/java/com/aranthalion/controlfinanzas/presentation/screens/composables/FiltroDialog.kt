@@ -31,6 +31,7 @@ fun FiltroDialog(
     var expandedTipo by remember { mutableStateOf(false) }
     var selectedCategoria by remember { mutableStateOf<Categoria?>(null) }
     var expandedCategoria by remember { mutableStateOf(false) }
+    val sortedCategorias = remember(categorias) { categorias.sortedBy { it.nombre.lowercase() } }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -100,7 +101,7 @@ fun FiltroDialog(
                                 expandedCategoria = false
                             }
                         )
-                        categorias.forEach { categoria ->
+                        sortedCategorias.forEach { categoria ->
                             DropdownMenuItem(
                                 text = { Text(categoria.nombre) },
                                 onClick = {

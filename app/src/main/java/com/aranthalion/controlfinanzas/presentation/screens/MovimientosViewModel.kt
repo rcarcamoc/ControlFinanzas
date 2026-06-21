@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import android.content.Context
+import android.widget.Toast
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+import com.aranthalion.controlfinanzas.data.remote.email.EmailFetcherService
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import android.util.Log
@@ -20,7 +24,9 @@ import android.util.Log
 open class MovimientosViewModel @Inject constructor(
     private val gestionarMovimientosUseCase: GestionarMovimientosUseCase,
     private val gestionarCategoriasUseCase: GestionarCategoriasUseCase,
-    private val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase
+    private val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase,
+    private val configuracionPreferences: ConfiguracionPreferences,
+    private val emailFetcherService: EmailFetcherService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MovimientosUiState>(MovimientosUiState.Loading)
@@ -28,6 +34,9 @@ open class MovimientosViewModel @Inject constructor(
 
     private val _totales = MutableStateFlow(Totales(0.0, 0.0, 0.0))
     open val totales: StateFlow<Totales> = _totales.asStateFlow()
+
+    val customPeriodConfigs: Map<String, com.aranthalion.controlfinanzas.data.util.BillingPeriodConfig>
+        get() = configuracionPreferences.obtenerPeriodoDatesMap()
 
     init {
         // No cargar movimientos automáticamente, esperar a que se establezca el período
@@ -241,6 +250,93 @@ open class MovimientosViewModel @Inject constructor(
         return withContext(Dispatchers.IO) {
             gestionarMovimientosUseCase.obtenerMovimientosPorPeriodoOptimizado(periodo)
         }
+    }
+
+    fun ejecutarAutoSincronizacionCorreoSilenciosa(context: Context) {
+        if (!configuracionPreferences.emailSyncAutoEnabled) {
+            Log.d("MovimientosViewModel", "Sincronización automática de correos desactivada.")
+            return
+        }
+
+        viewModelScope.launch {
+            Log.d("MovimientosViewModel", "Iniciando sincronización automática silenciosa...")
+            try {
+                val movimientosDescargados = emailFetcherService.fetchTransactionsFromEmail()
+                if (movimientosDescargados.isEmpty()) {
+                    Log.d("MovimientosViewModel", "No se encontraron movimientos nuevos en el correo.")
+                    return@launch
+                }
+
+                val existentes = gestionarMovimientosUseCase.obtenerMovimientos()
+                var guardados = 0
+                for (mov in movimientosDescargados) {
+                    if (!esDuplicado(mov, existentes)) {
+                        gestionarMovimientosUseCase.agregarMovimiento(mov)
+                        guardados++
+                    }
+                }
+
+                if (guardados > 0) {
+                    Log.d("MovimientosViewModel", "Sincronización automática completada: $guardados nuevos movimientos guardados.")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "Sincronización automática: $guardados movimientos nuevos importados desde correos.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    // Recargar los movimientos en la pantalla
+                    cargarMovimientosPorPeriodo(configuracionPreferences.periodoGlobal)
+                } else {
+                    Log.d("MovimientosViewModel", "Todos los movimientos descargados eran duplicados.")
+                }
+            } catch (e: Exception) {
+                Log.e("MovimientosViewModel", "Error en la sincronización automática silenciosa de correos", e)
+            }
+        }
+    }
+
+    private fun esDuplicado(nuevo: MovimientoEntity, existentes: List<MovimientoEntity>): Boolean {
+        // 1. Coincidencia exacta de idUnico
+        if (existentes.any { it.idUnico == nuevo.idUnico }) return true
+
+        // 2. Coincidencia por monto, tipo y fecha (mismo día ignorando hora)
+        val nuevoCal = java.util.Calendar.getInstance().apply { time = nuevo.fecha }
+        val nuevoYear = nuevoCal.get(java.util.Calendar.YEAR)
+        val nuevoMonth = nuevoCal.get(java.util.Calendar.MONTH)
+        val nuevoDay = nuevoCal.get(java.util.Calendar.DAY_OF_MONTH)
+
+        val descNueva = nuevo.descripcion.lowercase().trim()
+        val comercioNuevo = descNueva
+            .replace("importado correo:", "")
+            .replace("importado excel:", "")
+            .trim()
+
+        for (existente in existentes) {
+            if (existente.monto == nuevo.monto && existente.tipo == nuevo.tipo) {
+                val extCal = java.util.Calendar.getInstance().apply { time = existente.fecha }
+                val extYear = extCal.get(java.util.Calendar.YEAR)
+                val extMonth = extCal.get(java.util.Calendar.MONTH)
+                val extDay = extCal.get(java.util.Calendar.DAY_OF_MONTH)
+
+                if (nuevoYear == extYear && nuevoMonth == extMonth && nuevoDay == extDay) {
+                    val descExistente = existente.descripcion.lowercase().trim()
+                    val comercioExistente = descExistente
+                        .replace("importado correo:", "")
+                        .replace("importado excel:", "")
+                        .trim()
+
+                    // Si coinciden en comercio o si uno contiene al otro
+                    if (comercioExistente.isEmpty() || comercioNuevo.isEmpty() ||
+                        comercioExistente.contains(comercioNuevo) || 
+                        comercioNuevo.contains(comercioExistente) ||
+                        comercioExistente.take(5) == comercioNuevo.take(5)) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
     }
 }
 
