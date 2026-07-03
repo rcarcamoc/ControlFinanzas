@@ -10,7 +10,7 @@ import java.util.*
 object ClasificacionNormalizer {
     
     // Umbrales configurables
-    private const val UMBRAL_CONFIANZA_MINIMA = 0.6 // 60% - No mostrar sugerencias con menos confianza
+    private const val UMBRAL_CONFIANZA_MINIMA = 0.4 // 40% - No mostrar sugerencias con menos confianza
     private const val UMBRAL_COINCIDENCIA_EXACTA = 1.0 // 100%
     private const val UMBRAL_COINCIDENCIA_PARCIAL = 0.9 // 90%
     private const val UMBRAL_FUZZY_ALTA = 0.8 // 80%
@@ -159,8 +159,8 @@ object ClasificacionNormalizer {
         if (palabras1.isEmpty() || palabras2.isEmpty()) return 0.0
         
         val interseccion = palabras1.intersect(palabras2).size
-        val maxPalabras = maxOf(palabras1.size, palabras2.size)
-        return interseccion.toDouble() / maxPalabras.toDouble()
+        val minPalabras = minOf(palabras1.size, palabras2.size)
+        return interseccion.toDouble() / minPalabras.toDouble()
     }
 
     /**

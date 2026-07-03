@@ -180,7 +180,7 @@ class GestionarClasificacionAutomaticaUseCase @Inject constructor(
      * Verifica si una sugerencia tiene confianza suficiente para ser mostrada
      */
     fun esConfianzaSuficiente(confianza: Double): Boolean {
-        return confianza >= 0.6 // 60% de confianza mínima
+        return confianza >= 0.4 // 40% de confianza mínima
     }
     
     /**

@@ -44,6 +44,9 @@ interface MovimientoDao {
     @Query("DELETE FROM movimientos")
     suspend fun deleteAllMovimientos()
 
+    @Query("DELETE FROM movimientos WHERE idUnico = :idUnico")
+    suspend fun eliminarPorIdUnico(idUnico: String)
+
     @Query("SELECT idUnico FROM movimientos")
     suspend fun obtenerIdUnicos(): List<String>
 

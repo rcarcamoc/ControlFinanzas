@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.*
 import com.aranthalion.controlfinanzas.data.remote.email.EmailSyncWorker
+import com.aranthalion.controlfinanzas.data.sync.CacheRefreshWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,6 +101,9 @@ class ControlFinanzasApp : Application(), Configuration.Provider {
             val interval = configuracionPreferences.emailSyncIntervalMinutes
             programarSincronizacionCorreo(this, interval)
         }
+        if (configuracionPreferences.syncEnabled) {
+            programarRefrescoCache(this)
+        }
     }
 
     private fun crearCanalDeNotificaciones() {
@@ -142,6 +146,31 @@ class ControlFinanzasApp : Application(), Configuration.Provider {
         fun cancelarSincronizacionCorreo(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork("EmailSyncPeriodicWork")
             Log.d("ControlFinanzasApp", "🚫 Sincronización en segundo plano cancelada")
+        }
+
+        fun programarRefrescoCache(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val workRequest = PeriodicWorkRequestBuilder<CacheRefreshWorker>(
+                1, TimeUnit.HOURS
+            )
+                .setConstraints(constraints)
+                .addTag("CacheRefreshWorkerTag")
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "CacheRefreshPeriodicWork",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                workRequest
+            )
+            Log.d("ControlFinanzasApp", "✅ Sincronización de caché programada cada 1 hora")
+        }
+
+        fun cancelarRefrescoCache(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork("CacheRefreshPeriodicWork")
+            Log.d("ControlFinanzasApp", "🚫 Sincronización de caché cancelada")
         }
     }
 }

@@ -1,19 +1,54 @@
 package com.aranthalion.controlfinanzas.data.repository
 
 import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
+import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
 import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
+import com.aranthalion.controlfinanzas.data.remote.api.FinanzasApiService
+import com.aranthalion.controlfinanzas.data.remote.connectivity.ConnectivityMonitor
+import com.aranthalion.controlfinanzas.data.remote.api.dto.CreateBudgetDto
 import javax.inject.Inject
 
 class PresupuestoCategoriaRepositoryImpl @Inject constructor(
     private val dao: PresupuestoCategoriaDao,
+    private val categoriaDao: CategoriaDao,
     private val auditoriaService: AuditoriaService,
-    private val configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+    private val configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences,
+    private val api: FinanzasApiService,
+    private val connectivity: ConnectivityMonitor
 ) : PresupuestoCategoriaRepository {
     override suspend fun insertarPresupuesto(presupuesto: PresupuestoCategoriaEntity) {
         val activeScope = configuracionPreferences.obtenerScopeGlobal()
         val presupuestoConScope = presupuesto.copy(scope = activeScope)
         println("📝 PRESUPUESTO_AUDITORIA: Insertando presupuesto - Categoría: ${presupuestoConScope.categoriaId}, Período: ${presupuestoConScope.periodo}, Monto: ${presupuestoConScope.monto}, Scope: $activeScope")
+        
+        if (!connectivity.isOnline.value) {
+            throw java.io.IOException("La aplicación está en modo de lectura porque no tiene conexión a internet.")
+        }
+
+        // Buscar el nombre de la categoría para resolverlo en el servidor por nombre
+        val categoryName = categoriaDao.obtenerCategorias().firstOrNull { it.id == presupuesto.categoriaId }?.nombre
+        val parts = presupuesto.periodo.split("-")
+        val year = parts.getOrNull(0)?.toIntOrNull() ?: 2026
+        val month = parts.getOrNull(1)?.toIntOrNull() ?: 6
+        val householdId = configuracionPreferences.syncHouseholdId
+
+        val createDto = CreateBudgetDto(
+            categoryId = null,
+            categoryName = categoryName,
+            limit = presupuesto.monto,
+            month = month,
+            year = year,
+            householdId = if (householdId.isBlank()) null else householdId
+        )
+
+        try {
+            api.createBudget(createDto)
+        } catch (e: Exception) {
+            println("⚠️ PRESUPUESTO_AUDITORIA: Error al guardar presupuesto en servidor: ${e.message}")
+            throw e
+        }
+
         dao.insertarPresupuesto(presupuestoConScope)
         
         // Registrar auditoría
@@ -30,6 +65,34 @@ class PresupuestoCategoriaRepositoryImpl @Inject constructor(
 
     override suspend fun actualizarPresupuesto(presupuesto: PresupuestoCategoriaEntity) {
         println("📝 PRESUPUESTO_AUDITORIA: Actualizando presupuesto - Categoría: ${presupuesto.categoriaId}, Período: ${presupuesto.periodo}, Monto: ${presupuesto.monto}, Scope: ${presupuesto.scope}")
+        
+        if (!connectivity.isOnline.value) {
+            throw java.io.IOException("La aplicación está en modo de lectura porque no tiene conexión a internet.")
+        }
+
+        // Buscar el nombre de la categoría
+        val categoryName = categoriaDao.obtenerCategorias().firstOrNull { it.id == presupuesto.categoriaId }?.nombre
+        val parts = presupuesto.periodo.split("-")
+        val year = parts.getOrNull(0)?.toIntOrNull() ?: 2026
+        val month = parts.getOrNull(1)?.toIntOrNull() ?: 6
+        val householdId = configuracionPreferences.syncHouseholdId
+
+        val createDto = CreateBudgetDto(
+            categoryId = null,
+            categoryName = categoryName,
+            limit = presupuesto.monto,
+            month = month,
+            year = year,
+            householdId = if (householdId.isBlank()) null else householdId
+        )
+
+        try {
+            api.createBudget(createDto)
+        } catch (e: Exception) {
+            println("⚠️ PRESUPUESTO_AUDITORIA: Error al actualizar presupuesto en servidor: ${e.message}")
+            throw e
+        }
+
         dao.actualizarPresupuesto(presupuesto)
         
         // Registrar auditoría
@@ -46,6 +109,10 @@ class PresupuestoCategoriaRepositoryImpl @Inject constructor(
 
     override suspend fun eliminarPresupuesto(presupuesto: PresupuestoCategoriaEntity) {
         println("📝 PRESUPUESTO_AUDITORIA: Eliminando presupuesto - Categoría: ${presupuesto.categoriaId}, Período: ${presupuesto.periodo}, Monto: ${presupuesto.monto}")
+        
+        if (!connectivity.isOnline.value) {
+            throw java.io.IOException("La aplicación está en modo de lectura porque no tiene conexión a internet.")
+        }
         
         // Registrar auditoría antes de eliminar
         auditoriaService.registrarOperacion(

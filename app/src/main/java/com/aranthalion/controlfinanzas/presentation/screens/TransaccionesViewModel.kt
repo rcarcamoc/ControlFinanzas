@@ -18,6 +18,10 @@ import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.UUID
 import kotlinx.coroutines.flow.first
+import android.content.Context
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.aranthalion.controlfinanzas.data.sync.CacheRefreshWorker
 import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
 import com.aranthalion.controlfinanzas.data.remote.ai.VisionImportService
 import javax.inject.Inject
@@ -52,7 +56,8 @@ class TransaccionesViewModel @Inject constructor(
     val clasificacionUseCase: GestionarClasificacionAutomaticaUseCase,
     private val configuracionPreferences: ConfiguracionPreferences,
     private val visionImportService: VisionImportService,
-    private val usuarioDao: UsuarioDao
+    private val usuarioDao: UsuarioDao,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -95,6 +100,23 @@ class TransaccionesViewModel @Inject constructor(
         currentPeriodoFilter = configuracionPreferences.obtenerPeriodoGlobal()
         currentScopeFilter = configuracionPreferences.obtenerScopeGlobal()
         fetchData()
+        triggerSilentSync()
+    }
+
+    fun triggerSilentSync() {
+        if (configuracionPreferences.syncEnabled) {
+            viewModelScope.launch {
+                try {
+                    val workManager = WorkManager.getInstance(context)
+                    val request = OneTimeWorkRequestBuilder<CacheRefreshWorker>()
+                        .addTag("SilentCacheRefresh")
+                        .build()
+                    workManager.enqueue(request)
+                } catch (e: Exception) {
+                    // Ignore background sync errors
+                }
+            }
+        }
     }
 
     fun onEvent(event: TransaccionesEvent) {

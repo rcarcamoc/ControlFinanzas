@@ -29,9 +29,10 @@ class AnalisisFinancieroUseCase @Inject constructor(
         val calendar = Calendar.getInstance()
         
         for (i in 0 until cantidadMeses) {
-            calendar.add(Calendar.MONTH, -i)
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH) + 1
+            val cal = calendar.clone() as Calendar
+            cal.add(Calendar.MONTH, -i)
+            val year = cal.get(Calendar.YEAR)
+            val month = cal.get(Calendar.MONTH) + 1
             val periodo = String.format("%04d-%02d", year, month)
             
             val resumen = obtenerResumenFinancieroPorPeriodo(periodo)

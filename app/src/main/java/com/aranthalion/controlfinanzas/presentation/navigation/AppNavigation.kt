@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.aranthalion.controlfinanzas.presentation.screens.TransaccionesScreen
 import com.aranthalion.controlfinanzas.presentation.screens.HomeScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportarExcelScreen
+import com.aranthalion.controlfinanzas.presentation.screens.ImportarPdfScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ConfiguracionScreen
 import com.aranthalion.controlfinanzas.presentation.screens.ImportadoresScreen
 
@@ -64,6 +65,11 @@ fun AppNavigation(navController: NavHostController) {
             }
             composable("importar_excel") { 
                 ImportarExcelScreen() 
+            }
+            composable("importar_pdf") {
+                ImportarPdfScreen(
+                    onNavigateBack = { navController.navigateUp() }
+                )
             }
             composable("configuracion") {
                 ConfiguracionScreen(navController = navController)

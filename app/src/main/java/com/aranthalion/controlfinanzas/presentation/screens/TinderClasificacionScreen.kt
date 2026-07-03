@@ -59,7 +59,8 @@ fun TinderClasificacionScreen(
             },
             properties = DialogProperties(
                 dismissOnBackPress = true,
-                dismissOnClickOutside = false
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false
             )
         ) {
             val configuration = LocalConfiguration.current

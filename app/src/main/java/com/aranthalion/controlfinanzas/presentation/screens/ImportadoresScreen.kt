@@ -239,6 +239,61 @@ fun ImportadoresScreen(
                 }
             }
 
+            // Tarjeta 2.5: PDF Estado de Cuenta Lider
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Surface(
+                                shape = MaterialTheme.shapes.medium,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Default.Email, // We will use a generic icon or custom if needed
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Importador de PDF (Lider)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Sube tu estado de cuenta encriptado de Lider y extrae automáticamente las transacciones con IA.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        Button(
+                            onClick = { navController.navigate("importar_pdf") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Subir Estado de Cuenta PDF")
+                        }
+                    }
+                }
+            }
+
             // Tarjeta 3: Vision IA
             item {
                 Card(

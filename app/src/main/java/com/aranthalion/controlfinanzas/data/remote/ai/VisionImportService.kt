@@ -46,12 +46,12 @@ class VisionImportService @Inject constructor(
             // Reemplazar la ruta de sync con el endpoint de visión
             val syncUrl = config.syncServerUrl
             val visionUrl = if (syncUrl.endsWith("/api/sync")) {
-                syncUrl.replace("/api/sync", "/api/import/vision")
+                syncUrl.replace("/api/sync", "/api/import/vision/")
             } else if (syncUrl.endsWith("/api/sync/")) {
-                syncUrl.replace("/api/sync/", "/api/import/vision")
+                syncUrl.replace("/api/sync/", "/api/import/vision/")
             } else {
                 val baseUrl = syncUrl.substringBefore("/api/")
-                "$baseUrl/api/import/vision"
+                "$baseUrl/api/import/vision/"
             }
 
             Log.d(TAG, "📤 Enviando captura a analizar: $visionUrl")

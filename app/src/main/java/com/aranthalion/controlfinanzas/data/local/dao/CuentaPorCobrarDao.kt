@@ -44,4 +44,7 @@ interface CuentaPorCobrarDao {
 
     @Query("SELECT COUNT(*) FROM cuentas_por_cobrar WHERE estado = 'PENDIENTE'")
     suspend fun obtenerCantidadCuentasPendientes(): Int
+
+    @Query("DELETE FROM cuentas_por_cobrar")
+    suspend fun eliminarTodasLasCuentas()
 } 

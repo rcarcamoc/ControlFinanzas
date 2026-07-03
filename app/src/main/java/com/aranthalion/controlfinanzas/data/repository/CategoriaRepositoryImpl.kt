@@ -8,10 +8,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
+import com.aranthalion.controlfinanzas.data.remote.api.FinanzasApiService
+import com.aranthalion.controlfinanzas.data.remote.connectivity.ConnectivityMonitor
+import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+import com.aranthalion.controlfinanzas.data.remote.api.dto.CreateCategoryDto
 
 class CategoriaRepositoryImpl @Inject constructor(
     private val categoriaDao: CategoriaDao,
-    private val auditoriaService: AuditoriaService
+    private val auditoriaService: AuditoriaService,
+    private val api: FinanzasApiService,
+    private val connectivity: ConnectivityMonitor,
+    private val configuracionPreferences: ConfiguracionPreferences
 ) : CategoriaRepository {
 
     private fun toEntity(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria): CategoriaEntity {
@@ -49,13 +56,33 @@ class CategoriaRepositoryImpl @Inject constructor(
     override suspend fun insertCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
         println("📝 CATEGORIA_AUDITORIA: Insertando categoría - Nombre: ${categoria.nombre}")
         
+        if (!connectivity.isOnline.value) {
+            throw java.io.IOException("La aplicación está en modo de lectura porque no tiene conexión a internet.")
+        }
+        
         // Verificar si la categoría ya existe
         if (existeCategoria(categoria.nombre)) {
             println("⚠️ CATEGORIA_AUDITORIA: Categoría ya existe - Nombre: ${categoria.nombre}")
             return
         }
+
+        val householdId = configuracionPreferences.syncHouseholdId
+        val createDto = CreateCategoryDto(
+            name = categoria.nombre,
+            color = "#4CAF50",
+            householdId = if (householdId.isBlank()) null else householdId
+        )
+
+        val response = try {
+            // Mandar al servidor en tiempo real
+            api.createCategory(createDto)
+        } catch (e: Exception) {
+            println("⚠️ CATEGORIA_AUDITORIA: Error al crear categoría en servidor: ${e.message}")
+            throw e
+        }
         
-        categoriaDao.agregarCategoria(toEntity(categoria))
+        val categoriaFinal = categoria.copy(nombre = response.name)
+        categoriaDao.agregarCategoria(toEntity(categoriaFinal))
         
         // Registrar auditoría
         auditoriaService.registrarOperacion(
@@ -71,6 +98,11 @@ class CategoriaRepositoryImpl @Inject constructor(
 
     override suspend fun updateCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
         println("📝 CATEGORIA_AUDITORIA: Actualizando categoría - ID: ${categoria.id}, Nombre: ${categoria.nombre}")
+        
+        if (!connectivity.isOnline.value) {
+            throw java.io.IOException("La aplicación está en modo de lectura porque no tiene conexión a internet.")
+        }
+        
         categoriaDao.actualizarCategoria(toEntity(categoria))
         
         // Registrar auditoría
@@ -87,6 +119,10 @@ class CategoriaRepositoryImpl @Inject constructor(
 
     override suspend fun deleteCategoria(categoria: com.aranthalion.controlfinanzas.domain.categoria.Categoria) {
         println("📝 CATEGORIA_AUDITORIA: Eliminando categoría - ID: ${categoria.id}, Nombre: ${categoria.nombre}")
+        
+        if (!connectivity.isOnline.value) {
+            throw java.io.IOException("La aplicación está en modo de lectura porque no tiene conexión a internet.")
+        }
         
         // Registrar auditoría antes de eliminar
         auditoriaService.registrarOperacion(

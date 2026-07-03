@@ -32,6 +32,18 @@
                 <data android:scheme="controlfinanzas" android:host="sync" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <!-- Disables the default WorkManagerInitializer to allow ControlFinanzasApp's custom Hilt initialization -->
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

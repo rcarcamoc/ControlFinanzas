@@ -128,4 +128,8 @@ dependencies {
 
     // WorkManager background processing
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 }

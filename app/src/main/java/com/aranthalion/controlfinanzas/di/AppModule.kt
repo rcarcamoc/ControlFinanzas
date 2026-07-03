@@ -12,7 +12,10 @@ import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
 import com.aranthalion.controlfinanzas.data.local.dao.UsuarioDao
 import com.aranthalion.controlfinanzas.data.local.dao.CuentaPorCobrarDao
-import com.aranthalion.controlfinanzas.data.local.dao.MovimientoEliminadoDao
+import com.aranthalion.controlfinanzas.data.local.dao.OfflineOperationDao
+import com.aranthalion.controlfinanzas.data.remote.api.FinanzasApiService
+import com.aranthalion.controlfinanzas.data.remote.connectivity.ConnectivityMonitor
+import com.google.gson.Gson
 import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
 import com.aranthalion.controlfinanzas.data.repository.CategoriaRepositoryImpl
 import com.aranthalion.controlfinanzas.data.repository.ClasificacionAutomaticaRepositoryImpl
@@ -153,8 +156,8 @@ abstract class AppModule {
 
         @Provides
         @Singleton
-        fun provideMovimientoEliminadoDao(database: AppDatabase): MovimientoEliminadoDao {
-            return database.movimientoEliminadoDao()
+        fun provideOfflineOperationDao(database: AppDatabase): OfflineOperationDao {
+            return database.offlineOperationDao()
         }
 
         @Provides
@@ -173,17 +176,40 @@ abstract class AppModule {
 
         @Provides
         @Singleton
+        fun provideGson(): Gson {
+            return Gson()
+        }
+
+        @Provides
+        @Singleton
         fun provideMovimientoRepository(
             movimientoDao: MovimientoDao, 
             categoriaDao: CategoriaDao,
-            movimientoEliminadoDao: MovimientoEliminadoDao,
+            offlineOperationDao: OfflineOperationDao,
             @ApplicationContext context: Context,
             auditoriaService: AuditoriaService,
             normalizacionService: NormalizacionService,
             cacheService: CacheService,
-            configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+            configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences,
+            gson: Gson,
+            api: FinanzasApiService,
+            connectivity: ConnectivityMonitor,
+            queueProcessor: com.aranthalion.controlfinanzas.data.sync.OfflineQueueProcessor
         ): MovimientoRepository {
-            return MovimientoRepository(movimientoDao, categoriaDao, movimientoEliminadoDao, context, auditoriaService, normalizacionService, cacheService, configuracionPreferences)
+            return MovimientoRepository(
+                movimientoDao, 
+                categoriaDao, 
+                offlineOperationDao, 
+                context, 
+                auditoriaService, 
+                normalizacionService, 
+                cacheService, 
+                configuracionPreferences, 
+                gson,
+                api,
+                connectivity,
+                queueProcessor
+            )
         }
 
         @Provides
@@ -314,10 +340,13 @@ abstract class AppModule {
         @Provides
         fun providePresupuestoCategoriaRepository(
             dao: PresupuestoCategoriaDao,
+            categoriaDao: CategoriaDao,
             auditoriaService: AuditoriaService,
-            configuracionPreferences: ConfiguracionPreferences
+            configuracionPreferences: ConfiguracionPreferences,
+            api: FinanzasApiService,
+            connectivity: ConnectivityMonitor
         ): PresupuestoCategoriaRepository =
-            PresupuestoCategoriaRepositoryImpl(dao, auditoriaService, configuracionPreferences)
+            PresupuestoCategoriaRepositoryImpl(dao, categoriaDao, auditoriaService, configuracionPreferences, api, connectivity)
 
         @Provides
         @Singleton
@@ -359,9 +388,12 @@ abstract class AppModule {
         @Singleton
         fun provideCategoriaRepositoryImpl(
             categoriaDao: CategoriaDao,
-            auditoriaService: AuditoriaService
+            auditoriaService: AuditoriaService,
+            api: FinanzasApiService,
+            connectivity: ConnectivityMonitor,
+            configuracionPreferences: ConfiguracionPreferences
         ): CategoriaRepositoryImpl {
-            return CategoriaRepositoryImpl(categoriaDao, auditoriaService)
+            return CategoriaRepositoryImpl(categoriaDao, auditoriaService, api, connectivity, configuracionPreferences)
         }
 
         @Provides

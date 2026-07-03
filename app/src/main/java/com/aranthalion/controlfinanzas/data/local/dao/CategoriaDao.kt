@@ -27,6 +27,9 @@ interface CategoriaDao {
     @Delete
     suspend fun eliminarCategoria(categoria: Categoria)
 
+    @Query("DELETE FROM categorias")
+    suspend fun eliminarTodasLasCategorias()
+
     @Query("SELECT COUNT(*) FROM categorias WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(:nombre))")
     suspend fun existeCategoria(nombre: String): Int
 } 

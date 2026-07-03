@@ -32,4 +32,7 @@ interface SueldoDao {
 
     @Query("SELECT DISTINCT nombrePersona FROM sueldos ORDER BY nombrePersona ASC")
     suspend fun obtenerPersonasDisponibles(): List<String>
+
+    @Query("DELETE FROM sueldos")
+    suspend fun eliminarTodosLosSueldos()
 } 

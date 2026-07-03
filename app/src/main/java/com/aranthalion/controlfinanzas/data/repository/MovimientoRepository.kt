@@ -3,33 +3,96 @@ package com.aranthalion.controlfinanzas.data.repository
 import android.content.Context
 import com.aranthalion.controlfinanzas.data.local.dao.CategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.MovimientoDao
-import com.aranthalion.controlfinanzas.data.local.dao.MovimientoEliminadoDao
+import com.aranthalion.controlfinanzas.data.local.dao.OfflineOperationDao
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
-import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEliminadoEntity
+import com.aranthalion.controlfinanzas.data.local.entity.OfflineOperationEntity
+import com.aranthalion.controlfinanzas.data.remote.api.FinanzasApiService
+import com.aranthalion.controlfinanzas.data.remote.connectivity.ConnectivityMonitor
+import com.aranthalion.controlfinanzas.data.remote.api.dto.CreateTransactionDto
+import com.aranthalion.controlfinanzas.data.remote.api.dto.UpdateTransactionDto
+import com.aranthalion.controlfinanzas.data.remote.api.dto.TransactionDto
+import com.aranthalion.controlfinanzas.data.remote.api.dto.CategoryDto
+import com.aranthalion.controlfinanzas.data.remote.api.dto.DashboardResponse
+import com.google.gson.Gson
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import com.aranthalion.controlfinanzas.data.repository.AuditoriaService
+import com.aranthalion.controlfinanzas.data.sync.OfflineQueueProcessor
 
 class MovimientoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
     private val categoriaDao: CategoriaDao,
-    private val movimientoEliminadoDao: MovimientoEliminadoDao,
+    private val offlineOperationDao: OfflineOperationDao,
     private val context: Context,
     private val auditoriaService: AuditoriaService,
     private val normalizacionService: NormalizacionService,
     private val cacheService: CacheService,
-    private val configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
+    private val configuracionPreferences: com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences,
+    private val gson: Gson,
+    private val api: FinanzasApiService,
+    private val connectivity: ConnectivityMonitor,
+    private val queueProcessor: OfflineQueueProcessor
 ) {
+    private suspend fun syncRemoteCategoriesToLocalCache(remoteCats: List<CategoryDto>) {
+        try {
+            val localCats = categoriaDao.obtenerCategorias()
+            val localCatNames = localCats.map { it.nombre.lowercase().trim() }.toSet()
+            
+            remoteCats.forEach { rCat ->
+                val rCatNameNorm = rCat.name.lowercase().trim()
+                if (rCatNameNorm !in localCatNames) {
+                    val newCat = Categoria(
+                        nombre = rCat.name,
+                        descripcion = "Creado desde servidor",
+                        tipo = "Gasto"
+                    )
+                    categoriaDao.agregarCategoria(newCat)
+                }
+            }
+        } catch (e: Exception) {
+            println("⚠️ SYNC: Error synchronizing remote categories to Room: ${e.message}")
+        }
+    }    private fun generateLocalId(idUnico: String): Long {
+        return idUnico.hashCode().toLong()
+    }
+
+    private suspend fun syncRemoteTransactionsToLocalCache(remoteTxs: List<TransactionDto>, targetPeriod: String? = null) {
+        // Obsoleta: No se guarda en Room
+    }
+
     suspend fun obtenerMovimientos(): List<MovimientoEntity> {
         val activeScope = configuracionPreferences.obtenerScopeGlobal()
-        val movimientos = movimientoDao.obtenerMovimientos().filter { it.scope == activeScope }
-        println("🔍 DEBUG: MovimientoRepository.obtenerMovimientos() - Scope: $activeScope - Total: ${movimientos.size}")
-        movimientos.take(3).forEach { movimiento ->
-            println("  - ${movimiento.descripcion}: ${movimiento.fecha} (tipo: ${movimiento.tipo})")
+        val householdId = configuracionPreferences.syncHouseholdId
+        
+        if (householdId.isBlank()) {
+            throw java.io.IOException("Servidor no configurado. Vincula tu cuenta en Configuración.")
         }
-        return movimientos
+        
+        val response = api.refresh(householdId)
+        syncRemoteCategoriesToLocalCache(response.categories)
+        val allCats = categoriaDao.obtenerCategorias()
+        val catNameToId = allCats.associate { it.nombre.lowercase().trim() to it.id }
+        
+        return response.transactions.map { t ->
+            val catId = t.categoryName.lowercase().trim().let { catNameToId[it] }
+            MovimientoEntity(
+                id = generateLocalId(t.idUnico),
+                monto = t.amount,
+                fecha = Date(t.date),
+                tipo = t.type,
+                descripcion = t.description,
+                categoriaId = catId,
+                idUnico = t.idUnico,
+                tipoTarjeta = t.cardType,
+                periodoFacturacion = t.billingPeriod,
+                scope = t.scope,
+                userId_internal = t.userId_internal,
+                fechaCreacion = t.createdAt,
+                fechaActualizacion = t.updatedAt
+            )
+        }.filter { it.scope == activeScope }
     }
 
     /**
@@ -37,7 +100,34 @@ class MovimientoRepository @Inject constructor(
      * Usado por el EmailSyncWorker para detectar duplicados independientemente del scope activo.
      */
     suspend fun obtenerTodosLosMovimientos(): List<MovimientoEntity> {
-        return movimientoDao.obtenerMovimientos()
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) {
+            throw java.io.IOException("Servidor no configurado. Vincula tu cuenta en Configuración.")
+        }
+        
+        val response = api.refresh(householdId)
+        syncRemoteCategoriesToLocalCache(response.categories)
+        val allCats = categoriaDao.obtenerCategorias()
+        val catNameToId = allCats.associate { it.nombre.lowercase().trim() to it.id }
+        
+        return response.transactions.map { t ->
+            val catId = t.categoryName.lowercase().trim().let { catNameToId[it] }
+            MovimientoEntity(
+                id = generateLocalId(t.idUnico),
+                monto = t.amount,
+                fecha = Date(t.date),
+                tipo = t.type,
+                descripcion = t.description,
+                categoriaId = catId,
+                idUnico = t.idUnico,
+                tipoTarjeta = t.cardType,
+                periodoFacturacion = t.billingPeriod,
+                scope = t.scope,
+                userId_internal = t.userId_internal,
+                fechaCreacion = t.createdAt,
+                fechaActualizacion = t.updatedAt
+            )
+        }
     }
 
     /**
@@ -45,7 +135,30 @@ class MovimientoRepository @Inject constructor(
      * Usado para lookups en clasificación y edición donde el scope puede cambiar.
      */
     suspend fun obtenerMovimientoPorId(id: Long): MovimientoEntity? {
-        return movimientoDao.obtenerMovimientoPorId(id)
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) return null
+        val response = api.refresh(householdId)
+        val allCats = categoriaDao.obtenerCategorias()
+        val catNameToId = allCats.associate { it.nombre.lowercase().trim() to it.id }
+        
+        return response.transactions.map { t ->
+            val catId = t.categoryName.lowercase().trim().let { catNameToId[it] }
+            MovimientoEntity(
+                id = generateLocalId(t.idUnico),
+                monto = t.amount,
+                fecha = Date(t.date),
+                tipo = t.type,
+                descripcion = t.description,
+                categoriaId = catId,
+                idUnico = t.idUnico,
+                tipoTarjeta = t.cardType,
+                periodoFacturacion = t.billingPeriod,
+                scope = t.scope,
+                userId_internal = t.userId_internal,
+                fechaCreacion = t.createdAt,
+                fechaActualizacion = t.updatedAt
+            )
+        }.firstOrNull { it.id == id }
     }
 
     /**
@@ -53,213 +166,170 @@ class MovimientoRepository @Inject constructor(
      * Usado por el asistente de clasificación para mostrar TODAS las pendientes.
      */
     suspend fun obtenerMovimientosSinCategoriaTodosScopes(): List<MovimientoEntity> {
-        return movimientoDao.obtenerMovimientosSinCategoriaTodosScopes()
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) return emptyList()
+        val response = api.refresh(householdId)
+        val allCats = categoriaDao.obtenerCategorias()
+        val catNameToId = allCats.associate { it.nombre.lowercase().trim() to it.id }
+        
+        return response.transactions.map { t ->
+            val catId = t.categoryName.lowercase().trim().let { catNameToId[it] }
+            MovimientoEntity(
+                id = generateLocalId(t.idUnico),
+                monto = t.amount,
+                fecha = Date(t.date),
+                tipo = t.type,
+                descripcion = t.description,
+                categoriaId = catId,
+                idUnico = t.idUnico,
+                tipoTarjeta = t.cardType,
+                periodoFacturacion = t.billingPeriod,
+                scope = t.scope,
+                userId_internal = t.userId_internal,
+                fechaCreacion = t.createdAt,
+                fechaActualizacion = t.updatedAt
+            )
+        }.filter { it.categoriaId == null && it.tipo != "OMITIR" }
     }
 
     // Métodos optimizados del HITO 1
     suspend fun obtenerMovimientosOptimizado(): List<MovimientoEntity> {
-        val activeScope = configuracionPreferences.obtenerScopeGlobal()
-        return movimientoDao.obtenerMovimientos().filter { it.scope == activeScope }
+        return obtenerMovimientos()
     }
     
     suspend fun obtenerMovimientosPorPeriodoOptimizado(periodo: String): List<MovimientoEntity> {
         val activeScope = configuracionPreferences.obtenerScopeGlobal()
-        val movimientos = cacheService.getMovimientosPorPeriodo(periodo) {
-            movimientoDao.obtenerMovimientosPorPeriodoFacturacion(periodo)
+        val householdId = configuracionPreferences.syncHouseholdId
+        
+        if (householdId.isBlank()) {
+            throw java.io.IOException("Servidor no configurado. Vincula tu cuenta en Configuración.")
         }
-        return movimientos.filter { it.scope == activeScope }
+        
+        val response = api.refresh(householdId = householdId, billingPeriod = periodo)
+        syncRemoteCategoriesToLocalCache(response.categories)
+        val allCats = categoriaDao.obtenerCategorias()
+        val catNameToId = allCats.associate { it.nombre.lowercase().trim() to it.id }
+        
+        return response.transactions.map { t ->
+            val catId = t.categoryName.lowercase().trim().let { catNameToId[it] }
+            MovimientoEntity(
+                id = generateLocalId(t.idUnico),
+                monto = t.amount,
+                fecha = Date(t.date),
+                tipo = t.type,
+                descripcion = t.description,
+                categoriaId = catId,
+                idUnico = t.idUnico,
+                tipoTarjeta = t.cardType,
+                periodoFacturacion = t.billingPeriod,
+                scope = t.scope,
+                userId_internal = t.userId_internal,
+                fechaCreacion = t.createdAt,
+                fechaActualizacion = t.updatedAt
+            )
+        }.filter { it.scope == activeScope }
     }
 
     suspend fun obtenerMovimientosPorPeriodo(fechaInicio: Date, fechaFin: Date): List<MovimientoEntity> {
-        val activeScope = configuracionPreferences.obtenerScopeGlobal()
-        return movimientoDao.obtenerMovimientosPorPeriodo(fechaInicio, fechaFin).filter { it.scope == activeScope }
+        val sdf = SimpleDateFormat("yyyy-MM", Locale.US)
+        val periodo = sdf.format(fechaInicio)
+        return obtenerMovimientosPorPeriodoOptimizado(periodo)
     }
-
+ 
     suspend fun obtenerCategorias(): List<Categoria> {
-        return cacheService.getCategorias {
-            categoriaDao.obtenerCategorias()
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isNotBlank() && connectivity.isOnline.value) {
+            try {
+                val response = api.refresh(householdId)
+                syncRemoteCategoriesToLocalCache(response.categories)
+            } catch (e: Exception) {
+                // Silently ignore category prefetch errors
+            }
         }
+        return categoriaDao.obtenerCategorias()
     }
     
     // Método optimizado para categorías (HITO 1.3)
     suspend fun obtenerCategoriasOptimizado(): List<Categoria> {
-        return cacheService.getCategorias {
-            categoriaDao.obtenerCategorias()
-        }
+        return obtenerCategorias()
     }
 
     suspend fun agregarMovimiento(movimiento: MovimientoEntity, metodo: String = "INSERT", dao: String = "MovimientoDao") {
-        // Buscar si ya existe un movimiento con el mismo idUnico
-        val idUnico = movimiento.idUnico
-        val existentes = movimientoDao.obtenerMovimientos().filter { it.idUnico == idUnico }
-        val timestamp = System.currentTimeMillis()
-        if (existentes.isNotEmpty()) {
-            // Ya existe, actualizar — pero preservar campos clasificados manualmente
-            val existente = existentes.first()
-            val movimientoActualizado = movimiento.copy(
-                id = existente.id,
-                // Preservar categoría si el nuevo no trae ninguna (evita que el correo borre clasificaciones manuales)
-                categoriaId = movimiento.categoriaId ?: existente.categoriaId,
-                // Preservar scope y userId del existente si el nuevo no los define
-                scope = movimiento.scope.ifEmpty { existente.scope },
-                userId_internal = movimiento.userId_internal ?: existente.userId_internal,
-                // Preservar tipo si el existente fue marcado como OMITIR
-                tipo = if (existente.tipo == "OMITIR") "OMITIR" else movimiento.tipo,
-                fechaActualizacion = timestamp,
-                metodoActualizacion = "UPDATE_POR_DUPLICADO",
-                daoResponsable = dao
-            )
-            movimientoDao.actualizarMovimiento(movimientoActualizado)
-            auditoriaService.registrarOperacion(
-                tabla = "movimientos",
-                operacion = "UPDATE_POR_DUPLICADO",
-                entidadId = movimientoActualizado.id,
-                detalles = "Movimiento actualizado por duplicado: ${movimientoActualizado.descripcion} - Monto: ${movimientoActualizado.monto} - Tipo: ${movimientoActualizado.tipo}",
-                daoResponsable = dao
-            )
-            cacheService.invalidarCacheMovimientosSinCategoria()
-            cacheService.invalidarCacheEstadisticas()
-            cacheService.invalidarCacheMovimientosPorPeriodo()
-            println("⚠️ DUPLICADO: Movimiento actualizado - ID: ${movimientoActualizado.id}, idUnico: $idUnico, Timestamp: $timestamp")
-        } else {
-            // No existe, insertar normalmente
-            val movimientoNormalizado = normalizacionService.normalizarMovimientoParaGuardar(movimiento)
-        val movimientoConAuditoria = movimientoNormalizado.copy(
-            fechaCreacion = timestamp,
-            fechaActualizacion = timestamp,
-            metodoActualizacion = metodo,
-            daoResponsable = dao
-        )
-        movimientoDao.agregarMovimiento(movimientoConAuditoria)
-        auditoriaService.registrarOperacion(
-            tabla = "movimientos",
-            operacion = "INSERT",
-            entidadId = movimientoConAuditoria.id,
-            detalles = "Movimiento agregado: ${movimientoConAuditoria.descripcion} - Monto: ${movimientoConAuditoria.monto} - Tipo: ${movimientoConAuditoria.tipo}",
-            daoResponsable = dao
-        )
-        cacheService.invalidarCacheMovimientosSinCategoria()
-        cacheService.invalidarCacheEstadisticas()
-        cacheService.invalidarCacheMovimientosPorPeriodo()
-            println("📝 AUDITORÍA: Movimiento agregado - ID: ${movimiento.id}, idUnico: $idUnico, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
+        val categoryName = movimiento.categoriaId?.let { catId ->
+            categoriaDao.obtenerCategorias().firstOrNull { it.id == catId }?.nombre
         }
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        val dateStr = sdf.format(movimiento.fecha)
+
+        val createDto = CreateTransactionDto(
+            amount = movimiento.monto,
+            currency = "CLP",
+            date = dateStr,
+            type = if (movimiento.tipo == "INGRESO" || movimiento.tipo == "INCOME") "INCOME" else "EXPENSE",
+            description = movimiento.descripcion,
+            accountId = "",
+            categoryId = null,
+            categoryName = categoryName,
+            householdId = configuracionPreferences.syncHouseholdId,
+            billingPeriod = movimiento.periodoFacturacion,
+            externalId = movimiento.idUnico
+        )
+
+        api.createTransaction(createDto)
     }
 
     suspend fun actualizarMovimiento(movimiento: MovimientoEntity, metodo: String = "UPDATE", dao: String = "MovimientoDao") {
-        val timestamp = System.currentTimeMillis()
-        val movimientoConAuditoria = movimiento.copy(
-            fechaActualizacion = timestamp,
-            metodoActualizacion = metodo,
-            daoResponsable = dao
-        )
-        movimientoDao.actualizarMovimiento(movimientoConAuditoria)
-        
-        // Registrar auditoría
-        auditoriaService.registrarOperacion(
-            tabla = "movimientos",
-            operacion = "UPDATE",
-            entidadId = movimiento.id,
-            detalles = "Movimiento actualizado: ${movimiento.descripcion} - Monto: ${movimiento.monto} - Categoría: ${movimiento.categoriaId}",
-            daoResponsable = dao
+        val categoryName = movimiento.categoriaId?.let { catId ->
+            categoriaDao.obtenerCategorias().firstOrNull { it.id == catId }?.nombre
+        }
+        val updateDto = UpdateTransactionDto(
+            ignored = movimiento.tipo == "OMITIR",
+            scope = movimiento.scope,
+            userId_internal = movimiento.userId_internal,
+            categoryId = null,
+            categoryName = categoryName
         )
         
-        // Invalidar cache relacionado
-        cacheService.invalidarCacheMovimientosSinCategoria()
-        cacheService.invalidarCacheEstadisticas()
-        cacheService.invalidarCacheMovimientosPorPeriodo()
-        
-        println("📝 AUDITORÍA: Movimiento actualizado - ID: ${movimiento.id}, Método: $metodo, DAO: $dao, Timestamp: $timestamp")
+        api.updateTransaction(movimiento.idUnico, updateDto)
     }
 
     suspend fun eliminarMovimiento(movimiento: MovimientoEntity) {
-        val timestamp = System.currentTimeMillis()
-        println("📝 AUDITORÍA: Eliminando movimiento individual - ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}")
-        
-        // Registrar auditoría antes de eliminar
-        auditoriaService.registrarOperacion(
-            tabla = "movimientos",
-            operacion = "DELETE_INDIVIDUAL",
-            entidadId = movimiento.id,
-            detalles = "Movimiento eliminado: ${movimiento.descripcion} - Monto: ${movimiento.monto} - Tipo: ${movimiento.tipo}",
-            daoResponsable = "MovimientoDao"
-        )
-        
-        // Registrar tombstone para sincronización web (solo si tiene idUnico no vacío)
         if (movimiento.idUnico.isNotEmpty()) {
-            movimientoEliminadoDao.insertarEliminado(
-                MovimientoEliminadoEntity(
-                    idUnico = movimiento.idUnico,
-                    deletedAt = timestamp,
-                    syncPending = true
-                )
-            )
-            println("🗑️ SYNC: Tombstone registrada para idUnico: ${movimiento.idUnico}")
+            api.deleteTransaction(movimiento.idUnico)
         }
-        
-        // Ahora eliminar el movimiento
-        movimientoDao.eliminarMovimiento(movimiento)
-        
-        // Invalidar cache relacionado
-        cacheService.invalidarCacheMovimientosSinCategoria()
-        cacheService.invalidarCacheEstadisticas()
-        cacheService.invalidarCacheMovimientosPorPeriodo()
-        
-        println("✅ AUDITORÍA: Movimiento eliminado exitosamente")
     }
 
     suspend fun obtenerIdUnicos(): Set<String> {
-        return movimientoDao.obtenerIdUnicos().toSet()
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) return emptySet()
+        val response = api.refresh(householdId)
+        return response.transactions.map { it.idUnico }.toSet()
     }
 
     suspend fun obtenerIdUnicosPorPeriodo(periodo: String?): Set<String> {
-        return movimientoDao.obtenerIdUnicosPorPeriodo(periodo).toSet()
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) return emptySet()
+        val response = api.refresh(householdId = householdId, billingPeriod = periodo)
+        return response.transactions.map { it.idUnico }.toSet()
     }
 
     suspend fun obtenerCategoriasPorIdUnico(periodo: String?): Map<String, Long?> {
-        return movimientoDao.obtenerCategoriasPorIdUnico(periodo).associate { it.idUnico to it.categoriaId }
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) return emptyMap()
+        val response = api.refresh(householdId = householdId, billingPeriod = periodo)
+        val allCats = categoriaDao.obtenerCategorias()
+        val catNameToId = allCats.associate { it.nombre.lowercase().trim() to it.id }
+        return response.transactions.associate { t ->
+            val catId = t.categoryName.lowercase().trim().let { catNameToId[it] }
+            t.idUnico to catId
+        }
     }
 
     suspend fun eliminarMovimientosPorPeriodo(periodo: String?) {
-        val timestamp = System.currentTimeMillis()
-        println("📝 AUDITORÍA: Eliminando movimientos por período - Período: $periodo, Timestamp: $timestamp")
-        
-        // Obtener los movimientos que se van a eliminar para registrar auditoría y registrar tombstones
-        val movimientosAEliminar = movimientoDao.obtenerMovimientos().filter { 
-            it.periodoFacturacion == periodo 
+        if (periodo != null) {
+            api.deleteTransactionsByPeriod(periodo)
         }
-        
-        println("📝 AUDITORÍA: Movimientos a eliminar: ${movimientosAEliminar.size}")
-        
-        // Registrar auditoría y tombstone para cada movimiento antes de eliminarlo
-        movimientosAEliminar.forEach { movimiento ->
-            auditoriaService.registrarOperacion(
-                tabla = "movimientos",
-                operacion = "DELETE_PERIODO",
-                entidadId = movimiento.id,
-                detalles = "Movimiento eliminado por período $periodo: ${movimiento.descripcion} - Monto: ${movimiento.monto}",
-                daoResponsable = "MovimientoDao"
-            )
-            if (movimiento.idUnico.isNotEmpty()) {
-                movimientoEliminadoDao.insertarEliminado(
-                    MovimientoEliminadoEntity(
-                        idUnico = movimiento.idUnico,
-                        deletedAt = timestamp,
-                        syncPending = true
-                    )
-                )
-            }
-            println("📝 AUDITORÍA: Registrada eliminación y tombstone para movimiento ID: ${movimiento.id}, Descripción: ${movimiento.descripcion}")
-        }
-        
-        // Ahora eliminar los movimientos
-        movimientoDao.eliminarMovimientosPorPeriodo(periodo)
-        
-        // Invalidar cache relacionado
-        cacheService.invalidarCacheMovimientosSinCategoria()
-        cacheService.invalidarCacheEstadisticas()
-        cacheService.invalidarCacheMovimientosPorPeriodo()
-        
-        println("✅ AUDITORÍA: Eliminación completada para período: $periodo")
     }
     
     // Métodos de auditoría
@@ -408,5 +478,13 @@ class MovimientoRepository @Inject constructor(
         val fechaFin = calendar.time
         
         return Pair(fechaInicio, fechaFin)
+    }
+
+    suspend fun obtenerDashboardData(periodo: String): DashboardResponse {
+        val householdId = configuracionPreferences.syncHouseholdId
+        if (householdId.isBlank()) {
+            throw java.io.IOException("Servidor no configurado. Vincula tu cuenta en Configuración.")
+        }
+        return api.getDashboardData(householdId, period = periodo)
     }
 }

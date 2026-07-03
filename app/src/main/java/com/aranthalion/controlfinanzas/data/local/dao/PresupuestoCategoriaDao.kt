@@ -34,4 +34,7 @@ interface PresupuestoCategoriaDao {
 
     @Query("SELECT * FROM presupuesto_categoria ORDER BY periodo DESC")
     suspend fun obtenerTodosLosPresupuestos(): List<PresupuestoCategoriaEntity>
+
+    @Query("DELETE FROM presupuesto_categoria")
+    suspend fun eliminarTodosLosPresupuestos()
 } 

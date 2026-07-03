@@ -1,10 +1,15 @@
 package com.aranthalion.controlfinanzas.presentation.configuracion
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.aranthalion.controlfinanzas.data.local.ConfiguracionPreferences
-import com.aranthalion.controlfinanzas.data.remote.sync.SyncService
+import com.aranthalion.controlfinanzas.data.sync.CacheRefreshWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +25,7 @@ enum class TemaApp {
 @HiltViewModel
 class ConfiguracionViewModel @Inject constructor(
     private val prefs: ConfiguracionPreferences,
-    private val syncService: SyncService
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _temaSeleccionado = MutableStateFlow(TemaApp.NARANJA)
     val temaSeleccionado: StateFlow<TemaApp> = _temaSeleccionado.asStateFlow()
@@ -163,13 +168,31 @@ class ConfiguracionViewModel @Inject constructor(
         viewModelScope.launch {
             _isSyncing.value = true
             _syncStatus.value = "Sincronizando..."
-            val result = syncService.sincronizar()
-            _isSyncing.value = false
-            result.onSuccess { msg ->
-                _syncStatus.value = msg
-                _lastSyncTimestamp.value = prefs.lastSyncTimestamp
-            }.onFailure { err ->
-                _syncStatus.value = "Error: ${err.message ?: "Falló la conexión"}"
+            
+            val workManager = WorkManager.getInstance(context)
+            val request = OneTimeWorkRequestBuilder<CacheRefreshWorker>()
+                .addTag("ManualCacheRefresh")
+                .build()
+            
+            workManager.enqueue(request)
+            
+            workManager.getWorkInfoByIdFlow(request.id).collect { workInfo ->
+                if (workInfo != null) {
+                    when (workInfo.state) {
+                        WorkInfo.State.SUCCEEDED -> {
+                            _isSyncing.value = false
+                            _syncStatus.value = "Sincronización completada con éxito."
+                            _lastSyncTimestamp.value = prefs.lastSyncTimestamp
+                        }
+                        WorkInfo.State.FAILED -> {
+                            _isSyncing.value = false
+                            _syncStatus.value = "Error al sincronizar con el servidor."
+                        }
+                        else -> {
+                            // en progreso
+                        }
+                    }
+                }
             }
         }
     }
@@ -199,4 +222,4 @@ class ConfiguracionViewModel @Inject constructor(
             )
         }
     }
-} 
+}

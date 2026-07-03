@@ -18,12 +18,12 @@ import com.aranthalion.controlfinanzas.data.local.dao.PresupuestoCategoriaDao
 import com.aranthalion.controlfinanzas.data.local.dao.SueldoDao
 import com.aranthalion.controlfinanzas.data.local.dao.UsuarioDao
 import com.aranthalion.controlfinanzas.data.local.dao.CuentaPorCobrarDao
-import com.aranthalion.controlfinanzas.data.local.dao.MovimientoEliminadoDao
+import com.aranthalion.controlfinanzas.data.local.dao.OfflineOperationDao
 import com.aranthalion.controlfinanzas.data.local.entity.AuditoriaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.Categoria
 import com.aranthalion.controlfinanzas.data.local.entity.ClasificacionAutomaticaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEntity
-import com.aranthalion.controlfinanzas.data.local.entity.MovimientoEliminadoEntity
+import com.aranthalion.controlfinanzas.data.local.entity.OfflineOperationEntity
 import com.aranthalion.controlfinanzas.data.local.entity.PresupuestoCategoriaEntity
 import com.aranthalion.controlfinanzas.data.local.entity.SueldoEntity
 import com.aranthalion.controlfinanzas.data.local.entity.UsuarioEntity
@@ -41,9 +41,9 @@ import com.aranthalion.controlfinanzas.data.movimiento.MovimientoManualEntity
         UsuarioEntity::class,
         CuentaPorCobrarEntity::class,
         AuditoriaEntity::class,
-        MovimientoEliminadoEntity::class
+        OfflineOperationEntity::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -57,7 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
     abstract fun cuentaPorCobrarDao(): CuentaPorCobrarDao
     abstract fun auditoriaDao(): AuditoriaDao
-    abstract fun movimientoEliminadoDao(): MovimientoEliminadoDao
+    abstract fun offlineOperationDao(): OfflineOperationDao
 
     companion object {
         private const val TAG = "AppDatabase"
@@ -245,6 +245,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migración de la versión 21 a la 22: eliminar tabla movimientos_eliminados y crear offline_operations
+        private val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d(TAG, "Ejecutando migración 21->22: eliminando tabla movimientos_eliminados y creando offline_operations")
+                database.execSQL("DROP TABLE IF EXISTS movimientos_eliminados")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS offline_operations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        entityType TEXT NOT NULL,
+                        operationType TEXT NOT NULL,
+                        entityId TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        retryCount INTEGER NOT NULL,
+                        lastError TEXT
+                    )
+                """)
+                Log.d(TAG, "Migración 21->22 completada")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Log.d(TAG, "Inicializando base de datos...")
@@ -253,7 +274,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "control_finanzas_db"
                 )
-                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
+                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22)
                 .fallbackToDestructiveMigration() // Permite recrear la BD si la migración falla
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

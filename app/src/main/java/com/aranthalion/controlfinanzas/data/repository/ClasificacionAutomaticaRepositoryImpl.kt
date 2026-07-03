@@ -126,12 +126,23 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
             try {
                 Log.d("ClasificacionRepo", "🔄 Actualizando cache de clasificaciones...")
                 
-                // Obtener todas las transacciones ya clasificadas
-                val movimientosClasificados = movimientoDao.obtenerMovimientosConCategoria()
-                
                 // Crear cache de clasificaciones históricas
                 val nuevoCache = mutableMapOf<String, Long>()
                 
+                // 1. Cargar patrones aprendidos en BD primero (tienen menor prioridad que transacciones reales si hay conflicto)
+                try {
+                    val patrones = clasificacionDao.obtenerTodosLosPatrones()
+                    for (patron in patrones) {
+                        if (patron.nivelConfianza >= 0.5) {
+                            nuevoCache[patron.patron] = patron.categoriaId
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("ClasificacionRepo", "Error al cargar patrones en cache: ${e.message}")
+                }
+
+                // 2. Cargar transacciones clasificadas reales (tienen mayor prioridad)
+                val movimientosClasificados = movimientoDao.obtenerMovimientosConCategoria()
                 for (movimiento in movimientosClasificados) {
                     if (movimiento.categoriaId != null) {
                         val descripcionNormalizada = ClasificacionNormalizer.normalizarDescripcion(movimiento.descripcion)
@@ -415,11 +426,11 @@ class ClasificacionAutomaticaRepositoryImpl @Inject constructor(
     }
 
     private fun calcularConfianza(frecuencia: Int, longitudPatron: Int): Double {
-        // Fórmula mejorada para calcular confianza
-        val confianzaFrecuencia = minOf(frecuencia / 5.0, 1.0) // Más sensible a la frecuencia
-        val confianzaLongitud = minOf(longitudPatron / 15.0, 1.0) // Ajustado para patrones más cortos
-        val confianzaFinal = (confianzaFrecuencia * 0.8 + confianzaLongitud * 0.2).coerceIn(0.0, 1.0)
-        Log.d("ClasificacionRepo", "🧮 Cálculo de confianza: Frecuencia=$frecuencia, Longitud=$longitudPatron, ConfianzaFrecuencia=$confianzaFrecuencia, ConfianzaLongitud=$confianzaLongitud, Final=$confianzaFinal")
+        // Human-verified patterns should have high confidence even with frequency = 1
+        val baseConfianza = 0.90
+        val confianzaFrecuencia = minOf((frecuencia - 1) / 5.0, 0.10)
+        val confianzaFinal = (baseConfianza + confianzaFrecuencia).coerceIn(0.0, 1.0)
+        Log.d("ClasificacionRepo", "🧮 Cálculo de confianza: Frecuencia=$frecuencia, Longitud=$longitudPatron, Confianza=$confianzaFinal")
         return confianzaFinal
     }
 
